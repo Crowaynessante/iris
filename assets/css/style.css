@@ -36,11 +36,42 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 .auth-submit { width: 100%; border: 0; background: var(--clsu-700); color: #fff; min-height: 48px; }
 .auth-submit:hover { background: var(--clsu-800); }
 .auth-submit:disabled { cursor: wait; opacity: .78; }
+
+/* ===== Auth card (login + register) ===== */
 .auth-card { background: #fff; }
 .dark .auth-card { background: #12231a; }
 .dark .auth-card h1, .dark .auth-card label { color: #e5f4e9; }
-.dark .auth-card input { background: #0b1711; border-color: #365d45; color: #e5f4e9; }
+
+/* Keep the logo tile white in both themes */
+.auth-logo-wrap { background-color: #ffffff !important; }
+
+/* Light mode: gray fields so they read clearly against the white card */
+.auth-card input {
+    background: #f1f5f2;
+    border: 1px solid #d3ddd7;
+    color: var(--ink);
+}
+.auth-card input::placeholder { color: #7c8f83; }
+.auth-card input:focus {
+    background: #fff;
+    border-color: var(--clsu-500);
+    box-shadow: 0 0 0 3px rgba(42,169,87,.16);
+}
+
+/* Dark mode: distinct from the page canvas, not the same color as it */
+.dark .auth-card input {
+    background: #1b3327;
+    border: 1px solid #45664f;
+    color: #f2f8f4;
+}
 .dark .auth-card input::placeholder { color: #a8c0ae; }
+.dark .auth-card input:focus {
+    background: #21402f;
+    border-color: var(--clsu-400);
+    box-shadow: 0 0 0 3px rgba(87,201,121,.22);
+}
+/* ===== End auth card ===== */
+
 .table-scroll { overflow-x: auto; }
 .table-scroll table { min-width: 720px; }
 .data-table th { color: var(--muted); font-size: .7rem; text-transform: uppercase; letter-spacing: .09em; font-weight: 700; }
