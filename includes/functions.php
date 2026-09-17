@@ -1,14 +1,16 @@
 <?php
 // ============================================
-// Shared helpers: session start, auth guards, sanitizer
-// Include this at the very top of every protected page.
+// Shared helpers for retired legacy pages. Laravel owns authentication now.
 // ============================================
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+$db = require __DIR__ . '/../config/db.php';
+$conn = mysqli_connect($db['host'], $db['user'], $db['password'], $db['database'], $db['port']);
+
+if (!$conn) {
+    die("Database connection failed: " . mysqli_connect_error());
 }
 
-require_once __DIR__ . '/../config/db.php';
+mysqli_set_charset($conn, 'utf8mb4');
 
 function clean($value) {
     global $conn;
@@ -50,17 +52,12 @@ function is_admin() {
 
 // Call at the top of any page only logged-in users may see
 function require_login() {
-    if (!is_logged_in()) {
-        header("Location: /iris/auth/login.php");
-        exit();
-    }
+    header('Location: /login', true, 302);
+    exit();
 }
 
 // Call at the top of any admin-only page
 function require_admin() {
-    require_login();
-    if (!is_admin()) {
-        header("Location: /iris/user/dashboard.php");
-        exit();
-    }
+    header('Location: /admin/dashboard', true, 302);
+    exit();
 }

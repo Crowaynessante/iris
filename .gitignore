@@ -10,3 +10,5 @@
 /storage/logs/*
 /public/hot
 /public/storage
+/node_modules/
+/public/build/

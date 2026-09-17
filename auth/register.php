@@ -1,5 +1,7 @@
 <?php
-require_once __DIR__ . '/../includes/functions.php';
+
+header('Location: /register', true, 302);
+exit();
 
 $error = "";
 $success = "";
