@@ -1,0 +1,1 @@
+<?php require_once __DIR__.'/includes/functions.php';if(!empty($_SESSION['user_id']))redirect_to(($_SESSION['role']??'user')==='admin'?'admin/dashboard.php':'user/dashboard.php');redirect_to('auth/login.php');

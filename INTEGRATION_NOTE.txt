@@ -1,0 +1,7 @@
+IRIS scanner integration
+
+This build integrates the uploaded IRIS scanner frontend into the Plain PHP project.
+PHP authentication, PHP API endpoints, and PHP-compatible database manager are preserved.
+The user dashboard is unchanged.
+The admin dashboard navigation is preserved from the ADMIN-NAV-FIX build.
+The scanner remains available at /scanner/index.php and requires an authenticated admin session.

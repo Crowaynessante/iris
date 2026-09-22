@@ -1,0 +1,619 @@
+<?php require_once __DIR__ . '/../includes/functions.php'; require_admin(); ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLSU Performance Observatory — IRIS AI File Scanner & Ingestion System</title>
+  <meta name="description" content="Central Luzon State University (CLSU) IRIS AI File Scanner for Spreadsheets, PDFs, and Word DOCX with draft chart suggestions and Admin data editor.">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { corePlugins: { preflight: false } };
+  </script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flowbite@2.5.2/dist/flowbite.min.css">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
+
+  <!-- External Parsing & Charting CDN Libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docx-preview@latest/dist/docx-preview.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx-preview@latest/dist/docx-preview.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+</head>
+<body>
+
+  <!-- App Header — CLSU Institutional Style -->
+  <header class="app-header">
+    <div class="brand-container">
+      <div class="brand-logo-seal"><i class="fa-solid fa-seedling" aria-hidden="true"></i></div>
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.6rem;">
+          <span class="brand-title">CLSU Performance Observatory</span>
+          <span class="brand-badge">IRIS File Ingestion</span>
+        </div>
+        <div class="brand-subline">Central Luzon State University • International Rapport Insight System</div>
+      </div>
+    </div>
+
+    <nav class="header-nav">
+      <a href="../admin/dashboard.php" class="nav-btn"><i class="fa-solid fa-gear" aria-hidden="true"></i> Admin Portal</a>
+      <a href="../user/dashboard.php" class="nav-btn"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Observatory</a>
+      <button id="navScannerBtn" class="nav-btn active">
+        <span><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></span> Review Workspace
+      </button>
+    </nav>
+  </header>
+
+  <!-- App Main Container -->
+  <main class="app-container">
+
+    <!-- ================= SCANNER WORKSPACE VIEW ================= -->
+    <section id="scannerWorkspaceView">
+
+      <div class="clsu-section-title">
+        <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> University-Wide Overview & Ingestion
+      </div>
+
+      <!-- Hero File Dropzone -->
+      <div id="dropzone" class="dropzone-container">
+        
+        <div class="dropzone-icon">
+          <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+          </svg>
+        </div>
+
+        <h1 class="dropzone-title">Upload Spreadsheets, PDFs, or Word Documents</h1>
+        <p class="dropzone-subtitle">Multi-sheet parsing, institutional text extraction, and draft visualization suggestions for university performance metrics</p>
+
+        <div class="format-badges">
+          <span class="format-chip excel"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Spreadsheets (XLSX, XLS, CSV)</span>
+          <span class="format-chip pdf"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> PDF Documents (Reports & Infographs)</span>
+          <span class="format-chip docx"><i class="fa-solid fa-file-pen" aria-hidden="true"></i> Word (DOCX Status Links)</span>
+          <!-- [SLATED FOR REVIEW & REVISION]: Standalone image OCR scanning temporarily disabled
+          <span class="format-chip image"><i class="fa-solid fa-image" aria-hidden="true"></i> Images (PNG, JPG, WEBP)</span>
+          -->
+        </div>
+
+        <!-- [SLATED FOR REVIEW & REVISION]: Image upload formats disabled (*.png, *.jpg, *.webp) -->
+        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv,.docx,.doc,.pdf" style="display: none;">
+        
+        <div style="margin-bottom: 1.5rem;">
+          <button id="btnBrowse" class="btn-icon" style="padding: 0.75rem 2rem; font-size: 0.95rem; margin: 0 auto;">
+            <span><i class="fa-solid fa-folder" aria-hidden="true"></i></span> Browse Institutional Files
+          </button>
+        </div>
+
+        <!-- 1-Click Pre-loaded Institutional Samples -->
+        <div class="samples-container">
+          <span class="samples-label">Test 1-Click Samples:</span>
+          <button class="sample-btn" data-sample="payroll">
+            <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> QAO Evaluation Scores (.xlsx)
+          </button>
+          <button class="sample-btn" data-sample="pdf">
+            <span><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span> OAD Infograph Stats (.pdf)
+          </button>
+          <button class="sample-btn" data-sample="contract">
+            <span><i class="fa-solid fa-file-pen" aria-hidden="true"></i></span> Program Accreditation (.docx)
+          </button>
+          <!-- [SLATED FOR REVIEW & REVISION]: Sample image scanning disabled
+          <button class="sample-btn" data-sample="invoice">
+            <span><i class="fa-solid fa-image" aria-hidden="true"></i></span> Performance Certificate (.png)
+          </button>
+          -->
+        </div>
+      </div>
+
+      <!-- Real-time Progress Bar -->
+      <div id="progressCard" class="progress-card">
+        <div class="progress-header">
+          <span id="progressStatus">Initializing scanner...</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-track">
+          <div id="progressFill" class="progress-fill"></div>
+        </div>
+      </div>
+
+      <!-- Main Results Workspace Grid -->
+      <div id="workspaceGrid" class="workspace-grid" style="display: none;">
+
+        <!-- Left Batch Sidebar Queue -->
+        <aside class="queue-sidebar">
+          <div class="sidebar-title">
+            <span>Ingestion Queue (<span id="queueCount">0</span>)</span>
+            <button id="btnClearQueue" style="background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.75rem; font-weight: 700;">Clear All</button>
+          </div>
+          <div id="queueList" class="queue-list">
+            <!-- Queue Items dynamically populated -->
+          </div>
+        </aside>
+
+        <!-- Right Main Inspection Panel -->
+        <section class="content-workspace">
+
+          <!-- Workspace Tabs -->
+          <div class="workspace-tabs">
+            <button class="tab-btn active" data-tab="tabOverview">
+              <span><i class="fa-solid fa-clipboard" aria-hidden="true"></i></span> Extracted Fields & Overview
+            </button>
+            <button class="tab-btn" data-tab="tabViewer">
+              <span><i class="fa-solid fa-eye" aria-hidden="true"></i></span> Document & Data Viewer
+            </button>
+            <button class="tab-btn" data-tab="tabGraphs">
+              <span><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span> Draft Visualizations (<span id="draftsCountBadge">0</span>)
+            </button>
+          </div>
+
+          <!-- TAB 1: EXTRACTED FIELDS & OVERVIEW -->
+          <div id="tabOverview" class="tab-panel active">
+            <div class="metrics-row">
+              <div class="summary-card">
+                <div class="summary-title">
+                  <span id="summaryDocTitle">Extracted Document Analysis</span>
+                  <span id="docFormatBadge" class="format-chip excel">Format</span>
+                </div>
+                <p id="executiveSummaryText" class="summary-text">Select or scan a file to inspect extracted fields.</p>
+                
+                <h4 style="font-size: 0.88rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.75rem; color: var(--clsu-green);">Extracted Data Fields & Key Metrics</h4>
+                <div id="extractedFieldsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;">
+                  <!-- Dynamically populated field cards -->
+                </div>
+
+                <h4 style="font-size: 0.88rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem; color: var(--clsu-green);">Identified Structure Highlights</h4>
+                <ul id="takeawayList" class="takeaway-list">
+                  <!-- Highlights dynamically populated -->
+                </ul>
+              </div>
+            </div>
+
+            <!-- Quick Action Toolbar -->
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; padding-top: 1rem; border-top: 1px solid var(--border-light); justify-content: space-between; align-items: center;">
+              <div style="font-size: 0.82rem; color: var(--text-muted);">
+                Status: <span class="badge badge-low" style="display: inline-block;">Draft (Pending Admin Review)</span>
+              </div>
+              <div style="display: flex; gap: 0.75rem;">
+                <button id="btnOpenInEditor" class="btn-icon">
+                  <span><i class="fa-solid fa-pen" aria-hidden="true"></i></span> Open review editor
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- TAB 2: DATA & CONTENT VIEWER -->
+          <div id="tabViewer" class="tab-panel">
+            <div id="viewerControls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <span id="viewerFileMeta" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">File Details</span>
+              <div id="sheetSelectorContainer" style="display: none;">
+                <label style="font-size: 0.82rem; margin-right: 0.5rem; color: var(--clsu-green); font-weight: 700;">Worksheet:</label>
+                <select id="sheetSelect" class="form-input" style="width: auto; padding: 0.35rem 0.75rem; display: inline-block;"></select>
+              </div>
+            </div>
+
+            <div id="viewerContentArea" style="min-height: 450px;">
+              <!-- Dynamically renders Data Grid for Excel, Reader for DOCX, or PDF canvas -->
+            </div>
+          </div>
+
+          <!-- TAB 3: DATA GRAPH VISUALIZATION DRAFTS -->
+          <div id="tabGraphs" class="tab-panel">
+            <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--clsu-green);">Draft Visualization Suggestions</h3>
+                <p style="font-size: 0.85rem; color: var(--text-muted);">Institutional chart drafts (Bar, Line, Pie) pending Admin review & approval.</p>
+              </div>
+              <span class="badge badge-low">Draft Only — Not Auto-Published</span>
+            </div>
+
+            <div id="graphDraftsContainer">
+              <!-- Graph Cards dynamically populated -->
+            </div>
+          </div>
+
+        </section>
+      </div>
+
+    </section>
+
+    <!-- ================= ADMIN DATA DASHBOARD VIEW ================= -->
+    <section id="adminDatabaseView" style="display: none;">
+      
+      <div class="clsu-section-title">
+        <span><i class="fa-solid fa-database" aria-hidden="true"></i></span> Review archive & record history
+      </div>
+
+      <div class="workspace-tabs" style="margin-bottom: 1.25rem;">
+        <button class="admin-tab-btn active" data-admin-tab="adminRecordsPanel">
+          <span><i class="fa-solid fa-clipboard" aria-hidden="true"></i></span> Records & Dashboard Studio
+        </button>
+        <button class="admin-tab-btn" data-admin-tab="adminSavedGraphsPanel">
+          <span><i class="fa-solid fa-folder-tree" aria-hidden="true"></i></span> Saved Dashboard Graphs
+        </button>
+      </div>
+
+      <div id="adminSavedGraphsPanel" class="admin-tab-panel" style="display: none;">
+        <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--clsu-green);">Saved Dashboard Graphs</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Approved and saved chart versions grouped per file record.</p>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <button id="savedGraphsViewAllBtn" type="button" class="saved-graphs-bulk-button">View All</button>
+            <label style="font-size: 0.78rem; font-weight: 800; color: #334155; text-transform: uppercase;">File:</label>
+            <select id="savedGraphsRecordSelect" class="form-input" style="width: auto; min-width: 220px;">
+              <option value="">Loading files...</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="savedGraphsBulkToolbar" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding: 0.75rem 1rem; background: #F8FAF8; border: 1px solid var(--border-light); border-radius: var(--radius-sm);">
+          <label style="display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 700; font-size: 0.82rem;">
+            <input id="savedGraphsSelectAll" type="checkbox"> Select All
+          </label>
+          <span id="savedGraphsSelectionCount" style="font-size: 0.8rem; color: var(--text-muted);">0 selected</span>
+          <button id="savedGraphsPrintAll" type="button" class="saved-graphs-bulk-button" disabled>Print All</button>
+          <button id="savedGraphsExportSelected" type="button" class="saved-graphs-bulk-button" disabled>Export</button>
+          <button id="savedGraphsDeleteSelected" type="button" class="archive-delete-button" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
+        </div>
+
+        <div id="savedDashboardGraphsContainer">
+          <!-- Saved graph cards dynamically populated -->
+        </div>
+      </div>
+
+      <div id="adminRecordsPanel" class="admin-tab-panel active">
+
+      <!-- Admin Header Banner -->
+      <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-left: 5px solid var(--clsu-green); border-radius: var(--radius-lg); padding: 1.5rem 2rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: var(--card-shadow);">
+        <div>
+          <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--clsu-green);">Review record editor</h2>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Review extracted fields, edit tabular cells, update draft status, and approve visualizations for the CLSU Observatory.</p>
+        </div>
+      </div>
+
+      <!-- Admin Stats Summary Bar -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+        <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">TOTAL SCANNED FILES</div>
+          <div id="statTotalDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-green);">0</div>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">PENDING DRAFTS</div>
+          <div id="statPendingDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-gold-dark);">0</div>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">APPROVED FOR DASHBOARD</div>
+          <div id="statVerifiedDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-green-light);">0</div>
+        </div>
+        <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">EXTRACTED TABLES</div>
+          <div id="statTablesDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-green);">0</div>
+        </div>
+      </div>
+
+      <!-- ================= LIVE DASHBOARD STUDIO WORKBENCH ================= -->
+      <div class="studio-container" id="studioContainer" style="margin-bottom: 2rem;">
+        
+        <!-- Studio Header & Active Record Switcher -->
+        <div class="studio-header-card">
+          <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: space-between; width: 100%;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span style="font-size: 1.4rem;"><i class="fa-solid fa-palette" aria-hidden="true"></i></span>
+              <div>
+                <div style="font-size: 0.75rem; font-weight: 800; color: var(--clsu-green); text-transform: uppercase; letter-spacing: 0.05em;">ACTIVE DASHBOARD STUDIO WORKBENCH</div>
+                <div style="font-size: 1.2rem; font-weight: 800; color: #0F172A;" id="studioActiveFileName">Loading Scanned Dataset...</div>
+              </div>
+            </div>
+
+            <!-- Quick Document Switcher -->
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <label style="font-size: 0.82rem; font-weight: 800; color: #334155; text-transform: uppercase;">Switch Dataset:</label>
+              <select id="studioRecordSelect" class="form-input" style="width: auto; min-width: 250px; font-weight: 700; color: #0F172A;"></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Studio 2-Column Split View: Source Document (Left) vs Live Chart & Field Studio (Right) -->
+        <div class="studio-grid">
+          
+          <!-- LEFT COLUMN: Scanned Document Window Screen (Side-by-Side Document Reader) -->
+          <div class="studio-left-card">
+            <div class="studio-card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+              <span><i class="fa-solid fa-window-maximize" aria-hidden="true"></i> Scanned Source Document Window</span>
+              <span class="badge badge-low" style="font-size: 0.68rem; background: #ECFDF5; color: #047857;">Live Ingestion View</span>
+            </div>
+            <p style="font-size: 0.78rem; color: #64748B; margin-bottom: 0.75rem;">
+              Read the full file directly side-by-side. Click any cell or word to copy value directly into your dashboard fields.
+            </p>
+
+            <!-- Document Viewer Container (Adobe Acrobat Style Document Viewer) -->
+            <div class="doc-viewer-container">
+              <!-- Adobe Acrobat Style Dark Sleek Toolbar -->
+              <div class="acrobat-toolbar">
+                <div class="acrobat-title-group">
+                  <span class="acrobat-badge-icon" id="acrobatDocBadge">PDF</span>
+                  <span class="acrobat-filename" id="docWindowTitle">document.docx</span>
+                </div>
+
+                <!-- Page Navigator Controls -->
+                <div class="acrobat-controls-center" id="acrobatPageNavControls">
+                  <button type="button" id="btnAcrobatPrevPage" class="acrobat-tool-btn" title="Previous Page">▲</button>
+                  <input type="number" id="acrobatCurrentPageInput" class="acrobat-page-input" value="1" min="1" max="1" title="Go to Page">
+                  <span style="font-size: 0.72rem; color: #94A3B8;">/</span>
+                  <span id="acrobatTotalPagesSpan" style="font-size: 0.72rem; color: #E2E8F0; font-weight: 600;">1</span>
+                  <button type="button" id="btnAcrobatNextPage" class="acrobat-tool-btn" title="Next Page">▼</button>
+                </div>
+
+                <!-- Zoom & Sheet Controls -->
+                <div class="acrobat-controls-right">
+                  <!-- Sheet Selector (for spreadsheets) -->
+                  <div id="studioDocSheetSelectorContainer" style="display: none; align-items: center; gap: 0.35rem;">
+                    <span style="font-size: 0.72rem; color: #CBD5E1; font-weight: 600;">Sheet:</span>
+                    <select id="studioDocSheetSelect" class="form-input doc-sheet-select" style="background: #202225 !important; color: #FFF !important; border-color: #4A4E53 !important;"></select>
+                  </div>
+
+                  <!-- Zoom Controls (for Word/PDF/OCR) -->
+                  <div id="acrobatZoomControlsGroup" style="display: flex; align-items: center; gap: 0.25rem; background: #202225; padding: 0.15rem 0.4rem; border-radius: 4px; border: 1px solid #3A3E42;">
+                    <button type="button" id="btnAcrobatZoomOut" class="acrobat-tool-btn" title="Zoom Out">−</button>
+                    <span id="acrobatZoomValue" class="acrobat-zoom-label">100%</span>
+                    <button type="button" id="btnAcrobatZoomIn" class="acrobat-tool-btn" title="Zoom In">+</button>
+                    <button type="button" id="btnAcrobatFitWidth" class="acrobat-tool-btn" title="Fit Width" style="font-size: 0.68rem; margin-left: 2px;">↔</button>
+                  </div>
+
+                  <!-- Hidden span for JS stats compatibility -->
+                  <span id="docWindowPageCount" style="display: none;"></span>
+                  <span id="docWindowWordCount" style="display: none;"></span>
+                </div>
+              </div>
+
+              <!-- Acrobat Slate Viewport Canvas (Scroll Down Pages & Side Scroll Document) -->
+              <div id="studioDocContentArea" class="acrobat-viewer-body">
+                <div class="acrobat-page-card">
+                  <p style="color: #64748B; text-align: center;">Loading document content...</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quick copy helper note -->
+            <div style="margin-top: 0.65rem; font-size: 0.74rem; color: #64748B; display: flex; align-items: center; justify-content: space-between;">
+              <span><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <strong>Tip:</strong> Highlight or click any text to copy directly.</span>
+              <span id="docWindowCopyStatus" style="color: var(--clsu-green); font-weight: 700;"></span>
+            </div>
+          </div>
+
+          <!-- RIGHT COLUMN: Live Chart & Field Editor -->
+          <div class="studio-right-card">
+            
+            <!-- Live Chart Visualization Card -->
+            <div class="studio-chart-box">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
+                <div style="flex: 1; min-width: 250px;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                    <span style="font-size: 0.82rem; font-weight: 800; color: var(--clsu-green); text-transform: uppercase;">Chart Title:</span>
+                    <input type="text" id="studioChartTitleInput" class="form-input" value="Observatory Draft" placeholder="Type chart title..." style="padding: 0.3rem 0.65rem; font-size: 0.95rem; font-weight: 800; color: var(--clsu-green); border: 1.5px solid #CBD5E1; background: #FFFFFF; flex: 1;" title="Click to edit the chart title">
+                  </div>
+                  <p id="studioChartSubtitleDisplay" style="font-size: 0.78rem; color: #64748B;">Live interactive rendering from data fields below</p>
+                </div>
+                
+                <!-- Chart Type Selector -->
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                  <label style="font-size: 0.78rem; font-weight: 800; color: #334155; text-transform: uppercase;">Chart Type:</label>
+                  <select id="studioChartTypeSelect" class="form-input" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.82rem; font-weight: 700; color: #0F172A;">
+                    <option value="bar"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Bar Chart</option>
+                    <option value="line"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Line Chart</option>
+                    <option value="pie"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Pie Chart</option>
+                    <option value="doughnut"><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i> Doughnut Chart</option>
+                    <option value="polarArea"><i class="fa-solid fa-compass" aria-hidden="true"></i> Polar Area</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Field Mapping Controls (chart-type aware) -->
+              <div id="studioFieldMappingRow" style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: var(--radius-sm); padding: 0.65rem 1rem; margin-bottom: 0.75rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;">
+                <span style="font-size: 0.78rem; font-weight: 800; color: #1D4ED8; text-transform: uppercase;"><i class="fa-solid fa-ruler-combined" aria-hidden="true"></i> Field Mapping:</span>
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <label style="font-size: 0.75rem; font-weight: 700; color: #334155; white-space: nowrap;" id="studioCategoryLabel">Category (X-axis):</label>
+                  <select id="studioCategoryCol" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Category column"></select>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <label style="font-size: 0.75rem; font-weight: 700; color: #334155; white-space: nowrap;" id="studioValueLabel">Value (Y-axis):</label>
+                  <select id="studioValueCol" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Value column"></select>
+                </div>
+                <div id="studioFieldWarning" style="display:none; font-size: 0.75rem; color: #DC2626; font-weight: 700; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 4px; padding: 0.2rem 0.6rem;"></div>
+              </div>
+
+              <div style="background: #F8FAF8; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 0.65rem 1rem; margin-bottom: 0.85rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;">
+                <span style="font-size: 0.78rem; font-weight: 800; color: #334155; text-transform: uppercase;"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Filter extracted rows:</span>
+                <select id="studioFilterField" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Filter data scope">
+                  <option value="all">All selected data</option>
+                  <option value="context">Context / label only</option>
+                  <option value="value">Metric / value only</option>
+                </select>
+                <select id="studioFilterOperator" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Filter operator">
+                  <option value="all">All rows</option>
+                  <option value="contains">Contains</option>
+                  <option value="starts-with">Starts with</option>
+                  <option value="ends-with">Ends with</option>
+                  <option value="equals">Equals</option>
+                  <option value="not-equals">Does not equal</option>
+                  <option value="greater-than">Value greater than</option>
+                  <option value="less-than">Value less than</option>
+                  <option value="between">Value between</option>
+                </select>
+                <input id="studioFilterValue" class="form-input" type="search" placeholder="Broad search across selected data..." style="min-width: 190px; flex: 1; padding: 0.3rem 0.65rem; font-size: 0.78rem;" aria-label="Filter value">
+                <input id="studioFilterUpperValue" class="form-input" type="number" placeholder="Maximum" style="display: none; width: 6.5rem; padding: 0.3rem 0.65rem; font-size: 0.78rem;" aria-label="Filter maximum value">
+                <select id="studioSortOrder" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Sort chart rows">
+                  <option value="source">Source order</option>
+                  <option value="value-asc">Metric: low to high</option>
+                  <option value="value-desc">Metric: high to low</option>
+                  <option value="label-asc">Label: A to Z</option>
+                  <option value="label-desc">Label: Z to A</option>
+                </select>
+                <button id="studioReverseSortOrder" type="button" class="btn-studio-action" aria-pressed="false" style="padding: 0.3rem 0.55rem; font-size: 0.78rem;">⇄ Reverse order</button>
+                <button id="studioReverseValueAxis" type="button" class="btn-studio-action" aria-pressed="false" style="padding: 0.3rem 0.55rem; font-size: 0.78rem;">⇄ Reverse value axis</button>
+                <label style="font-size: 0.78rem; color: #334155; font-weight: 700; white-space: nowrap;">Show <input id="studioRowLimit" class="form-input" type="number" min="1" max="100" value="30" style="width: 4.5rem; display: inline-block; padding: 0.3rem 0.45rem; font-size: 0.78rem;"> rows</label>
+                <label style="font-size: 0.78rem; color: #334155; font-weight: 700; white-space: nowrap;"><input id="studioGroupDuplicates" type="checkbox" checked style="accent-color: var(--clsu-green); margin-right: 0.25rem;"> Group duplicate labels</label>
+              </div>
+
+              <!-- Chart Canvas -->
+              <div style="height: 320px; position: relative; width: 100%; margin-bottom: 0.75rem;">
+                <div id="studioChartCanvas" style="height: 100%; width: 100%;"></div>
+                <div id="studioChartEmptyState" style="display:none; position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(248,250,248,0.95); border-radius:var(--radius-sm); border:2px dashed #CBD5E1;">
+                  <span style="font-size:2rem;"><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span>
+                  <p id="studioChartEmptyMsg" style="font-size:0.88rem; color:#64748B; font-weight:600; margin-top:0.5rem; text-align:center; max-width:280px;">Select a Category field and a numeric Value field above to render the chart.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Field & Table Data Manager -->
+            <div class="studio-data-manager">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                <div>
+                  <h4 style="font-size: 0.95rem; font-weight: 800; color: #0F172A;"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Editable Data Grid & Custom Fields</h4>
+                  <p style="font-size: 0.78rem; color: #64748B;">Edit cell values directly, add new columns/metrics, or paste copied values.</p>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem;">
+                  <button id="studioBtnAddField" type="button" class="btn-studio-action" style="background: #EFF6FF; border: 1.5px solid #3B82F6; color: #1D4ED8;">
+                    <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Field / Column
+                  </button>
+                  <button id="studioBtnAddRow" type="button" class="btn-studio-action" style="background: #ECFDF5; border: 1.5px solid #10B981; color: #065F46;">
+                    <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Row
+                  </button>
+                </div>
+              </div>
+
+              <!-- Live Editable Table Grid -->
+              <div id="studioTableContainer" class="table-container" style="max-height: 280px; margin-bottom: 1.25rem;">
+                <!-- Dynamically rendered editable data grid -->
+              </div>
+
+              <!-- Record Metadata & Status Settings -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; background: #F8FAF8; padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+                <div>
+                  <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: #334155; text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Classification Category</label>
+                  <input type="text" id="studioDocTypeInput" class="form-input" style="font-weight: 600; color: #0F172A;">
+                </div>
+                <div>
+                  <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: #334155; text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Approval Status</label>
+                  <select id="studioStatusSelect" class="form-input" style="font-weight: 600; color: #0F172A;">
+                    <option value="Pending Review">Pending Review</option>
+                    <option value="Approved">Approved for Dashboard</option>
+                    <option value="Needs Revision">Needs Revision</option>
+                  </select>
+                </div>
+                <div style="grid-column: 1 / -1;">
+                  <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: #334155; text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Admin Verification Notes</label>
+                  <textarea id="studioNotesInput" class="form-input" rows="2" placeholder="Add verification logs and approval notes..." style="font-weight: 500; color: #0F172A; line-height: 1.5;"></textarea>
+                </div>
+              </div>
+
+              <!-- Studio Action Footer -->
+              <div style="display: flex; justify-content: flex-end; gap: 0.85rem; padding-top: 1rem; border-top: 1px solid var(--border-light);">
+                <button id="studioBtnSave" type="button" class="btn-save-modal">
+                  <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Dashboard Changes
+                </button>
+                <button id="studioBtnApprove" type="button" class="btn-approve-modal">
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i> Approve for Observatory
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Database Archive Section Title -->
+      <div class="clsu-section-title" style="margin-top: 2rem;">
+        <span><i class="fa-solid fa-folder" aria-hidden="true"></i></span> Scanned Records Archive & Ingestion Logs
+      </div>
+
+      <!-- Admin Search & Filter Bar -->
+      <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
+        <input type="text" id="adminSearchInput" class="form-input" placeholder="Search records by filename, category, or values..." style="flex: 1; min-width: 250px;">
+        <select id="adminStatusFilter" class="form-input" style="width: auto;">
+          <option value="all">All Statuses</option>
+          <option value="Pending Review">Pending Review</option>
+          <option value="Approved">Approved for Dashboard</option>
+          <option value="Needs Revision">Needs Revision</option>
+        </select>
+      </div>
+
+      <!-- Database Records Table -->
+      <div class="table-container" style="box-shadow: var(--card-shadow);">
+        <div id="adminBulkActions" class="admin-bulk-actions" hidden>
+          <span id="adminBulkSelectionCount">0 records selected</span>
+          <button id="adminBulkApprove" type="button" class="btn-approve-modal" disabled><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Bulk Approve</button>
+          <button id="adminBulkDelete" type="button" class="archive-delete-button" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i> Bulk Delete</button>
+          <button id="adminClearSelection" type="button" class="export-cancel-button">Clear selection</button>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th><input id="adminSelectAll" type="checkbox" aria-label="Select all visible records"></th>
+              <th>Record ID</th>
+              <th>File Name</th>
+              <th>Format</th>
+              <th>Review Status</th>
+              <th>Scanned Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="adminRecordsTableBody">
+            <!-- Records dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Admin Record Detail / Editor Modal -->
+  <div id="recordEditModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="recordEditTitle" class="modal-title">Edit Record Data</h3>
+        <button id="btnCloseRecordModal" style="background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;">&times;</button>
+      </div>
+      
+      <div id="recordEditBody" style="max-height: 75vh; overflow-y: auto; padding-right: 0.5rem;">
+        <!-- Dynamic record editor fields & editable data table -->
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Modules in Order -->
+  <script src="js/parsers/imageOcrPipeline.js"></script>
+  <script src="js/parsers/excelParser.js"></script>
+  <script src="js/parsers/docxParser.js"></script>
+  <script src="js/parsers/docxViewerComponent.js"></script>
+  <script src="js/parsers/pdfParser.js"></script>
+  <script src="js/parsers/pdfViewerComponent.js"></script>
+  <script src="js/ai/graphEngine.js"></script>
+  <script src="js/database/dbManager.js"></script>
+  <script src="js/samples.js"></script>
+  <script src="js/scanner.js"></script>
+  <script src="js/tableFilter.js"></script>
+  <script src="js/chartData.js"></script>
+  <script src="js/chartMapping.js"></script>
+  <script src="js/sourceIngestion.js"></script>
+  <script src="js/documentPagination.js"></script>
+  <script src="js/graphExport.js"></script>
+  <script type="module" src="js/app.js"></script>
+
+</body>
+</html>
