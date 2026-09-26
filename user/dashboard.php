@@ -265,10 +265,11 @@ if($uploadedKpi['file'] && !$uploadedCollegeTotals){
                                 <?php endif; ?>
                             </ul>
                             <div class="py-1">
-                                <form method="POST" action="<?= e(base_url('auth/logout.php')) ?>">
+                                <form method="POST" action="<?= e(base_url('auth/logout.php')) ?>" class="w-full">
                                     <?= csrf_field() ?>
-                                    <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-red-400">
-                                        <i class="fa-solid fa-right-from-bracket mr-2"></i> Sign Out
+                                    <button type="submit" class="flex w-full items-center justify-start gap-2 px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-red-400 transition-colors rounded-lg whitespace-nowrap">
+                                        <i class="fa-solid fa-right-from-bracket flex-shrink-0"></i>
+                                        <span class="whitespace-nowrap">Sign Out</span>
                                     </button>
                                 </form>
                             </div>
@@ -281,9 +282,6 @@ if($uploadedKpi['file'] && !$uploadedCollegeTotals){
 
     <!-- Main Container -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8" id="overview">
-        <?php if (flash('success')): ?>
-            <div class="flex items-center p-4 text-emerald-800 rounded-xl bg-emerald-50 dark:bg-gray-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800" role="alert"><i class="fa-solid fa-circle-check text-lg mr-3"></i><div class="text-sm font-medium"><?= htmlspecialchars(flash('success')) ?></div></div>
-        <?php endif; ?>
         <?php if (flash('error')): ?>
             <div class="flex items-center p-4 text-red-800 rounded-xl bg-red-50 dark:bg-gray-800 dark:text-red-400 border border-red-200 dark:border-red-800" role="alert"><i class="fa-solid fa-circle-exclamation text-lg mr-3"></i><div class="text-sm font-medium"><?= htmlspecialchars(flash('error')) ?></div></div>
         <?php endif; ?>
@@ -976,6 +974,7 @@ if($uploadedKpi['file'] && !$uploadedCollegeTotals){
 
                 if (circular) {
                     const pieType = type === 'polararea' ? 'pie' : 'pie';
+                    const sliceColors = ['#10b981', '#34d399', '#3b82f6', '#f59e0b', '#8b5cf6', '#f97316', '#14b8a6', '#ef4444', '#eab308', '#6366f1'];
                     chart.setOption({
                         backgroundColor: 'transparent',
                         tooltip: { trigger: 'item', backgroundColor: tooltipBg, borderColor: tooltipBorder, textStyle: { color: tooltipText }, formatter: '{b}: {c} ({d}%)' },
@@ -984,7 +983,11 @@ if($uploadedKpi['file'] && !$uploadedCollegeTotals){
                             type: pieType,
                             radius: type === 'doughnut' ? ['45%', '70%'] : type === 'polararea' ? ['15%', '70%'] : '65%',
                             center: ['50%', '45%'],
-                            data: labels.map((label, i) => ({ name: label || `Item ${i + 1}`, value: values[i] ?? 0 })),
+                            data: labels.map((label, i) => ({
+                                name: label || `Item ${i + 1}`,
+                                value: values[i] ?? 0,
+                                itemStyle: { color: sliceColors[i % sliceColors.length] }
+                            })),
                             itemStyle: { borderColor: isDark ? '#1f2937' : '#ffffff', borderWidth: 2 }
                         }]
                     });

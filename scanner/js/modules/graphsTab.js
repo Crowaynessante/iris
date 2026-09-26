@@ -30,30 +30,10 @@ export function initGraphsTab(ctx) {
       const card = document.createElement('div');
       card.className = 'graph-card';
       const selectedType = draft.chart_type || draft.primaryType || 'bar';
-      card.innerHTML = `<div class="graph-card-header"><div><div class="graph-card-title">${escapeHtml(draft.title)}</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:.25rem">Source: ${escapeHtml(draft.source)}</div></div><div><button class="export-draft-mysql" type="button"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Export to MySQL</button><button class="export-draft-print" type="button"><i class="fa-solid fa-print" aria-hidden="true"></i> Print Sheet</button><select class="form-input chart-type-select" data-draft-idx="${index}" style="width:auto;padding:.25rem .5rem;font-size:.8rem"><option value="bar" ${selectedType === 'bar' ? 'selected' : ''}>Bar Chart</option><option value="line" ${selectedType === 'line' ? 'selected' : ''}>Line Chart</option><option value="pie" ${selectedType === 'pie' ? 'selected' : ''}>Pie Chart</option></select></div></div><div style="font-size:.82rem;color:var(--accent-cyan);margin-bottom:1rem"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <strong>AI Recommendation:</strong> ${escapeHtml(draft.recommendation)}</div><div class="graph-canvas-container" style="height:320px;position:relative"><canvas id="${canvasId}"></canvas></div>`;
+      // <button class="export-draft-mysql" type="button" title="Export to MySQL" aria-label="Export to MySQL">/* */</button>
+      card.innerHTML = `<div class="graph-card-header"><div><div class="graph-card-title">${escapeHtml(draft.title)}</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:.25rem">Source: ${escapeHtml(draft.source)}</div></div><div><button class="export-draft-print" type="button"><i class="fa-solid fa-print" aria-hidden="true"></i> Print Sheet</button><select class="form-input chart-type-select" data-draft-idx="${index}" style="width:auto;padding:.25rem .5rem;font-size:.8rem"><option value="bar" ${selectedType === 'bar' ? 'selected' : ''}>Bar Chart</option><option value="line" ${selectedType === 'line' ? 'selected' : ''}>Line Chart</option><option value="pie" ${selectedType === 'pie' ? 'selected' : ''}>Pie Chart</option></select></div></div><div style="font-size:.82rem;color:var(--accent-cyan);margin-bottom:1rem"><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <strong>AI Recommendation:</strong> ${escapeHtml(draft.recommendation)}</div><div class="graph-canvas-container" style="height:320px;position:relative"><canvas id="${canvasId}"></canvas></div>`;
       container.appendChild(card);
 
-      card.querySelector('.export-draft-mysql').onclick = () => showExportChoice(async mode => {
-        if (mode === 'database') {
-          const confirmed = window.confirm(
-            'Publish this chart to the Observatory Page? It will be written to live MySQL and visible to all registered users.'
-          );
-          if (!confirmed) return;
-
-          try {
-            await ctx.dbManager.approveRecords([scan.id]);
-            await ctx.dbManager.exportGraph(window.GraphExport.normalizeGraphExportItem(draft, scan.id), scan.id);
-            alert('Chart published to the Observatory Page and is now visible to registered users.');
-          } catch (error) {
-            alert(`Unable to publish chart: ${error.message}`);
-            return;
-          }
-        } else {
-          await downloadText({ fileName: `iris_draft_${Date.now()}.txt`, text: draftText({ ...draft, record_id: scan.id }) });
-          alert('1 graph exported as a text file.');
-        }
-        await ctx.api.renderSavedGraphsTab();
-      });
       card.querySelector('.export-draft-print').onclick = () => ctx.dbManager.printGraphSheet(draft, { recordName: scan.name || 'IRIS report' });
       setTimeout(() => { const canvas = $(canvasId); if (canvas) ctx.state.chartInstances[canvasId] = createChart(canvas, selectedType, draft.chartData); }, 50);
     });

@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__.'/../includes/functions.php';
-$error=flash('error');$success=flash('success');clear_old();
+$error=flash('error');clear_old();
 if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$u=trim($_POST['username']??'');$em=trim($_POST['email']??'');$pw=$_POST['password']??'';$cp=$_POST['confirm_password']??'';$bad='';if(!preg_match('/^[A-Za-z0-9_-]{1,50}$/',$u))$bad='Username may contain letters, numbers, underscores, and hyphens only.';elseif(!preg_match('/^[A-Za-z0-9._%+-]+@clsu2\.edu\.ph$/i',$em))$bad='Please use a valid email address in the format name@clsu2.edu.ph.';elseif(strlen($pw)<8||$pw!==$cp)$bad='Passwords must match and contain at least 8 characters.';else{$q=db()->prepare('SELECT id FROM users WHERE username=? OR email=?');$q->execute([$u,$em]);if($q->fetch())$bad='Username or email already exists.';}if($bad){set_old($_POST);flash_redirect('auth/register.php','error',$bad);} $q=db()->prepare('INSERT INTO users(username,email,password,role) VALUES(?,?,?,?)');$q->execute([$u,$em,password_hash($pw,PASSWORD_DEFAULT),'user']);flash_redirect('auth/login.php','success','Account created successfully! You can now log in.');}
 ?>
 
@@ -87,13 +87,6 @@ if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$u=trim($_POST['username']
                 <div class="flex items-center p-3.5 mb-4 text-xs text-red-800 rounded-xl bg-red-50 dark:bg-red-500/10 dark:text-red-400 border border-red-200 dark:border-red-500/30" role="alert">
                     <i class="fa-solid fa-circle-exclamation text-base mr-2"></i>
                     <div class="font-medium"><?= htmlspecialchars($error) ?></div>
-                </div>
-            <?php endif; ?>
-
-            <?php if ($success): ?>
-                <div class="flex items-center p-3.5 mb-4 text-xs text-emerald-800 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30" role="alert">
-                    <i class="fa-solid fa-circle-check text-base mr-2"></i>
-                    <div class="font-medium"><?= htmlspecialchars($success) ?></div>
                 </div>
             <?php endif; ?>
 

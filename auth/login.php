@@ -6,7 +6,6 @@ if (!empty($_SESSION['user_id'])) {
 }
 
 $error = flash('error');
-$success = flash('success');
 clear_old();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -161,14 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </div>
             <?php endif; ?>
 
-            <?php if ($success): ?>
-                <div class="flex items-center p-3.5 mb-4 text-xs text-emerald-800 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30" role="alert">
-                    <i class="fa-solid fa-circle-check text-base mr-2"></i>
-                    <div class="font-medium"><?= htmlspecialchars($success) ?></div>
-                </div>
-            <?php endif; ?>
-
-            <form method="POST" class="space-y-4">
+            <form method="POST" class="space-y-4" id="loginForm">
                 <?= csrf_field() ?>
                 <div>
                     <label for="username" class="block mb-2 text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-slate-300">Username</label>
@@ -176,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400 dark:text-slate-500">
                             <i class="fa-solid fa-user text-xs"></i>
                         </div>
-                        <input type="text" id="username" name="username" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5 dark:bg-slate-800 dark:border-slate-700 dark:placeholder-slate-500 dark:text-white transition-colors" placeholder="faculty_user" required autofocus>
+                        <input type="text" id="username" name="username" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5 dark:bg-slate-800 dark:border-slate-700 dark:placeholder-slate-500 dark:text-white transition-colors" placeholder="faculty_user" required autofocus autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" style="text-transform: none;">
                     </div>
                 </div>
 
@@ -189,11 +181,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-gray-400 dark:text-slate-500">
                             <i class="fa-solid fa-lock text-xs"></i>
                         </div>
-                        <input type="password" id="password" name="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5 dark:bg-slate-800 dark:border-slate-700 dark:placeholder-slate-500 dark:text-white transition-colors" placeholder="••••••••" required>
+                        <input type="password" id="password" name="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block w-full pl-10 p-2.5 dark:bg-slate-800 dark:border-slate-700 dark:placeholder-slate-500 dark:text-white transition-colors" placeholder="••••••••" required autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false" style="text-transform: none;">
                     </div>
                 </div>
 
-                <button type="submit" class="w-full text-white bg-emerald-600 hover:bg-emerald-500 focus:ring-4 focus:ring-emerald-300 dark:focus:ring-emerald-800 font-bold rounded-xl text-sm px-5 py-3 text-center shadow-md shadow-emerald-600/20 transition-all">
+                <button type="submit" class="w-full text-white bg-emerald-600 hover:bg-emerald-500 focus:ring-4 focus:ring-emerald-300 dark:focus:ring-emerald-800 font-bold rounded-xl text-sm px-5 py-3 text-center shadow-md shadow-emerald-600/20 transition-all disabled:opacity-60 disabled:cursor-not-allowed">
                     <i class="fa-solid fa-right-to-bracket mr-2"></i> Log In
                 </button>
             </form>
@@ -204,7 +196,87 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
+    <div id="privacyModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/70 backdrop-blur-sm p-4">
+        <div class="w-full max-w-2xl rounded-2xl border border-amber-300/40 bg-slate-900 text-slate-100 shadow-2xl shadow-slate-950/40">
+            <div class="border-b border-slate-700 px-6 py-4 flex items-center justify-between">
+                <h2 class="text-lg font-bold text-amber-300">Data Privacy Notice</h2>
+                <button type="button" id="closePrivacyModal" class="text-slate-400 hover:text-white" aria-label="Close privacy notice">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <div class="max-h-[70vh] overflow-y-auto p-6 text-sm leading-relaxed text-slate-200">
+                <p>By logging in, you agree to the collection and processing of your personal data in accordance with the Data Privacy Act of 2012 (RA 10173). This system (IRIS) collects and processes the following data:</p>
+                <ul class="list-disc ml-5 mt-3 space-y-2">
+                    <li>Login credentials — name, email, and password</li>
+                    <li>International Affairs Office data — partnership records, ranking statistics, and other metrics visualized on the dashboard</li>
+                </ul>
+                <p class="mt-3">This data is used solely for monitoring and reporting purposes within CLSU's International Affairs Office and will not be shared with third parties without consent.</p>
+            </div>
+            <div class="border-t border-slate-700 px-6 py-4 flex justify-end gap-3">
+                <button type="button" id="declinePrivacy" class="rounded-xl border border-slate-600 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800">Decline</button>
+                <button type="button" id="acceptPrivacy" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">I Agree</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        const usernameInput = document.getElementById('username');
+        if (usernameInput && usernameInput.value.trim().toLowerCase() === 'admin') {
+            usernameInput.value = '';
+        }
+
+        const privacyModal = document.getElementById('privacyModal');
+        const acceptPrivacy = document.getElementById('acceptPrivacy');
+        const declinePrivacy = document.getElementById('declinePrivacy');
+        const closePrivacyModalBtn = document.getElementById('closePrivacyModal');
+        const loginForm = document.getElementById('loginForm');
+        const submitButton = loginForm?.querySelector('button[type="submit"]');
+
+        const openPrivacyModal = () => {
+            privacyModal.classList.remove('hidden');
+            privacyModal.classList.add('flex');
+        };
+
+        const closePrivacyModalFn = () => {
+            privacyModal.classList.add('hidden');
+            privacyModal.classList.remove('flex');
+        };
+
+        const setLoginBlocked = (blocked) => {
+            if (!submitButton) return;
+            submitButton.disabled = blocked;
+            submitButton.classList.toggle('opacity-60', blocked);
+            submitButton.classList.toggle('cursor-not-allowed', blocked);
+        };
+
+        setLoginBlocked(true);
+        openPrivacyModal();
+
+        acceptPrivacy.addEventListener('click', () => {
+            setLoginBlocked(false);
+            closePrivacyModalFn();
+        });
+
+        declinePrivacy.addEventListener('click', () => {
+            setLoginBlocked(true);
+            closePrivacyModalFn();
+            alert('You must agree to the data privacy notice before logging in.');
+            usernameInput?.focus();
+        });
+
+        closePrivacyModalBtn.addEventListener('click', () => {
+            setLoginBlocked(true);
+            closePrivacyModalFn();
+            usernameInput?.focus();
+        });
+
+        loginForm.addEventListener('submit', (event) => {
+            if (submitButton && submitButton.disabled) {
+                event.preventDefault();
+                openPrivacyModal();
+            }
+        });
+
         const themeToggle = document.getElementById('themeToggle');
         themeToggle.addEventListener('click', () => {
             document.documentElement.classList.toggle('dark');

@@ -52,19 +52,23 @@
     </nav>
   </header>
 
-  <!-- App Main Container -->
-  <main class="app-container">
+  <button id="uploadWidgetTrigger" class="floating-upload-trigger" type="button" aria-label="Open institutional upload window">
+    <span class="floating-upload-icon"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i></span>
+  </button>
 
-    <!-- ================= SCANNER WORKSPACE VIEW ================= -->
-    <section id="scannerWorkspaceView">
-
-      <div class="clsu-section-title">
-        <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> University-Wide Overview & Ingestion
+  <div id="uploadWidgetModal" class="upload-widget-modal" aria-hidden="true">
+    <div class="upload-widget-panel">
+      <div class="upload-widget-header">
+        <div>
+          <div class="upload-widget-kicker">File Intake</div>
+          <div class="upload-widget-title">Institutional Document Upload</div>
+        </div>
+        <button id="closeUploadWidget" class="upload-widget-close" type="button" aria-label="Close upload window">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
       </div>
 
-      <!-- Hero File Dropzone -->
-      <div id="dropzone" class="dropzone-container">
-        
+      <div id="dropzone" class="dropzone-container upload-dropzone">
         <div class="dropzone-icon">
           <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
@@ -78,21 +82,16 @@
           <span class="format-chip excel"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Spreadsheets (XLSX, XLS, CSV)</span>
           <span class="format-chip pdf"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> PDF Documents (Reports & Infographs)</span>
           <span class="format-chip docx"><i class="fa-solid fa-file-pen" aria-hidden="true"></i> Word (DOCX Status Links)</span>
-          <!-- [SLATED FOR REVIEW & REVISION]: Standalone image OCR scanning temporarily disabled
-          <span class="format-chip image"><i class="fa-solid fa-image" aria-hidden="true"></i> Images (PNG, JPG, WEBP)</span>
-          -->
         </div>
 
-        <!-- [SLATED FOR REVIEW & REVISION]: Image upload formats disabled (*.png, *.jpg, *.webp) -->
         <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv,.docx,.doc,.pdf" style="display: none;">
-        
+
         <div style="margin-bottom: 1.5rem;">
           <button id="btnBrowse" class="btn-icon" style="padding: 0.75rem 2rem; font-size: 0.95rem; margin: 0 auto;">
             <span><i class="fa-solid fa-folder" aria-hidden="true"></i></span> Browse Institutional Files
           </button>
         </div>
 
-        <!-- 1-Click Pre-loaded Institutional Samples -->
         <div class="samples-container">
           <span class="samples-label">Test 1-Click Samples:</span>
           <button class="sample-btn" data-sample="payroll">
@@ -104,12 +103,19 @@
           <button class="sample-btn" data-sample="contract">
             <span><i class="fa-solid fa-file-pen" aria-hidden="true"></i></span> Program Accreditation (.docx)
           </button>
-          <!-- [SLATED FOR REVIEW & REVISION]: Sample image scanning disabled
-          <button class="sample-btn" data-sample="invoice">
-            <span><i class="fa-solid fa-image" aria-hidden="true"></i></span> Performance Certificate (.png)
-          </button>
-          -->
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- App Main Container -->
+  <main class="app-container">
+
+    <!-- ================= SCANNER WORKSPACE VIEW ================= -->
+    <section id="scannerWorkspaceView">
+
+      <div class="clsu-section-title">
+        <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> University-Wide Overview & Ingestion
       </div>
 
       <!-- Real-time Progress Bar -->

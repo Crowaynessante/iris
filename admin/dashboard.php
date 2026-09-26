@@ -1,5 +1,5 @@
 <?php require_once __DIR__.'/../includes/functions.php'; require_admin();
-$pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM uploads_log ORDER BY uploaded_at DESC LIMIT 10')->fetchAll();$errorsFirst=''; ?>
+$pdo=db();$logs=$pdo->query('SELECT * FROM uploads_log ORDER BY uploaded_at DESC LIMIT 10')->fetchAll();$errorsFirst=''; ?>
 
 <!DOCTYPE html>
 <html lang="en" class="dark">
@@ -7,7 +7,6 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IAO Admin Control Panel - IRIS</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -30,10 +29,8 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
             }
         }
     </script>
-    <!-- Flowbite CSS & JS -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
-    <!-- External parsing and charting dependencies used by the embedded scanner -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -57,6 +54,43 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
         .admin-view-switcher button { border: 0; border-radius: .55rem; padding: .55rem .75rem; color: #cbd5e1; background: transparent; font-size: .76rem; font-weight: 800; cursor: pointer; transition: .2s; }
         .admin-view-switcher button:hover, .admin-view-switcher button.is-active { color: #fff; background: #059669; }
         .admin-observatory-frame { display: block; width: 100%; min-height: 1450px; border: 0; background: #f9fafb; }
+        html.dark .studio-shell, html.dark .studio-data-manager, html.dark .studio-panel, html.dark .studio-chart-panel, html.dark .studio-graph-controls, html.dark .table-container, html.dark .data-table, html.dark .studio-data-manager .form-input, html.dark .studio-data-manager textarea, html.dark .studio-data-manager select { color: #f8fafc !important; }
+        html.dark .studio-data-manager .form-input, html.dark .studio-data-manager textarea, html.dark .studio-data-manager select, html.dark .header-rename-input, html.dark .studio-cell-input { background: #273449 !important; border-color: #475569 !important; color: #f8fafc !important; }
+        html.dark .form-input::placeholder, html.dark textarea::placeholder { color: #94a3b8 !important; }
+        html.dark #studioFieldMappingRow { background: rgba(59, 130, 246, 0.1) !important; border-color: rgba(147, 197, 253, 0.35) !important; }
+        html.dark #studioChartEmptyState { background: rgba(15, 23, 42, 0.88) !important; border-color: #475569 !important; }
+        html.dark #studioChartEmptyState p { color: #cbd5e1 !important; }
+        html.dark .data-table th { background: #172033 !important; color: #f8fafc !important; border-bottom-color: #10b981 !important; }
+        html.dark .data-table td { background: transparent !important; color: #f8fafc !important; border-bottom-color: #334155 !important; }
+        html.dark .data-table tr:hover td { background: rgba(16, 185, 129, 0.06) !important; }
+        html.dark .table-container { background: #1e293b !important; border-color: #334155 !important; }
+        html.dark .studio-data-manager h4, html.dark .studio-data-manager p, html.dark .studio-data-manager label, html.dark .studio-data-manager .form-label { color: #e2e8f0 !important; }
+        html.dark .btn-studio-action { color: #e2e8f0 !important; }
+        html.dark .header-rename-input { color: #34d399 !important; }
+        html.dark .studio-cell-input:focus, html.dark .header-rename-input:focus, html.dark .form-input:focus { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important; }
+        html.dark #studioChartTitleInput,
+        html.dark #studioDocSheetSelect,
+        html.dark #studioChartTypeSelect,
+        html.dark #studioFilterField,
+        html.dark #studioFilterOperator,
+        html.dark #studioFilterValue,
+        html.dark #studioFilterUpperValue,
+        html.dark #studioSortOrder,
+        html.dark #studioRowLimit,
+        html.dark #studioCategoryCol,
+        html.dark #studioValueCol,
+        html.dark #studioRecordSelect,
+        html.dark #studioStatusSelect,
+        html.dark #studioNotesInput,
+        html.dark #studioDocTypeInput,
+        html.dark .form-input,
+        html.dark textarea,
+        html.dark select {
+            background: #273449 !important;
+            border-color: #475569 !important;
+            color: #F8FAFC !important;
+        }
+        html.dark #studioChartTitleInput { color: #34D399 !important; }
         @media(max-width:900px){.admin-view-switcher button{padding:.5rem;font-size:.7rem}.admin-observatory-frame{min-height:1900px}}
     </style>
 </head>
@@ -80,7 +114,8 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
         .admin-dropdown .dropdown-name{color:#f8fafc!important;}
         .admin-dropdown a{color:#cbd5e1!important;}
         .admin-dropdown a:hover{background:#2b3b54!important;color:#fff!important;}
-        .admin-dropdown .signout{color:#fca5a5!important;}
+        .admin-dropdown .signout{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:.6rem!important;width:100%!important;text-align:left!important;color:#fca5a5!important;border-radius:.75rem!important;transition:background .2s ease,color .2s ease;}
+        .admin-dropdown .signout:hover{background:#2b3b54!important;color:#fff!important;}
         #page-loader{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.68);backdrop-filter:blur(6px);z-index:10000;transition:opacity .3s ease,visibility .3s ease;}
         #page-loader.hidden{opacity:0;visibility:hidden;pointer-events:none;}
         .iris-loader{position:relative;width:72px;height:72px;border-radius:50%;background:conic-gradient(#10b981,#34d399,#fbbf24,#10b981);animation:spin 1s linear infinite;box-shadow:0 0 30px rgba(16,185,129,.5)}
@@ -94,7 +129,7 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
         <div class="iris-loader" aria-hidden="true"></div>
     </div>
 
-    <!-- Admin Navigation Bar -->
+    <!-- Navigation Bar -->
     <nav class="admin-nav sticky top-0 z-50 backdrop-blur-md bg-opacity-95">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="admin-nav-inner flex items-center justify-between gap-4">
@@ -136,9 +171,12 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
                                 <li><a href="<?= e(base_url('user/dashboard.php')) ?>" class="block px-4 py-2 text-sm"><i class="fa-solid fa-globe mr-2"></i> Observatory View</a></li>
                             </ul>
                             <div class="py-1 border-t border-slate-700">
-                                <form method="POST" action="<?= e(base_url('auth/logout.php')) ?>">
+                                <form method="POST" action="<?= e(base_url('auth/logout.php')) ?>" class="w-full">
                                     <?= csrf_field() ?>
-                                    <button type="submit" class="signout block w-full text-left px-4 py-2 text-sm"><i class="fa-solid fa-right-from-bracket mr-2"></i> Sign Out</button>
+                                    <button type="submit" class="signout w-full px-4 py-2 text-sm whitespace-nowrap">
+                                        <i class="fa-solid fa-right-from-bracket flex-shrink-0"></i>
+                                        <span class="whitespace-nowrap">Sign Out</span>
+                                    </button>
                                 </form>
                             </div>
                         </div>
@@ -148,62 +186,72 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
         </div>
     </nav>
 
-    <!-- Main Container -->
+    <!-- Content Area -->
     <main class="admin-scanner-shell flex-1 w-full py-8">
         <div class="app-container">
-            <?php if ($msg || ''): ?>
-                <div id="alert-3" class="flex items-center p-4 mb-4 text-emerald-800 rounded-xl bg-emerald-50 dark:bg-gray-800 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800" role="alert">
-                    <i class="fa-solid fa-circle-check text-lg mr-3"></i>
-                    <div class="text-sm font-medium">
-                        <?= htmlspecialchars($msg ?: '') ?>
+            <button id="uploadWidgetTrigger" class="floating-upload-trigger" type="button" aria-label="Open institutional upload window">
+                <span class="floating-upload-icon"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i></span>
+            </button>
+
+            <div id="uploadWidgetModal" class="upload-widget-modal" aria-hidden="true">
+                <div class="upload-widget-panel">
+                    <div class="upload-widget-header">
+                        <div>
+                            <div class="upload-widget-kicker">File Intake</div>
+                            <div class="upload-widget-title">Institutional Document Upload</div>
+                        </div>
+                        <button id="closeUploadWidget" class="upload-widget-close" type="button" aria-label="Close upload window">
+                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                        </button>
                     </div>
-                    <button type="button" class="ml-auto -mx-1.5 -my-1.5 bg-emerald-50 text-emerald-500 rounded-lg focus:ring-2 focus:ring-emerald-400 p-1.5 hover:bg-emerald-200 inline-flex items-center justify-center h-8 w-8 dark:bg-gray-800 dark:text-emerald-400 dark:hover:bg-gray-700" data-dismiss-target="#alert-3" aria-label="Close">
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
+
+                    <div id="dropzone" class="dropzone-container upload-dropzone">
+                        <div class="dropzone-icon">
+                            <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                        </div>
+
+                        <h1 class="dropzone-title">Upload Spreadsheets, PDFs, or Word Documents</h1>
+                        <p class="dropzone-subtitle">Multi-sheet parsing, institutional text extraction, and draft visualization suggestions for university performance metrics</p>
+
+                        <div class="format-badges">
+                            <span class="format-chip excel"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Spreadsheets (XLSX, XLS, CSV)</span>
+                            <span class="format-chip pdf"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> PDF Documents (Reports & Infographs)</span>
+                            <span class="format-chip docx"><i class="fa-solid fa-file-pen" aria-hidden="true"></i> Word (DOCX Status Links)</span>
+                        </div>
+
+                        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv,.docx,.doc,.pdf" style="display: none;">
+
+                        <div style="margin: 0.5rem auto 1.25rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;">
+                            Files must be under 15 MB
+                        </div>
+
+                        <div style="margin-bottom: 1.5rem;">
+                            <button id="btnBrowse" class="btn-icon" style="padding: 0.75rem 2rem; font-size: 0.95rem; margin: 0 auto;">
+                                <span><i class="fa-solid fa-folder" aria-hidden="true"></i></span> Browse Institutional Files
+                            </button>
+                        </div>
+
+                        <div class="samples-container">
+                            <span class="samples-label">Test 1-Click Samples:</span>
+                            <button class="sample-btn" data-sample="payroll">
+                                <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> QAO Evaluation Scores (.xlsx)
+                            </button>
+                            <button class="sample-btn" data-sample="pdf">
+                                <span><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span> OAD Infograph Stats (.pdf)
+                            </button>
+                            <button class="sample-btn" data-sample="contract">
+                                <span><i class="fa-solid fa-file-pen" aria-hidden="true"></i></span> Program Accreditation (.docx)
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            <?php endif; ?>
+            </div>
 
             <section id="scannerWorkspaceView" class="admin-view-panel">
                 <div class="clsu-section-title">
                     <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> University-Wide Overview & Ingestion
-                </div>
-
-                <div id="dropzone" class="dropzone-container">
-                    <div class="dropzone-icon">
-                        <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                        </svg>
-                    </div>
-
-                    <h1 class="dropzone-title">Upload Spreadsheets, PDFs, or Word Documents</h1>
-                    <p class="dropzone-subtitle">Multi-sheet parsing, institutional text extraction, and draft visualization suggestions for university performance metrics</p>
-
-                    <div class="format-badges">
-                        <span class="format-chip excel"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Spreadsheets (XLSX, XLS, CSV)</span>
-                        <span class="format-chip pdf"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> PDF Documents (Reports & Infographs)</span>
-                        <span class="format-chip docx"><i class="fa-solid fa-file-pen" aria-hidden="true"></i> Word (DOCX Status Links)</span>
-                    </div>
-
-                    <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv,.docx,.doc,.pdf" style="display: none;">
-
-                    <div style="margin-bottom: 1.5rem;">
-                        <button id="btnBrowse" class="btn-icon" style="padding: 0.75rem 2rem; font-size: 0.95rem; margin: 0 auto;">
-                            <span><i class="fa-solid fa-folder" aria-hidden="true"></i></span> Browse Institutional Files
-                        </button>
-                    </div>
-
-                    <div class="samples-container">
-                        <span class="samples-label">Test 1-Click Samples:</span>
-                        <button class="sample-btn" data-sample="payroll">
-                            <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> QAO Evaluation Scores (.xlsx)
-                        </button>
-                        <button class="sample-btn" data-sample="pdf">
-                            <span><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span> OAD Infograph Stats (.pdf)
-                        </button>
-                        <button class="sample-btn" data-sample="contract">
-                            <span><i class="fa-solid fa-file-pen" aria-hidden="true"></i></span> Program Accreditation (.docx)
-                        </button>
-                    </div>
                 </div>
 
                 <div id="progressCard" class="progress-card">
@@ -323,8 +371,8 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
                         </div>
                     </div>
 
-                    <div id="savedGraphsBulkToolbar" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding: 0.75rem 1rem; background: #F8FAF8; border: 1px solid var(--border-light); border-radius: var(--radius-sm);">
-                        <label style="display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 700; font-size: 0.82rem;">
+                    <div id="savedGraphsBulkToolbar" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding: 0.75rem 1rem; background: var(--bg-highlight); border: 1px solid var(--border-light); border-radius: var(--radius-sm);">
+                        <label style="display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 700; font-size: 0.82rem; color: var(--text-main);">
                             <input id="savedGraphsSelectAll" type="checkbox"> Select All
                         </label>
                         <span id="savedGraphsSelectionCount" style="font-size: 0.8rem; color: var(--text-muted);">0 selected</span>
@@ -337,7 +385,7 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
                 </div>
 
                 <div id="adminRecordsPanel" class="admin-tab-panel active">
-                    <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-left: 5px solid var(--clsu-green); border-radius: var(--radius-lg); padding: 1.5rem 2rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: var(--card-shadow);">
+                    <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-left: 5px solid var(--clsu-green); border-radius: var(--radius-lg); padding: 1.5rem 2rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: var(--card-shadow);">
                         <div>
                             <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--clsu-green);">Review record editor</h2>
                             <p style="font-size: 0.88rem; color: var(--text-muted);">Review extracted fields, edit tabular cells, update draft status, and approve visualizations for the CLSU Observatory.</p>
@@ -345,19 +393,19 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
                     </div>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                        <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
                             <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">TOTAL SCANNED FILES</div>
                             <div id="statTotalDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-green);">0</div>
                         </div>
-                        <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
                             <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">PENDING DRAFTS</div>
                             <div id="statPendingDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-gold-dark);">0</div>
                         </div>
-                        <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
                             <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">APPROVED FOR DASHBOARD</div>
                             <div id="statVerifiedDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-green-light);">0</div>
                         </div>
-                        <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
+                        <div style="background: var(--bg-card); border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
                             <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">EXTRACTED TABLES</div>
                             <div id="statTablesDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-green);">0</div>
                         </div>
@@ -399,18 +447,18 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
                                         <div class="acrobat-controls-center" id="acrobatPageNavControls">
                                             <button type="button" id="btnAcrobatPrevPage" class="acrobat-tool-btn" title="Previous Page">▲</button>
                                             <input type="number" id="acrobatCurrentPageInput" class="acrobat-page-input" value="1" min="1" max="1" title="Go to Page">
-                                            <span style="font-size: 0.72rem; color: #94A3B8;">/</span>
-                                            <span id="acrobatTotalPagesSpan" style="font-size: 0.72rem; color: #E2E8F0; font-weight: 600;">1</span>
+                                            <span style="font-size: 0.72rem; color: var(--text-dim);">/</span>
+                                            <span id="acrobatTotalPagesSpan" style="font-size: 0.72rem; color: var(--text-main); font-weight: 600;">1</span>
                                             <button type="button" id="btnAcrobatNextPage" class="acrobat-tool-btn" title="Next Page">▼</button>
                                         </div>
 
                                         <div class="acrobat-controls-right">
                                             <div id="studioDocSheetSelectorContainer" style="display: none; align-items: center; gap: 0.35rem;">
-                                                <span style="font-size: 0.72rem; color: #CBD5E1; font-weight: 600;">Sheet:</span>
-                                                <select id="studioDocSheetSelect" class="form-input doc-sheet-select" style="background: #202225 !important; color: #FFF !important; border-color: #4A4E53 !important;"></select>
+                                                <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Sheet:</span>
+                                                <select id="studioDocSheetSelect" class="form-input doc-sheet-select" style="background: var(--bg-input) !important; color: var(--text-main) !important; border-color: var(--border-light) !important;"></select>
                                             </div>
 
-                                            <div id="acrobatZoomControlsGroup" style="display: flex; align-items: center; gap: 0.25rem; background: #202225; padding: 0.15rem 0.4rem; border-radius: 4px; border: 1px solid #3A3E42;">
+                                            <div id="acrobatZoomControlsGroup" style="display: flex; align-items: center; gap: 0.25rem; background: var(--bg-highlight); padding: 0.15rem 0.4rem; border-radius: 4px; border: 1px solid var(--border-light);">
                                                 <button type="button" id="btnAcrobatZoomOut" class="acrobat-tool-btn" title="Zoom Out">−</button>
                                                 <span id="acrobatZoomValue" class="acrobat-zoom-label">100%</span>
                                                 <button type="button" id="btnAcrobatZoomIn" class="acrobat-tool-btn" title="Zoom In">+</button>
@@ -437,18 +485,18 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
 
                             <div class="studio-right-card">
                                 <div class="studio-chart-box">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; flex-wrap: wrap; gap: 0.75rem;">
-                                        <div style="flex: 1; min-width: 250px;">
-                                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
-                                                <span style="font-size: 0.82rem; font-weight: 800; color: var(--clsu-green); text-transform: uppercase;">Chart Title:</span>
-                                                <input type="text" id="studioChartTitleInput" class="form-input" value="Observatory Draft" placeholder="Type chart title..." style="padding: 0.3rem 0.65rem; font-size: 0.95rem; font-weight: 800; color: var(--clsu-green); border: 1.5px solid #CBD5E1; background: #FFFFFF; flex: 1;" title="Click to edit the chart title">
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; gap: 1rem; flex-wrap: nowrap;">
+                                        <div style="flex: 1 1 auto; min-width: 0;">
+                                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; flex-wrap: wrap; min-width: 0;">
+                                                <span style="font-size: 0.82rem; font-weight: 800; color: var(--clsu-green); text-transform: uppercase; white-space: nowrap;">Chart Title:</span>
+                                                <input type="text" id="studioChartTitleInput" class="form-input" value="Observatory Draft" placeholder="Type chart title..." style="padding: 0.3rem 0.65rem; font-size: 0.95rem; font-weight: 800; color: var(--clsu-green); border: 1.5px solid var(--border-light); background: var(--bg-input); flex: 1 1 auto; min-width: 180px;" title="Click to edit the chart title">
                                             </div>
-                                            <p id="studioChartSubtitleDisplay" style="font-size: 0.78rem; color: #64748B;">Live interactive rendering from data fields below</p>
+                                            <p id="studioChartSubtitleDisplay" style="font-size: 0.78rem; color: var(--text-muted);">Live interactive rendering from data fields below</p>
                                         </div>
 
-                                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                            <label style="font-size: 0.78rem; font-weight: 800; color: #334155; text-transform: uppercase;">Chart Type:</label>
-                                            <select id="studioChartTypeSelect" class="form-input" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.82rem; font-weight: 700; color: #0F172A;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto; flex-shrink: 0;">
+                                            <label style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; white-space: nowrap;">Chart Type:</label>
+                                            <select id="studioChartTypeSelect" class="form-input" style="width: auto; min-width: 150px; padding: 0.35rem 0.75rem; font-size: 0.82rem; font-weight: 700; color: var(--text-main);">
                                                 <option value="bar">Bar Chart</option>
                                                 <option value="line">Line Chart</option>
                                                 <option value="pie">Pie Chart</option>
@@ -458,21 +506,21 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
                                         </div>
                                     </div>
 
-                                    <div id="studioFieldMappingRow" style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: var(--radius-sm); padding: 0.65rem 1rem; margin-bottom: 0.75rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;">
-                                        <span style="font-size: 0.78rem; font-weight: 800; color: #1D4ED8; text-transform: uppercase;"><i class="fa-solid fa-ruler-combined" aria-hidden="true"></i> Field Mapping:</span>
+                                    <div id="studioFieldMappingRow" style="background: rgba(59,130,246,0.08); border: 1px solid rgba(147,197,253,0.45); border-radius: var(--radius-sm); padding: 0.65rem 1rem; margin-bottom: 0.75rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;">
+                                        <span style="font-size: 0.78rem; font-weight: 800; color: var(--text-brand); text-transform: uppercase;"><i class="fa-solid fa-ruler-combined" aria-hidden="true"></i> Field Mapping:</span>
                                         <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                            <label style="font-size: 0.75rem; font-weight: 700; color: #334155; white-space: nowrap;" id="studioCategoryLabel">Category (X-axis):</label>
+                                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;" id="studioCategoryLabel">Category (X-axis):</label>
                                             <select id="studioCategoryCol" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Category column"></select>
                                         </div>
                                         <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                            <label style="font-size: 0.75rem; font-weight: 700; color: #334155; white-space: nowrap;" id="studioValueLabel">Value (Y-axis):</label>
+                                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;" id="studioValueLabel">Value (Y-axis):</label>
                                             <select id="studioValueCol" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Value column"></select>
                                         </div>
-                                        <div id="studioFieldWarning" style="display:none; font-size: 0.75rem; color: #DC2626; font-weight: 700; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 4px; padding: 0.2rem 0.6rem;"></div>
+                                        <div id="studioFieldWarning" style="display:none; font-size: 0.75rem; color: #DC2626; font-weight: 700; background: rgba(254,242,242,0.9); border: 1px solid #FECACA; border-radius: 4px; padding: 0.2rem 0.6rem;"></div>
                                     </div>
 
-                                    <div style="background: #F8FAF8; border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 0.65rem 1rem; margin-bottom: 0.85rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;">
-                                        <span style="font-size: 0.78rem; font-weight: 800; color: #334155; text-transform: uppercase;"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Filter extracted rows:</span>
+                                    <div style="background: var(--bg-highlight); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 0.65rem 1rem; margin-bottom: 0.85rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;">
+                                        <span style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Filter extracted rows:</span>
                                         <select id="studioFilterField" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Filter data scope">
                                             <option value="all">All selected data</option>
                                             <option value="context">Context / label only</option>
@@ -500,15 +548,15 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
                                         </select>
                                         <button id="studioReverseSortOrder" type="button" class="btn-studio-action" aria-pressed="false" style="padding: 0.3rem 0.55rem; font-size: 0.78rem;">⇄ Reverse order</button>
                                         <button id="studioReverseValueAxis" type="button" class="btn-studio-action" aria-pressed="false" style="padding: 0.3rem 0.55rem; font-size: 0.78rem;">⇄ Reverse value axis</button>
-                                        <label style="font-size: 0.78rem; color: #334155; font-weight: 700; white-space: nowrap;">Show <input id="studioRowLimit" class="form-input" type="number" min="1" max="100" value="30" style="width: 4.5rem; display: inline-block; padding: 0.3rem 0.45rem; font-size: 0.78rem;"> rows</label>
-                                        <label style="font-size: 0.78rem; color: #334155; font-weight: 700; white-space: nowrap;"><input id="studioGroupDuplicates" type="checkbox" checked style="accent-color: var(--clsu-green); margin-right: 0.25rem;"> Group duplicate labels</label>
+                                        <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; white-space: nowrap;">Show <input id="studioRowLimit" class="form-input" type="number" min="1" max="100" value="30" style="width: 4.5rem; display: inline-block; padding: 0.3rem 0.45rem; font-size: 0.78rem;"> rows</label>
+                                        <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; white-space: nowrap;"><input id="studioGroupDuplicates" type="checkbox" checked style="accent-color: var(--clsu-green); margin-right: 0.25rem;"> Group duplicate labels</label>
                                     </div>
 
                                     <div style="height: 320px; position: relative; width: 100%; margin-bottom: 0.75rem;">
                                         <div id="studioChartCanvas" style="height: 100%; width: 100%;"></div>
-                                        <div id="studioChartEmptyState" style="display:none; position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(248,250,248,0.95); border-radius:var(--radius-sm); border:2px dashed #CBD5E1;">
+                                        <div id="studioChartEmptyState" style="display:none; position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background: rgba(15,23,42,0.08); border-radius:var(--radius-sm); border:2px dashed var(--border-light);">
                                             <span style="font-size:2rem;"><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span>
-                                            <p id="studioChartEmptyMsg" style="font-size:0.88rem; color:#64748B; font-weight:600; margin-top:0.5rem; text-align:center; max-width:280px;">Select a Category field and a numeric Value field above to render the chart.</p>
+                                            <p id="studioChartEmptyMsg" style="font-size:0.88rem; color: var(--text-muted); font-weight:600; margin-top:0.5rem; text-align:center; max-width:280px;">Select a Category field and a numeric Value field above to render the chart.</p>
                                         </div>
                                     </div>
                                 </div>
@@ -516,15 +564,15 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
                                 <div class="studio-data-manager">
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
                                         <div>
-                                            <h4 style="font-size: 0.95rem; font-weight: 800; color: #0F172A;"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Editable Data Grid & Custom Fields</h4>
-                                            <p style="font-size: 0.78rem; color: #64748B;">Edit cell values directly, add new columns/metrics, or paste copied values.</p>
+                                            <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--text-main);"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Editable Data Grid & Custom Fields</h4>
+                                            <p style="font-size: 0.78rem; color: var(--text-muted);">Edit cell values directly, add new columns/metrics, or paste copied values.</p>
                                         </div>
 
                                         <div style="display: flex; gap: 0.5rem;">
-                                            <button id="studioBtnAddField" type="button" class="btn-studio-action" style="background: #EFF6FF; border: 1.5px solid #3B82F6; color: #1D4ED8;">
+                                            <button id="studioBtnAddField" type="button" class="btn-studio-action" style="background: var(--bg-highlight); border: 1.5px solid rgba(59,130,246,0.5); color: var(--text-main);">
                                                 <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Field / Column
                                             </button>
-                                            <button id="studioBtnAddRow" type="button" class="btn-studio-action" style="background: #ECFDF5; border: 1.5px solid #10B981; color: #065F46;">
+                                            <button id="studioBtnAddRow" type="button" class="btn-studio-action" style="background: rgba(16,185,129,0.12); border: 1.5px solid rgba(16,185,129,0.7); color: var(--text-main);">
                                                 <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Row
                                             </button>
                                         </div>
@@ -532,14 +580,14 @@ $pdo=db();$msg=flash('error')?:flash('success');$logs=$pdo->query('SELECT * FROM
 
                                     <div id="studioTableContainer" class="table-container" style="max-height: 280px; margin-bottom: 1.25rem;"></div>
 
-                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; background: #F8FAF8; padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
+                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; background: var(--bg-highlight); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
                                         <div>
-                                            <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: #334155; text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Classification Category</label>
-                                            <input type="text" id="studioDocTypeInput" class="form-input" style="font-weight: 600; color: #0F172A;">
+                                            <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Classification Category</label>
+                                            <input type="text" id="studioDocTypeInput" class="form-input" style="font-weight: 600; color: var(--text-main);">
                                         </div>
                                         <div>
-                                            <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: #334155; text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Approval Status</label>
-                                            <select id="studioStatusSelect" class="form-input" style="font-weight: 600; color: #0F172A;">
+                                            <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Approval Status</label>
+                                            <select id="studioStatusSelect" class="form-input" style="font-weight: 600; color: var(--text-main);">
                                                 <option value="Pending Review">Pending Review</option>
                                                 <option value="Approved">Approved for Dashboard</option>
                                                 <option value="Needs Revision">Needs Revision</option>
