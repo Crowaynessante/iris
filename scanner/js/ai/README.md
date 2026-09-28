@@ -1,35 +1,20 @@
 # Graph Generation and Chart Data
 
-The graph layer produces suggestions from scanned content and provides shared chart-data operations for the studio.
+This folder contains browser-side chart recommendations. It does not call an external AI service.
 
-## Graph engine
+## Draft generation
 
-[graphEngine.js](graphEngine.js) generates draft chart objects from:
+[`graphEngine.js`](graphEngine.js) creates draft chart objects from numeric spreadsheet columns and simple numeric key/value patterns extracted from document text. A draft includes its title, source, recommendation, labels, values, and chart metadata. Persistence and approval are handled by the Scanner's PHP-backed database manager and Studio workflow.
 
-- spreadsheet sheets with a label column and numeric columns,
-- numeric key/value patterns extracted from document text,
-- fallback document metrics when no numeric series are detected.
+## Shared chart utilities
 
-Each draft contains a title, source, recommended chart type, recommendation text, labels, and a dataset.
-
-## Chart utilities
-
-- `chartMapping.js` infers label and numeric columns and parses formatted numeric values.
-- `chartData.js` groups duplicate labels and prepares circular chart data.
-- `graphExport.js` normalizes draft/saved graph payloads and builds printable sheets, including the combined Print All document.
-
-The live studio chart is rendered by [../modules/chartEngine.js](../modules/chartEngine.js). Draft cards are rendered by [../modules/graphsTab.js](../modules/graphsTab.js).
-
-## Integration boundary
-
-`graphEngine.js` produces draft data and does not persist records or call the Python scanner service. A host application can consume the draft object, apply its own approval policy, and pass normalized chart data to the studio renderer. The v7 pass keeps this boundary explicit; backend/dashboard wiring remains deferred.
+- `chartMapping.js` infers category/value columns, parses numbers and rank ranges, detects rank fields, and builds the shared ECharts options for Year Ranking.
+- `chartData.js` serializes chart state and supplies grouping helpers. Year Ranking duplicate labels are summed; the legacy bar/line grouping behavior remains separate.
+- `graphExport.js` normalizes export payloads and builds Print Sheet/Print All documents. Year Ranking print sheets render through the shared builder and include cumulative percentages in the table.
+- `../modules/chartEngine.js` owns Studio option routing; `../modules/graphsTab.js` owns draft-card rendering.
 
 ## Chart types
 
-- Bar charts compare distinct categories.
-- Line charts represent temporal or sequential trends.
-- Pie/doughnut/polar charts represent proportional data.
+Bar, line, pie, doughnut, and polar-area charts use the existing Studio option path. The explicit `year_ranking` type uses `ChartMapping.buildYearRankingOption()` across Studio, saved charts, the Observatory, print, and data exports. It sorts the displayed measure values, computes cumulative percent after filtering/grouping/limiting, and supports an optional 80% reference. Rank-valued measures use `ChartMapping.isRankField()` and do not show a cumulative series.
 
-The chart layer also supports filtering, sorting, row limits, duplicate grouping, axis mapping, labels, warnings, and empty states.
-
-Saved graph export content is data-only. The `.txt` export uses saved labels, values, title, source, and chart type to generate SQL-formatted `CREATE TABLE` and `INSERT INTO` blocks; it does not read chart canvases or serialize rendered graphs. The printable helpers are separate and retain chart previews and tables for Print Sheet and Print All.
+Saved-graph SQL-formatted text exports use graph data, not rendered canvas pixels. Print exports render a chart preview separately from the data table.

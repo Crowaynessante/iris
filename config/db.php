@@ -30,6 +30,7 @@ function ensure_scanner_tables(PDO $pdo): void {
             rank_semantic BOOLEAN DEFAULT FALSE,
             rank_value_min DECIMAL(20,8) NULL,
             rank_value_max DECIMAL(20,8) NULL,
+            chart_options JSON NULL,
             labels JSON,
             values_data JSON,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -44,6 +45,8 @@ function ensure_scanner_tables(PDO $pdo): void {
         }
         $pdo->exec($sql);
     }
+    $column = $pdo->query("SHOW COLUMNS FROM saved_graphs LIKE 'chart_options'");
+    if (!$column->fetch()) $pdo->exec('ALTER TABLE saved_graphs ADD COLUMN chart_options JSON NULL');
 }
 
 function db(): PDO { static $pdo; if($pdo instanceof PDO)return $pdo; $pdo=new PDO('mysql:host='.IRIS_DB_HOST.';port='.IRIS_DB_PORT.';dbname='.IRIS_DB_NAME.';charset=utf8mb4',IRIS_DB_USER,IRIS_DB_PASS,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_OBJ,PDO::ATTR_EMULATE_PREPARES=>false]); ensure_scanner_tables($pdo); return $pdo; }

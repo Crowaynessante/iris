@@ -31,6 +31,7 @@ function output_record(array $r): array {
 function output_graph(array $g): array {
     $g['labels'] = json_col($g['labels'], []);
     $g['values_data'] = json_col($g['values_data'], []);
+    $g['chart_options'] = json_col($g['chart_options'] ?? null, []);
     return $g;
 }
 function bad(string $message, int $status=400): never {
@@ -97,8 +98,69 @@ try {
             $rows=$pdo->query('SELECT saved_graphs.*, records.id AS source_file_id, records.fileName AS source_file_name, records.fileType AS source_file_type FROM saved_graphs LEFT JOIN records ON records.id=saved_graphs.record_id ORDER BY saved_graphs.created_at DESC')->fetchAll(PDO::FETCH_ASSOC);echo json_encode(array_map('output_graph',$rows));exit;
         }
         if ($_SERVER['REQUEST_METHOD']==='POST' && $action==='bulk-delete'){$d=json_input();$ids=array_values(array_unique(array_filter($d['ids']??[])));if(!$ids)bad('ids must be a non-empty array');$ph=implode(',',array_fill(0,count($ids),'?'));$q=$pdo->prepare("SELECT id FROM saved_graphs WHERE id IN ($ph)");$q->execute($ids);$existing=$q->fetchAll(PDO::FETCH_COLUMN);if($existing){$ph2=implode(',',array_fill(0,count($existing),'?'));$pdo->prepare("DELETE FROM saved_graphs WHERE id IN ($ph2)")->execute($existing);} $set=array_fill_keys($existing,true);$results=[];foreach($ids as $x)$results[]=['id'=>$x,'success'=>isset($set[$x]),'error'=>isset($set[$x])?null:'Graph not found'];echo json_encode(['results'=>$results,'successCount'=>count($existing),'failureCount'=>count($ids)-count($existing)]);exit;}
-        if ($_SERVER['REQUEST_METHOD']==='POST' && $action==='export'){$d=json_input();$ids=array_values(array_unique(array_filter($d['snapshot_ids']??[])));$mode=$d['mode']??'';if(!$ids)bad('snapshot_ids must contain at least one graph id');if(!in_array($mode,['database','script'],true))bad('mode must be database or script');$ph=implode(',',array_fill(0,count($ids),'?'));$q=$pdo->prepare("SELECT saved_graphs.*, records.fileName AS source_file_name FROM saved_graphs LEFT JOIN records ON records.id=saved_graphs.record_id WHERE saved_graphs.id IN ($ph) ORDER BY saved_graphs.created_at DESC");$q->execute($ids);$graphs=$q->fetchAll(PDO::FETCH_ASSOC);if(!$graphs)bad('No saved graphs found',404);if($mode==='script'){ $out='';foreach($graphs as $g){$labels=json_col($g['labels'],[]);$vals=json_col($g['values_data'],[]);$out.='Title: '.($g['title']??'Saved Chart')."\nChart Type: ".strtoupper($g['chart_type']??'bar')."\nSource Record ID: ".$g['record_id']."\n\nCategory: Value\n";foreach($labels as $i=>$label)$out.=($label?:'Item '.($i+1)).': '.($vals[$i]??'')."\n";$out.="\n\n";}header('Content-Type:text/plain; charset=utf-8');header('Content-Disposition: attachment; filename="iris_saved_graphs_'.time().'.txt"');header('X-Export-Count: '.count($graphs));echo $out;exit;} $new=[];foreach($graphs as $g){$newId='export_'.date('YmdHis').'_'.bin2hex(random_bytes(4));$stmt=$pdo->prepare('INSERT INTO saved_graphs (id,record_id,title,chart_type,orientation,value_axis_reversed,value_axis_min,value_axis_max,rank_semantic,rank_value_min,rank_value_max,labels,values_data) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');$stmt->execute([$newId,$g['record_id'],$g['title'],$g['chart_type'],$g['orientation'],(int)$g['value_axis_reversed'],$g['value_axis_min'],$g['value_axis_max'],(int)$g['rank_semantic'],$g['rank_value_min'],$g['rank_value_max'],$g['labels'],$g['values_data']]);$new[]=$newId;}echo json_encode(['mode'=>'database','count'=>count($new),'exported_ids'=>$new]);exit;}
-        if ($_SERVER['REQUEST_METHOD']==='POST'){$d=json_input();$gid=$d['id']??('graph_'.date('YmdHis').'_'.bin2hex(random_bytes(4)));$rid=$d['record_id']??$d['recordId']??null;if(!$rid)bad('record_id is required');$q=$pdo->prepare('SELECT id FROM records WHERE id=?');$q->execute([$rid]);if(!$q->fetch())bad('Record not found',404);$stmt=$pdo->prepare('INSERT INTO saved_graphs (id,record_id,title,chart_type,orientation,value_axis_reversed,value_axis_min,value_axis_max,rank_semantic,rank_value_min,rank_value_max,labels,values_data) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)');$stmt->execute([$gid,$rid,$d['title']??'Saved Chart',$d['chart_type']??$d['chartType']??'bar',$d['orientation']??'vertical',!empty($d['valueAxisReversed'])?1:0,is_numeric($d['valueAxisMin']??null)?$d['valueAxisMin']:null,is_numeric($d['valueAxisMax']??null)?$d['valueAxisMax']:null,!empty($d['rankSemantic'])?1:0,is_numeric($d['rankValueMin']??null)?$d['rankValueMin']:null,is_numeric($d['rankValueMax']??null)?$d['rankValueMax']:null,json_encode($d['labels']??[]),json_encode($d['values_data']??$d['valuesData']??$d['data']??[])]);$q=$pdo->prepare('SELECT * FROM saved_graphs WHERE id=?');$q->execute([$gid]);echo json_encode(output_graph($q->fetch(PDO::FETCH_ASSOC)));exit;}
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'export') {
+            $d = json_input();
+            $ids = array_values(array_unique(array_filter($d['snapshot_ids'] ?? [])));
+            $mode = $d['mode'] ?? '';
+            if (!$ids) bad('snapshot_ids must contain at least one graph id');
+            if (!in_array($mode, ['database', 'script'], true)) bad('mode must be database or script');
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $query = $pdo->prepare("SELECT saved_graphs.*, records.fileName AS source_file_name FROM saved_graphs LEFT JOIN records ON records.id=saved_graphs.record_id WHERE saved_graphs.id IN ($placeholders) ORDER BY saved_graphs.created_at DESC");
+            $query->execute($ids);
+            $graphs = $query->fetchAll(PDO::FETCH_ASSOC);
+            if (!$graphs) bad('No saved graphs found', 404);
+            if ($mode === 'script') {
+                $out = '';
+                foreach ($graphs as $graph) {
+                    $labels = json_col($graph['labels'], []);
+                    $values = json_col($graph['values_data'], []);
+                    $isYearRanking = ($graph['chart_type'] ?? '') === 'year_ranking';
+                    $rankSemantic = !empty($graph['rank_semantic']);
+                    $numericValues = array_map(static fn($value) => is_numeric($value) ? (float)$value : 0.0, $values);
+                    $total = array_sum($numericValues);
+                    $hasNegative = count(array_filter($numericValues, static fn($value) => $value < 0)) > 0;
+                    $hasCumulative = $isYearRanking && !$rankSemantic && !$hasNegative && $total !== 0.0;
+                    $out .= 'Title: '.($graph['title'] ?? 'Saved Chart')."\nChart Type: ".strtoupper($graph['chart_type'] ?? 'bar')."\nSource Record ID: ".$graph['record_id']."\n\nCategory: Value".($isYearRanking ? ': Cumulative %' : '')."\n";
+                    $running = 0.0;
+                    foreach ($labels as $index => $label) {
+                        $value = $numericValues[$index] ?? 0.0;
+                        $running += $value;
+                        $cumulative = $hasCumulative ? ($index === count($labels) - 1 ? 100 : round($running / $total * 100, 2)) : null;
+                        $out .= ($label ?: 'Item '.($index + 1)).': '.($values[$index] ?? '').($isYearRanking ? ': '.($cumulative === null ? '' : $cumulative.'%') : '')."\n";
+                    }
+                    $out .= "\n\n";
+                }
+                header('Content-Type:text/plain; charset=utf-8');
+                header('Content-Disposition: attachment; filename="iris_saved_graphs_'.time().'.txt"');
+                header('X-Export-Count: '.count($graphs));
+                echo $out;
+                exit;
+            }
+            $new = [];
+            foreach ($graphs as $graph) {
+                $newId = 'export_'.date('YmdHis').'_'.bin2hex(random_bytes(4));
+                $stmt = $pdo->prepare('INSERT INTO saved_graphs (id,record_id,title,chart_type,orientation,value_axis_reversed,value_axis_min,value_axis_max,rank_semantic,rank_value_min,rank_value_max,chart_options,labels,values_data) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+                $stmt->execute([$newId,$graph['record_id'],$graph['title'],$graph['chart_type'],$graph['orientation'],(int)$graph['value_axis_reversed'],$graph['value_axis_min'],$graph['value_axis_max'],(int)$graph['rank_semantic'],$graph['rank_value_min'],$graph['rank_value_max'],$graph['chart_options'],$graph['labels'],$graph['values_data']]);
+                $new[] = $newId;
+            }
+            echo json_encode(['mode' => 'database', 'count' => count($new), 'exported_ids' => $new]);
+            exit;
+        }
+        if ($_SERVER['REQUEST_METHOD']==='POST') {
+            $d=json_input();
+            $gid=$d['id']??('graph_'.date('YmdHis').'_'.bin2hex(random_bytes(4)));
+            $rid=$d['record_id']??$d['recordId']??null;
+            if(!$rid)bad('record_id is required');
+            $q=$pdo->prepare('SELECT id FROM records WHERE id=?');
+            $q->execute([$rid]);
+            if(!$q->fetch())bad('Record not found',404);
+            $stmt=$pdo->prepare('INSERT INTO saved_graphs (id,record_id,title,chart_type,orientation,value_axis_reversed,value_axis_min,value_axis_max,rank_semantic,rank_value_min,rank_value_max,chart_options,labels,values_data) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
+            $stmt->execute([$gid,$rid,$d['title']??'Saved Chart',$d['chart_type']??$d['chartType']??'bar',$d['orientation']??'vertical',!empty($d['valueAxisReversed'])?1:0,is_numeric($d['valueAxisMin']??null)?$d['valueAxisMin']:null,is_numeric($d['valueAxisMax']??null)?$d['valueAxisMax']:null,!empty($d['rankSemantic'])?1:0,is_numeric($d['rankValueMin']??null)?$d['rankValueMin']:null,is_numeric($d['rankValueMax']??null)?$d['rankValueMax']:null,json_encode($d['chartOptions']??[]),json_encode($d['labels']??[]),json_encode($d['values_data']??$d['valuesData']??$d['data']??[])]);
+            $q=$pdo->prepare('SELECT * FROM saved_graphs WHERE id=?');
+            $q->execute([$gid]);
+            echo json_encode(output_graph($q->fetch(PDO::FETCH_ASSOC)));
+            exit;
+        }
         if ($_SERVER['REQUEST_METHOD']==='DELETE'){if($id===null)bad('Graph id is required');$q=$pdo->prepare('SELECT * FROM saved_graphs WHERE id=?');$q->execute([$id]);$g=$q->fetch(PDO::FETCH_ASSOC);if(!$g)bad('Graph not found',404);$pdo->prepare('DELETE FROM saved_graphs WHERE id=?')->execute([$id]);echo json_encode(['message'=>'Graph deleted','graph'=>$g]);exit;}
     }
     bad('Unknown API resource',404);

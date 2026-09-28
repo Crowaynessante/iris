@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { prepareCircularData, serializeChartState } = require('../js/chartData');
+const { prepareCircularData, groupAndSum, serializeChartState } = require('../js/chartData');
 const { pairSelectedText } = require('../js/sourceIngestion');
 const { normalizeGraphExportItem, buildPrintableGraphSheet } = require('../js/graphExport');
 const savedGraphsSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'modules', 'savedGraphsTab.js'), 'utf8');
@@ -14,6 +14,17 @@ test('deduplicates circular chart legend labels while grouping remains optional'
   assert.deepEqual(ungrouped.legendLabels, ['North', 'South']);
   assert.equal(ungrouped.rows.length, 3);
   assert.deepEqual(grouped.rows, [{ label: 'North', value: 5 }, { label: 'South', value: 4 }]);
+});
+
+test('Year Ranking duplicate labels are summed rather than averaged', () => {
+  assert.deepEqual(groupAndSum([
+    { label: '2024', value: 90 },
+    { label: '2024', value: 80 },
+    { label: '2023', value: 70 }
+  ]), [
+    { label: '2024', value: 170 },
+    { label: '2023', value: 70 }
+  ]);
 });
 
 test('serializes the current edited chart series after an entity is removed', () => {
@@ -64,6 +75,23 @@ test('builds a printable graph sheet with row data and branding', () => {
   assert.match(html, /class="chart-preview"/);
   assert.match(html, /aria-label="Bar chart"/);
 });
+
+  test('prints Year Ranking with the shared ECharts builder and cumulative data column', () => {
+    const html = buildPrintableGraphSheet({
+      title: 'Year Ranking',
+      chart_type: 'year_ranking',
+      chart_options: { measureName: 'Enrollment', showCumulativeLine: true, show80Reference: true, showBarValueLabels: true },
+      labels: ['2024', '2023', '2022'],
+      values_data: [90, 90, 80]
+    });
+
+    assert.match(html, /echarts@5\.5\.1/);
+    assert.match(html, /ChartMapping\.buildYearRankingOption/);
+    assert.match(html, /Cumulative %/);
+    assert.match(html, /34\.62%/);
+    assert.match(html, /69\.23%/);
+    assert.match(html, /100%/);
+  });
 
 test('text export contains SQL statements and graph metadata comments', () => {
   assert.match(savedGraphsSource, /export function buildTextExport/);

@@ -97,10 +97,12 @@
     const rows = (Array.isArray(config.rows) ? config.rows : [])
       .map((row, index) => ({
         label: String(row?.label ?? `Item ${index + 1}`),
-        value: Number(row?.value)
+        value: row?.value === null || row?.value === undefined || String(row.value).trim() === ''
+          ? NaN
+          : Number(String(row.value).replace(/,/g, ''))
       }))
-      .filter(row => Number.isFinite(row.value))
-      .sort((left, right) => rankSemantic ? left.value - right.value : right.value - left.value);
+      .filter(row => Number.isFinite(row.value));
+    if (config.preserveOrder !== true) rows.sort((left, right) => rankSemantic ? left.value - right.value : right.value - left.value);
     const labels = rows.map(row => row.label);
     const rawValues = rows.map(row => row.value);
     const total = rawValues.reduce((sum, value) => sum + value, 0);
@@ -143,14 +145,19 @@
       type: 'line',
       xAxisIndex: 1,
       yAxisIndex: 0,
-      data: cumulative,
+      encode: { x: 0, y: 1 },
+      data: cumulative.map((value, index) => ({
+        name: labels[index],
+        value: [value, labels[index]],
+        cumulativePercent: value
+      })),
       symbol: 'circle',
       symbolSize: compact ? 6 : 8,
       smooth: 0.2,
       lineStyle: { color: colors.line, width: 2.5 },
       itemStyle: { color: colors.line },
       areaStyle: { color: colors.area },
-      label: { show: lineVisible, position: 'right', color: colors.text, fontSize: compact ? 9 : 10, formatter: params => `${params.value}%` },
+      label: { show: lineVisible, position: 'right', color: colors.text, fontSize: compact ? 9 : 10, formatter: params => `${Math.round(params.data.cumulativePercent)}%` },
       labelLayout: { hideOverlap: true },
       markLine: referenceMarkLine
     };
@@ -175,7 +182,7 @@
           type: 'value',
           position: 'top',
           min: 0,
-          max: plottedMaximum || 1,
+          max: plottedMaximum,
           splitNumber: 5,
           axisLabel: { color: colors.text, fontSize: compact ? 9 : 10, formatter: axisFormatter },
           axisLine: { lineStyle: { color: colors.grid } },

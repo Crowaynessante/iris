@@ -1,19 +1,12 @@
-# Frontend Modules
+# Scanner Frontend Modules
 
-The frontend is initialized by [../app.js](../app.js), which creates a shared context containing the scanner, database manager, state, and module APIs.
+[`../app.js`](../app.js) initializes the browser application and creates a shared context with scanner, database manager, state, and module APIs. Modules exchange callbacks through `ctx.api`; DOM queries stay with the module that owns the UI.
 
-## Shared state
+## State and rendering
 
-[state.js](state.js) owns mutable cross-feature state, including:
+[`state.js`](state.js) stores the active scan/record, queues, filters, and chart instances. [`chartEngine.js`](chartEngine.js) handles Studio row filtering, sorting, grouping, limits, and ECharts options. [`studioWorkbench.js`](studioWorkbench.js) connects Studio controls and persists selected chart settings.
 
-- scan queue and active scan,
-- Chart.js and ECharts instances,
-- active studio record and filters,
-- document viewer page, zoom, sheet, and search state.
-
-Modules communicate through `ctx.api` callbacks. This avoids circular imports while keeping DOM lookups local to the module that owns the behavior.
-
-The v7 chart-rendering boundary is explicit: `chartEngine.js` can receive state, active-sheet access, and UI element references from its host. It retains compatibility with the current IRIS context and default DOM IDs, while allowing another dashboard shell to supply those dependencies later.
+Year Ranking is explicitly selected with `chart_type: "year_ranking"`. Studio calls the shared `ChartMapping.buildYearRankingOption()` builder. The same builder is used by saved graph cards, draft cards, the public Observatory, and print export; do not add surface-specific Year Ranking option copies. Its `chart_options` persist the measure display name and cumulative/reference/bar-label toggles.
 
 ## Module responsibilities
 
@@ -21,32 +14,23 @@ The v7 chart-rendering boundary is explicit: `chartEngine.js` can receive state,
 | --- | --- |
 | `navigation.js` | Scanner and admin view switching |
 | `navigationTabs.js` | Scanner and admin tab switching |
-| `fileIngestion.js` | File input, drag/drop, samples, progress, scanning |
+| `fileIngestion.js` | File selection, drag/drop, samples, progress, and scan orchestration |
 | `queue.js` | Ingestion queue and active scan selection |
-| `overviewTab.js` | Summary, extracted fields, takeaways |
-| `viewerTab.js` | Basic scan viewer for image, spreadsheet, DOCX, and fallback text |
-| `graphsTab.js` | Draft chart cards and draft export actions |
-| `savedGraphsTab.js` | Saved chart list, file filtering, selection, export, Print All, print, and delete actions |
-| `adminPortal.js` | Record statistics, archive table, search, and status filters |
-| `studioWorkbench.js` | Studio record setup, field mapping, and studio orchestration |
-| `documentViewer.js` | Acrobat-style document window, paging, zoom, and copy behavior |
-| `tableGrid.js` | Editable studio table and row/column operations |
-| `chartEngine.js` | ECharts rendering, filters, sorting, grouping, and row limits |
-| `studioActions.js` | Studio add-field, add-row, save, and approve actions |
-| `recordEditModal.js` | Record edit modal, table edits, raw text, save, and approval |
+| `overviewTab.js` | Extracted fields and scan overview |
+| `viewerTab.js` | Basic scan viewer |
+| `graphsTab.js` | Draft chart cards and print actions |
+| `savedGraphsTab.js` | Saved graph cards, filtering, selection, exports, print, and deletion |
+| `adminPortal.js` | Record archive, search, statistics, and status actions |
+| `studioWorkbench.js` | Studio record setup, field mapping, save, and approval |
+| `documentViewer.js` | Document viewing, paging, zoom, and copy behavior |
+| `tableGrid.js` | Editable Studio table and row/column operations |
+| `chartEngine.js` | ECharts rendering and Studio data transformations |
+| `studioActions.js` | Studio add-field/add-row actions |
 
-## Adding a module
+## Saved Graphs and Exports
 
-1. Keep DOM queries inside the owning module.
-2. Put cross-module mutable values in `state.js`.
-3. Expose only the callback needed by another module through `ctx.api`.
-4. Preserve existing DOM IDs and event semantics.
-5. Run `npm test` after changing behavior.
+Saved graph rows and `chart_options` are stored through `dbManager.js` and the PHP graph API. SQL-formatted `.txt` exports are generated from saved labels, values, and metadata; print sheets render chart previews and data tables separately. Year Ranking print and data exports include a cumulative percentage column when meaningful.
 
-## Saved Dashboard Graphs
+## Development Checks
 
-The Saved Dashboard Graphs view preserves the selected FILE dropdown value and filters cards by `record_id`. Each card has an `Export` action and an individual `Print Sheet` action. The header provides Select All, bulk Export, and Print All controls; both bulk controls are disabled until at least one graph is selected.
-
-The non-database Export option builds a `.txt` download directly from saved graph data: title, source, chart type, labels, and values. The file contains SQL-formatted comments, `CREATE TABLE`, and `INSERT INTO` statements, but no chart or canvas data. The Database Export option remains the separate live-MySQL path.
-
-Print All sends the selected saved graph records to the database manager's combined print helper. That helper reuses the existing printable graph-sheet template for each graph, preserving each chart preview and data table in one print window.
+Run the dependency-free tests from the repository root with `node --test scanner/test/*.test.js`. Browser-test responsive layout, theme updates, dropdown behavior, and public/admin navigation when changing these views.

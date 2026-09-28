@@ -1,24 +1,25 @@
-# Parsers and Document Viewers
+# Browser Parsers and Viewers
 
-The parser layer converts uploaded files into a common scan package consumed by the frontend and database manager.
+Parser modules convert browser-selected files into scan data used by the Scanner UI and PHP-backed record persistence. Libraries are loaded by the scanner page; this directory does not contain a separate parser service.
 
 ## Parsers
 
-- `excelParser.js` reads XLSX, XLS, and CSV-compatible workbook data through SheetJS. It returns sheets, headers, rows, numeric statistics, formulas, metadata, and combined text.
-- `docxParser.js` extracts formatted HTML, raw text, document metadata, headings, and the source buffer through Mammoth.
-- `pdfParser.js` reads PDF text and metadata through PDF.js and preserves page data and the PDF reference for viewing.
-- `imageParser.js` remains available for legacy/secondary flows but image scanning is disabled in the active browser upload controls.
+- `excelParser.js` reads XLSX, XLS, and CSV workbook data through SheetJS and returns sheets, headers, rows, numeric statistics, metadata, and text.
+- `docxParser.js` extracts text, formatted content, headings, and metadata through Mammoth.
+- `pdfParser.js` extracts PDF text and metadata through PDF.js and retains page/document references for viewing.
+- `imageParser.js` contains image parsing support; `imageOcrPipeline.js` provides OCR helpers used for embedded/scanned content where applicable.
 
-## Viewer components
+## Viewers
 
 - `docxViewerComponent.js` renders DOCX buffers through `docx-preview`.
-- `pdfViewerComponent.js` renders PDF documents through PDF.js with page navigation, zoom, scroll modes, and text selection.
+- `pdfViewerComponent.js` renders PDFs through PDF.js with page navigation, zoom, scroll behavior, and text selection.
+- `../modules/viewerTab.js` and `../modules/documentViewer.js` own Scanner UI integration.
 
-The scanner normalizes parser output in [../scanner.js](../scanner.js). UI-specific rendering is handled by `../modules/viewerTab.js` and `../modules/documentViewer.js`.
+The scanner page loads these browser dependencies from CDNs. The active server-side application is plain PHP/PDO; there is no `scanner_service/` HTTP service in this repository.
 
-## Common parser contract
+## Parser Contract
 
-A parser returns an object containing, where applicable:
+Parser output may include:
 
 ```js
 {
@@ -36,8 +37,4 @@ A parser returns an object containing, where applicable:
 }
 ```
 
-When changing a parser, preserve the fields used by `ScannerOrchestrator`, overview rendering, document viewing, graph generation, and record persistence.
-
-## Integration boundary
-
-Parser output is an application-neutral scan package at the browser boundary. The active frontend still owns upload orchestration and persistence, while `scanner_service/` exposes a separate HTTP version of the same broad parse-and-suggest concern. v7 documents these contracts without connecting the two execution paths.
+Preserve the fields consumed by `ScannerOrchestrator`, overview rendering, document viewing, graph drafting, and record persistence when changing a parser.

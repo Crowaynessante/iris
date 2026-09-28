@@ -91,19 +91,13 @@ export function initAdminPortal(ctx) {
       }
     });
 
-    all('.btn-table-approve').forEach(button => button.onclick = async () => {
-      const id = button.dataset.id;
-      if (!confirm('Approve this record for the Observatory?')) return;
-      button.disabled = true;
-      try {
-        await ctx.dbManager.updateRecord(id, { status: 'Approved' });
-        selectedRecordIds.delete(id);
-        await ctx.api.renderAdminPortal();
-        showToast('Record approved for the Observatory.');
-      } catch (error) {
-        button.disabled = false;
-        alert(`Approval failed: ${error.message}`);
-      }
+    all('.btn-table-approve').forEach(button => button.onclick = () => {
+      const record = filtered.find(item => String(item.id) === String(button.dataset.id));
+      if (!record) return;
+      ctx.state.studioActiveRecord = record;
+      ctx.api.renderStudioWorkbench(record);
+      $('studioChartCanvas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      showToast('Review detected column roles and acknowledge warnings before approval.');
     });
 
     all('.btn-table-delete').forEach(button => button.onclick = async () => {
@@ -125,6 +119,10 @@ export function initAdminPortal(ctx) {
   };
 
   const confirmBulk = async (mode) => {
+    if (mode === 'approve') {
+      alert('Bulk approval is disabled so each chart can be reviewed and its warnings acknowledged in Studio.');
+      return;
+    }
     const ids = [...selectedRecordIds];
     if (!ids.length) return;
     const records = await ctx.dbManager.getAllRecords();

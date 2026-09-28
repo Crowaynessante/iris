@@ -48,7 +48,10 @@ test('Year Ranking uses sorted bars, paired axes, and cumulative percentages', (
   assert.equal(option.xAxis[1].splitLine.show, true);
   assert.deepEqual(option.legend.data, ['Enrollment', 'Cumulative']);
   assert.deepEqual(option.series[0].data.map(point => point.rawValue), values);
-  assert.deepEqual(option.series[1].data, [13.14, 26.28, 37.96, 49.64, 59.85, 69.34, 78.1, 86.13, 93.43, 100]);
+  assert.deepEqual(option.series[1].data.map(point => point.cumulativePercent), [13.14, 26.28, 37.96, 49.64, 59.85, 69.34, 78.1, 86.13, 93.43, 100]);
+  assert.deepEqual(option.series[1].data[0].value, [13.14, 'Year 1']);
+  assert.deepEqual(option.series[1].encode, { x: 0, y: 1 });
+  assert.equal(option.series[1].label.formatter({ data: { cumulativePercent: 13.14 } }), '13%');
   assert.equal(option.series[1].markLine.data.length, 2);
   assert.equal(option.series[1].markLine.data[0][0].xAxis, 80);
   assert.equal(option.series[1].markLine.data[1][0].yAxis, 'Year 8');
@@ -80,4 +83,16 @@ test('chart adapters bind line and bar categories to source labels', () => {
   assert.match(source, /const categoryScale = \{ type: 'category', labels: data\.labels/);
   assert.match(source, /x: horizontal \? valueScale : categoryScale/);
   assert.match(source, /y: horizontal \? \{ \.\.\.categoryScale, labels: data\.labels \} : valueScale/);
+});
+
+test('Year Ranking skips blank and non-numeric values instead of plotting zeroes', () => {
+  const option = buildYearRankingOption({ measureName: 'Value', rows: [
+    { label: 'Valid', value: 7 },
+    { label: 'Blank', value: '' },
+    { label: 'Missing', value: null },
+    { label: 'Text', value: 'not numeric' }
+  ] });
+
+  assert.deepEqual(option.yAxis.data, ['Valid']);
+  assert.deepEqual(option.series[0].data.map(point => point.rawValue), [7]);
 });

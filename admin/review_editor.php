@@ -118,6 +118,7 @@ require_once __DIR__.'/includes/header.php';
                             <label style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; white-space: nowrap;">Chart Type:</label>
                             <select id="studioChartTypeSelect" class="form-input" style="width: auto; min-width: 150px; padding: 0.35rem 0.75rem; font-size: 0.82rem; font-weight: 700; color: var(--text-main);">
                                 <option value="bar">Bar Chart</option>
+                                <option value="year_ranking">Year Ranking</option>
                                 <option value="line">Line Chart</option>
                                 <option value="pie">Pie Chart</option>
                                 <option value="doughnut">Doughnut Chart</option>
@@ -170,6 +171,12 @@ require_once __DIR__.'/includes/header.php';
                         <button id="studioReverseValueAxis" type="button" class="btn-studio-action" aria-pressed="false" style="padding: 0.3rem 0.55rem; font-size: 0.78rem;">⇄ Reverse value axis</button>
                         <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; white-space: nowrap;">Show <input id="studioRowLimit" class="form-input" type="number" min="1" max="100" value="30" style="width: 4.5rem; display: inline-block; padding: 0.3rem 0.45rem; font-size: 0.78rem;"> rows</label>
                         <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; white-space: nowrap;"><input id="studioGroupDuplicates" type="checkbox" checked style="accent-color: var(--clsu-green); margin-right: 0.25rem;"> Group duplicate labels</label>
+                    </div>
+
+                    <div id="studioYearRankingControls" style="display:none; flex-wrap:wrap; gap:0.9rem; align-items:center; margin:0 0 0.75rem; padding:0.6rem 0.9rem; border:1px solid var(--border-light); border-radius:var(--radius-sm); color:var(--text-main); font-size:0.78rem;">
+                        <label><input id="studioShowCumulativeLine" type="checkbox" checked> Show cumulative line</label>
+                        <label><input id="studioShow80Reference" type="checkbox" checked> Show 80% reference</label>
+                        <label><input id="studioShowBarValueLabels" type="checkbox" checked> Show bar value labels</label>
                     </div>
 
                     <div style="height: 320px; position: relative; width: 100%; margin-bottom: 0.75rem;">

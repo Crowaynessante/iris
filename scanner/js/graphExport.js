@@ -26,9 +26,10 @@
       record_id: source.record_id || source.recordId || recordId || null,
       title: source.title || source.name || 'Saved Graph Export',
       chart_type: source.chart_type || source.chartType || source.primaryType || 'bar',
-      rankSemantic: source.rankSemantic === true || chartData.rankSemantic === true,
+      rankSemantic: source.rankSemantic === true || source.rank_semantic === true || source.rank_semantic === 1 || chartData.rankSemantic === true,
       rankValueMin: source.rankValueMin ?? chartData.rankValueMin,
       rankValueMax: source.rankValueMax ?? chartData.rankValueMax,
+      chartOptions: source.chartOptions || source.chart_options || {},
       labels: labels.length ? labels : (Array.isArray(chartData.labels) ? chartData.labels : []),
       values_data: numericSeries.length ? numericSeries : (Array.isArray(source.data) ? source.data : [])
     };
@@ -40,23 +41,93 @@
     return normalized;
   }
 
+  function getYearRankingCumulative(graph, labels, values, rankSemantic, chartOptions) {
+    const mapping = root.ChartMapping || (typeof require === 'function' ? require('./chartMapping') : null);
+    if (!mapping?.buildYearRankingOption) return [];
+    const option = mapping.buildYearRankingOption({
+      measureName: chartOptions.measureName || 'Value',
+      rows: labels.map((label, index) => ({ label, value: Number(values[index]) })),
+      rankSemantic,
+      preserveOrder: true,
+      showCumulativeLine: true,
+      show80Reference: chartOptions.show80Reference !== false,
+      showBarValueLabels: chartOptions.showBarValueLabels !== false
+    });
+    return option.series.find(series => series.name === 'Cumulative')?.data.map(point => point.cumulativePercent) || [];
+  }
+
+  function yearRankingPrintScripts() {
+    return {
+      head: '<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script><script src="../scanner/js/chartMapping.js"></script>',
+      boot: `<script>
+        (() => {
+          const charts = [];
+          const observers = [];
+          document.querySelectorAll('[data-year-ranking]').forEach(host => {
+            const config = JSON.parse(host.dataset.yearRanking);
+            const chart = echarts.init(host);
+            chart.setOption(ChartMapping.buildYearRankingOption({
+              measureName: config.measureName,
+              rows: config.labels.map((label, index) => ({ label, value: Number(config.values[index]) })),
+              preserveOrder: true,
+              rankSemantic: config.rankSemantic,
+              showCumulativeLine: config.showCumulativeLine,
+              show80Reference: config.show80Reference,
+              showBarValueLabels: config.showBarValueLabels,
+              isDark: config.isDark,
+              width: host.clientWidth
+            }));
+            charts.push(chart);
+            if (typeof ResizeObserver !== 'undefined') {
+              const observer = new ResizeObserver(() => chart.resize());
+              observer.observe(host);
+              observers.push(observer);
+            }
+          });
+          window.addEventListener('resize', () => charts.forEach(chart => chart.resize()));
+          window.addEventListener('beforeunload', () => {
+            observers.forEach(observer => observer.disconnect());
+            charts.forEach(chart => chart.dispose());
+          });
+        })();
+      </script>`
+    };
+  }
+
   function buildPrintableGraphSheet(graph, context = {}) {
     const recordName = context.recordName || 'IRIS Report';
     const title = graph.title || 'Saved Graph';
     const chartType = graph.chart_type || graph.chartType || 'bar';
     const chartData = graph.chartData || {};
     const rankSemantic = graph.rank_semantic === 1 || graph.rank_semantic === true || graph.rankSemantic === true || chartData.rankSemantic === true;
+    const chartOptions = graph.chart_options || graph.chartOptions || {};
     const labels = Array.isArray(graph.labels) ? graph.labels : (Array.isArray(chartData.labels) ? chartData.labels : []);
     const values = Array.isArray(graph.values_data) ? graph.values_data : (Array.isArray(chartData.datasets?.[0]?.data) ? chartData.datasets[0].data : []);
+    const isYearRanking = String(chartType).toLowerCase() === 'year_ranking';
+    const cumulative = isYearRanking ? getYearRankingCumulative(graph, labels, values, rankSemantic, chartOptions) : [];
 
     const rows = labels.map((label, index) => `
       <tr>
         <td>${escapeHtml(label || `Item ${index + 1}`)}</td>
         <td>${escapeHtml(values[index] ?? '')}</td>
+        ${isYearRanking ? `<td>${escapeHtml(cumulative[index] === undefined ? '' : `${cumulative[index]}%`)}</td>` : ''}
       </tr>
     `).join('');
 
+    const printableChartId = `year-ranking-preview-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+    const printableChartConfig = escapeHtml(JSON.stringify({
+      labels,
+      values,
+      measureName: chartOptions.measureName || 'Value',
+      rankSemantic: rankSemantic || root.ChartMapping?.isRankField?.(chartOptions.measureName),
+      showCumulativeLine: chartOptions.showCumulativeLine !== false,
+      show80Reference: chartOptions.show80Reference !== false,
+      showBarValueLabels: chartOptions.showBarValueLabels !== false,
+      isDark: context.isDark === true
+    }));
+
     function buildChartSvg() {
+      if (isYearRanking) return `<div id="${printableChartId}" class="chart-preview" data-year-ranking="${printableChartConfig}" role="img" aria-label="Year Ranking chart"></div>`;
       const width = 760;
       const height = 320;
       const colors = ['#146C36', '#F59E0B', '#0D9488', '#10B981', '#D97706', '#2563EB'];
@@ -192,6 +263,7 @@
             .actions { display: none; }
           }
         </style>
+        ${isYearRanking ? yearRankingPrintScripts().head : ''}
       </head>
       <body>
         <div class="sheet">
@@ -210,16 +282,18 @@
               <tr>
                 <th>Category</th>
                 <th>Value</th>
+                ${isYearRanking ? '<th>Cumulative %</th>' : ''}
               </tr>
             </thead>
             <tbody>
-              ${rows || '<tr><td colspan="2">No data available for this graph.</td></tr>'}
+              ${rows || `<tr><td colspan="${isYearRanking ? 3 : 2}">No data available for this graph.</td></tr>`}
             </tbody>
           </table>
           <div class="actions">
             <button class="print-btn" onclick="window.print();">Print Sheet</button>
           </div>
         </div>
+        ${isYearRanking ? yearRankingPrintScripts().boot : ''}
       </body>
       </html>
     `;
@@ -238,8 +312,9 @@
     }).filter(Boolean).join('\n');
     const template = new DOMParser().parseFromString(buildPrintableGraphSheet({}, context), 'text/html');
     const style = template.querySelector('style')?.outerHTML || '';
+    const scripts = sheets.includes('data-year-ranking') ? yearRankingPrintScripts() : { head: '', boot: '' };
 
-    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><title>IRIS Saved Graphs - Printable Sheets</title>${style}<style>.sheet { margin-bottom: 32px; page-break-after: always; } .sheet:last-child { page-break-after: auto; }</style></head><body>${sheets}<div class="actions"><button class="print-btn" onclick="window.print();">Print All</button></div></body></html>`;
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><title>IRIS Saved Graphs - Printable Sheets</title>${style}${scripts.head}<style>.sheet { margin-bottom: 32px; page-break-after: always; } .sheet:last-child { page-break-after: auto; }</style></head><body>${sheets}<div class="actions"><button class="print-btn" onclick="window.print();">Print All</button></div>${scripts.boot}</body></html>`;
   }
 
   const api = {

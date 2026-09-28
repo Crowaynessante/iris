@@ -218,6 +218,7 @@ class DatabaseManager {
       rankSemantic: graphData.rankSemantic === true,
       rankValueMin: graphData.rankValueMin,
       rankValueMax: graphData.rankValueMax,
+      chartOptions: graphData.chartOptions || graphData.chart_options,
       labels: graphData.labels || [],
       values_data: graphData.values_data || graphData.valuesData || graphData.data || []
     };
@@ -332,10 +333,14 @@ class DatabaseManager {
         title: row.title || 'Saved Chart',
         source: 'Saved Chart',
         primaryType: row.chart_type || 'bar',
+        rankSemantic: row.rank_semantic === true || row.rank_semantic === 1,
+        chartOptions: row.chart_options || {},
         recommendation: 'Saved chart from the dashboard studio.',
         isDraft: true,
         chartData: {
           labels: Array.isArray(row.labels) ? row.labels : [],
+          rankSemantic: row.rank_semantic === true || row.rank_semantic === 1,
+          chartOptions: row.chart_options || {},
           datasets: [{
             label: row.title || 'Series',
             data: Array.isArray(row.values_data) ? row.values_data : [],

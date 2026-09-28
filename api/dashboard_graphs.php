@@ -8,7 +8,7 @@ try {
     $sql = "SELECT sg.id, sg.record_id, sg.title, sg.chart_type, sg.orientation,
                    sg.value_axis_reversed, sg.value_axis_min, sg.value_axis_max,
                    sg.rank_semantic, sg.rank_value_min, sg.rank_value_max,
-                   sg.labels, sg.values_data, sg.created_at,
+                   sg.chart_options, sg.labels, sg.values_data, sg.created_at,
                    r.fileName AS source_file_name, r.status AS source_status
             FROM saved_graphs sg
             INNER JOIN records r ON r.id = sg.record_id
@@ -19,6 +19,7 @@ try {
     foreach ($rows as &$row) {
         $row['labels'] = json_decode((string)$row['labels'], true) ?: [];
         $row['values_data'] = json_decode((string)$row['values_data'], true) ?: [];
+        $row['chart_options'] = json_decode((string)($row['chart_options'] ?? ''), true) ?: [];
         $row['value_axis_reversed'] = (bool)$row['value_axis_reversed'];
         $row['rank_semantic'] = (bool)$row['rank_semantic'];
         $row['value_axis_min'] = $row['value_axis_min'] !== null ? (float)$row['value_axis_min'] : null;

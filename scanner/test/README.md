@@ -1,27 +1,27 @@
-# Tests
+# Scanner Tests
 
-The project uses Node's built-in test runner.
-
-Run the complete suite from the `IRIS` directory:
+Tests use Node's built-in `node:test` runner. No npm install or package manifest is required. From the repository root, run the full suite with:
 
 ```powershell
-npm test
+node --test scanner/test/*.test.js
 ```
 
-## Coverage areas
+To run the chart and graph/export coverage by itself:
 
-- Chart column mapping and numeric parsing
-- Chart grouping and circular chart labels
-- Extracted text pairing
-- Progressive and column-scoped table filtering
-- Document text pagination
-- Graph export normalization, SQL-formatted text content, and printable sheets
-- Frontend structural contracts for the modular entry point
+```powershell
+node --test scanner/test/chartMapping.test.js scanner/test/dashboardData.test.js
+```
 
-Tests are intentionally dependency-light and exercise pure utilities or source-level contracts. Browser workflows should also be checked when changing parser loading, module initialization, or DOM event wiring.
+## Coverage
 
-Saved Dashboard Graph coverage includes FILE dropdown filtering, selected-graph bulk state, data-only SQL-formatted `.txt` export, and combined printable sheet generation for Print All.
+- Chart field inference, numeric parsing, rank detection/inversion, and Year Ranking option data
+- Duplicate grouping, cumulative percentages, zero/negative totals, and blank-value handling
+- Table filtering and document pagination
+- Graph serialization, Year Ranking print tables, and SQL-formatted text exports
+- Structural frontend contracts
 
-## v7 verification
+These tests cover utilities and source-level contracts. They do not replace browser checks for responsive layout, theme updates, dropdown behavior, authentication, or end-to-end Apache/MySQL behavior.
 
-The v7 refactor is verified with the existing suite after endpoint configurability and chart host-parameter changes. The suite confirms chart mapping, filtering, exports, pagination, and frontend structural contracts; it does not replace a browser smoke test or an end-to-end scanner-service integration test.
+## Known test gap
+
+The current full run has one failing legacy assertion in `integrationLayout.test.js`: it expects the previous Scanner CSS grid width (`minmax(220px, 290px) minmax(0, 1fr)`). The remaining 29 tests pass. Refresh that structural expectation when the Scanner layout contract is next changed.

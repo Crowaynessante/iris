@@ -38,7 +38,11 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
     rowLimit: document.getElementById('studioRowLimit'),
     groupDuplicates: document.getElementById('studioGroupDuplicates'),
     reverseSortOrder: document.getElementById('studioReverseSortOrder'),
-    reverseValueAxis: document.getElementById('studioReverseValueAxis')
+    reverseValueAxis: document.getElementById('studioReverseValueAxis'),
+    yearRankingControls: document.getElementById('studioYearRankingControls'),
+    showCumulativeLine: document.getElementById('studioShowCumulativeLine'),
+    show80Reference: document.getElementById('studioShow80Reference'),
+    showBarValueLabels: document.getElementById('studioShowBarValueLabels')
   };
   const canvas = elements.canvas || document.getElementById('studioChartCanvas');
   const emptyState = elements.emptyState || document.getElementById('studioChartEmptyState');
@@ -48,8 +52,9 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const titleInput = elements.titleInput || document.getElementById('studioChartTitleInput');
   const subtitle = elements.subtitle || document.getElementById('studioChartSubtitleDisplay');
   if (!canvas || !typeSelect || !record) return;
+  if (elements.yearRankingControls) elements.yearRankingControls.style.display = typeSelect.value === 'year_ranking' ? 'flex' : 'none';
   const getStudioActiveSheet = options.getStudioActiveSheet || (ctx && ctx.api && ctx.api.getStudioActiveSheet) || (() => null);
-  const dispose = () => { state.studioChartInstance?.dispose?.(); state.studioChartInstance = null; };
+  const dispose = () => { canvas?._studioResizeObserver?.disconnect?.(); canvas._studioResizeObserver = null; state.studioChartInstance?.dispose?.(); state.studioChartInstance = null; };
   const empty = message => { dispose(); canvas.style.display = 'none'; if (emptyState) emptyState.style.display = 'flex'; if (emptyMsg) emptyMsg.textContent = message; };
   const show = () => { canvas.style.display = ''; if (emptyState) emptyState.style.display = 'none'; };
   const warn = message => { if (warning) { warning.textContent = message; warning.style.display = message ? 'block' : 'none'; } };
@@ -64,6 +69,7 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const valueCol = Number.isInteger(value) && value >= 0 && value < sheet.headers.length ? value : inferred.valueColumn;
   if (labelCol === valueCol) { warn('Category and Value fields must be different columns.'); return empty('Category and Value fields must be different columns. Please adjust Field Mapping above.'); }
   const type = typeSelect.value || 'bar';
+  const yearRanking = type === 'year_ranking';
   const circular = ['pie', 'doughnut', 'polarArea'].includes(type);
   const isYearLike = value => window.ChartMapping.parseNumericValue(value) !== null && window.ChartMapping.parseNumericValue(value) >= 1900 && window.ChartMapping.parseNumericValue(value) <= 2100 && /^\s*\d{4}\s*$/.test(String(value));
   const valueIsYear = /year/i.test(String(sheet.headers[valueCol] || '')) || sheet.rows.some(row => row?.[valueCol] !== null && row?.[valueCol] !== undefined && isYearLike(row[valueCol]));
@@ -80,7 +86,7 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const sortOrder = elements.sortOrder?.value || document.getElementById('studioSortOrder')?.value || 'source';
   const limit = Math.max(1, Math.min(100, Number(elements.rowLimit?.value ?? document.getElementById('studioRowLimit')?.value) || 30));
   const group = elements.groupDuplicates?.checked !== false;
-  const rows = sheet.rows.map((row, index) => { const rawValue = row?.[valueIsYear && !labelIsYear ? labelCol : valueCol]; return { sourceIndex: index, row: row || [], label: String(row?.[valueIsYear ? valueCol : labelCol] ?? `Item ${index + 1}`).trim() || `Item ${index + 1}`, value: rankSemantic ? window.ChartMapping.parseRankValue(rawValue) : window.ChartMapping.parseNumericValue(rawValue), rawValue }; }).filter(item => item.value !== null);
+  const rows = sheet.rows.map((row, index) => { const rawValue = row?.[!yearRanking && valueIsYear && !labelIsYear ? labelCol : valueCol]; return { sourceIndex: index, row: row || [], label: String(row?.[!yearRanking && valueIsYear ? valueCol : labelCol] ?? `Item ${index + 1}`).trim() || `Item ${index + 1}`, value: rankSemantic ? window.ChartMapping.parseRankValue(rawValue) : window.ChartMapping.parseNumericValue(rawValue), rawValue }; }).filter(item => item.value !== null);
   if (!rows.length) { warn(`The selected Value column "${headerName}" contains no numeric data. Choose a different Value field.`); return empty(`No numeric data found in column "${headerName}". Please select a numeric Value field above.`); }
   let chartRows = rows;
   if (filterValue && ['all', 'contains'].includes(operator)) {
@@ -96,14 +102,26 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
     const numeric = Number(filterValue);
     chartRows = rows.filter(item => { const cells = filterField === 'context' ? [item.row[labelCol]] : filterField === 'value' ? [item.row[valueCol]] : item.row; const text = cells.map(cell => String(cell ?? '')).join(' ').toLowerCase(); const query = filterValue.toLowerCase(); if (operator === 'contains') return text.includes(query); if (operator === 'starts-with') return text.startsWith(query); if (operator === 'ends-with') return text.endsWith(query); if (operator === 'equals') return text === query; if (operator === 'not-equals') return text !== query; if (operator === 'greater-than') return Number.isFinite(numeric) && item.value > numeric; if (operator === 'less-than') return Number.isFinite(numeric) && item.value < numeric; if (operator === 'between') return Number.isFinite(numeric) && Number.isFinite(upper) && item.value >= numeric && item.value <= upper; return true; });
   } else { state.studioFilterPreviousQuery = ''; state.studioFilterPreviousResults = null; state.studioFilterPreviousScope = ''; }
-  if (sortOrder === 'value-asc') chartRows.sort((a, b) => a.value - b.value);
-  if (sortOrder === 'value-desc') chartRows.sort((a, b) => b.value - a.value);
-  if (sortOrder === 'label-asc') chartRows.sort((a, b) => a.label.localeCompare(b.label));
-  if (sortOrder === 'label-desc') chartRows.sort((a, b) => b.label.localeCompare(a.label));
-  if (elements.reverseSortOrder?.getAttribute('aria-pressed') === 'true' || document.getElementById('studioReverseSortOrder')?.getAttribute('aria-pressed') === 'true') chartRows.reverse();
-  chartRows = chartRows.slice(0, limit);
+  const reverseSortOrder = elements.reverseSortOrder?.getAttribute('aria-pressed') === 'true' || document.getElementById('studioReverseSortOrder')?.getAttribute('aria-pressed') === 'true';
+  if (type === 'year_ranking') {
+    if (group) chartRows = window.ChartData.groupAndSum(chartRows);
+    const effectiveSortOrder = sortOrder === 'source' ? (rankSemantic ? 'value-asc' : 'value-desc') : sortOrder;
+    if (effectiveSortOrder === 'value-asc') chartRows.sort((a, b) => a.value - b.value);
+    if (effectiveSortOrder === 'value-desc') chartRows.sort((a, b) => b.value - a.value);
+    if (effectiveSortOrder === 'label-asc') chartRows.sort((a, b) => a.label.localeCompare(b.label));
+    if (effectiveSortOrder === 'label-desc') chartRows.sort((a, b) => b.label.localeCompare(a.label));
+    if (reverseSortOrder) chartRows.reverse();
+    chartRows = chartRows.slice(0, limit);
+  } else {
+    if (sortOrder === 'value-asc') chartRows.sort((a, b) => a.value - b.value);
+    if (sortOrder === 'value-desc') chartRows.sort((a, b) => b.value - a.value);
+    if (sortOrder === 'label-asc') chartRows.sort((a, b) => a.label.localeCompare(b.label));
+    if (sortOrder === 'label-desc') chartRows.sort((a, b) => b.label.localeCompare(a.label));
+    if (reverseSortOrder) chartRows.reverse();
+    chartRows = chartRows.slice(0, limit);
+  }
   if (!chartRows.length) return empty('No data matches the current filter. Try adjusting the filter criteria.');
-  if (group) chartRows = circular ? window.ChartData.prepareCircularData(chartRows, true).rows : window.ChartData.groupAndAggregate(chartRows);
+  if (group && type !== 'year_ranking') chartRows = circular ? window.ChartData.prepareCircularData(chartRows, true).rows : window.ChartData.groupAndAggregate(chartRows);
   const fullLabels = chartRows.map(row => row.label);
   const labels = fullLabels.slice();
   const reverseValueAxis = elements.reverseValueAxis?.getAttribute('aria-pressed') === 'true' || document.getElementById('studioReverseValueAxis')?.getAttribute('aria-pressed') === 'true';
@@ -114,7 +132,13 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const horizontal = yearOnValueAxis && type === 'bar';
   const rankValueMin = rankSemantic ? 0 : undefined;
   const rankValueMax = rankSemantic ? Math.max(...rawValues) : undefined;
-  state.studioChartConfig = { orientation: horizontal ? 'horizontal' : 'vertical', valueAxisReversed: reverseValueAxis, rankSemantic, rankValueMin, rankValueMax, valueAxisMin: axisMin, valueAxisMax: yMax, labels: fullLabels.slice() };
+  const yearRankingOptions = type === 'year_ranking' ? {
+    measureName: headerName,
+    showCumulativeLine: elements.showCumulativeLine?.checked !== false,
+    show80Reference: elements.show80Reference?.checked !== false,
+    showBarValueLabels: elements.showBarValueLabels?.checked !== false
+  } : undefined;
+  state.studioChartConfig = { orientation: horizontal ? 'horizontal' : 'vertical', valueAxisReversed: reverseValueAxis, rankSemantic, rankValueMin, rankValueMax, valueAxisMin: axisMin, valueAxisMax: yMax, labels: fullLabels.slice(), chartOptions: yearRankingOptions };
   show();
   const isDark = document.documentElement.classList.contains('dark');
   const textColor = isDark ? '#E5E7EB' : '#1F2937';
@@ -123,7 +147,19 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const gridLineColor = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)';
 
   state.studioChartInstance = window.echarts.init(canvas);
-  state.studioChartInstance.setOption({
+  state.studioChartInstance.setOption(type === 'year_ranking' ? (() => {
+    const option = window.ChartMapping.buildYearRankingOption({
+      measureName: headerName,
+      rows: chartRows,
+      rankSemantic,
+      preserveOrder: true,
+      ...yearRankingOptions,
+      isDark,
+      width: canvas.clientWidth
+    });
+    option.title = { ...(option.title || {}), text: titleInput?.value || `${headerName} — ${info.name}`, left: 'center', top: 24, textStyle: { color: labelColor, fontSize: 14, fontWeight: 700 } };
+    return option;
+  })() : {
     animationDuration: 350,
     title: {
       text: titleInput?.value || `${headerName} — ${info.name}`,
