@@ -156,8 +156,10 @@ test('public removal hides charts without deleting the saved graph record', () =
 
 test('record approval does not auto-publish every saved graph for that record', () => {
   const apiSource = fs.readFileSync(path.join(__dirname, '..', '..', 'api', 'iris.php'), 'utf8');
+  const dbSource = fs.readFileSync(path.join(__dirname, '..', '..', 'config', 'db.php'), 'utf8');
   assert.doesNotMatch(apiSource, /UPDATE saved_graphs SET is_published = 1 WHERE record_id IN/);
   assert.doesNotMatch(apiSource, /UPDATE saved_graphs SET is_published = \? WHERE record_id = \?/);
+  assert.doesNotMatch(dbSource, /UPDATE saved_graphs sg INNER JOIN records r ON r.id = sg.record_id SET sg.is_published/);
 });
 
 test('builds a printable pie chart preview before the data table', () => {

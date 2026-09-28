@@ -89,7 +89,8 @@ function ensure_scanner_tables(PDO $pdo): void {
         'updated_at' => 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'
     ]);
 
-    $pdo->exec("UPDATE saved_graphs sg INNER JOIN records r ON r.id = sg.record_id SET sg.is_published = CASE WHEN r.status = 'Approved' THEN 1 ELSE 0 END WHERE sg.is_published IS NULL OR sg.is_published NOT IN (0, 1)");
+    // Publication is explicit and should never be rewritten from record approval state.
+    // Record approval and graph publication are separate workflows.
 }
 
 function db(): PDO { static $pdo; if($pdo instanceof PDO)return $pdo; $pdo=new PDO('mysql:host='.IRIS_DB_HOST.';port='.IRIS_DB_PORT.';dbname='.IRIS_DB_NAME.';charset=utf8mb4',IRIS_DB_USER,IRIS_DB_PASS,[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION,PDO::ATTR_DEFAULT_FETCH_MODE=>PDO::FETCH_OBJ,PDO::ATTR_EMULATE_PREPARES=>false]); ensure_scanner_tables($pdo); return $pdo; }

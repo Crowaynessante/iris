@@ -40,7 +40,7 @@ function output_graph(array $g): array {
     $g['labels'] = json_col($g['labels'], []);
     $g['values_data'] = json_col($g['values_data'], []);
     $g['chart_data'] = json_col($g['chart_data'] ?? null, json_col($g['chartData'] ?? null, null));
-    $g['is_published'] = isset($g['is_published']) ? (bool)$g['is_published'] : true;
+    $g['is_published'] = isset($g['is_published']) ? (bool)$g['is_published'] : false;
     return $g;
 }
 function bad(string $message, int $status=400): never {
