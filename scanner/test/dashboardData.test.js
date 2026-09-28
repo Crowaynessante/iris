@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { prepareCircularData, serializeChartState } = require('../js/chartData');
 const { pairSelectedText } = require('../js/sourceIngestion');
-const { normalizeGraphExportItem, buildPrintableGraphSheet } = require('../js/graphExport');
+const { normalizeGraphExportItem, buildPrintableGraphSheet, buildSavedChartOption } = require('../js/graphExport');
 const savedGraphsSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'modules', 'savedGraphsTab.js'), 'utf8');
 
 test('deduplicates circular chart legend labels while grouping remains optional', () => {
@@ -61,6 +61,26 @@ test('preserves the exact saved ECharts chart type when the type is nested insid
   assert.equal(payload.chart_type, 'polarArea');
   assert.deepEqual(payload.labels, ['North', 'South']);
   assert.deepEqual(payload.values_data, [65, 35]);
+});
+
+test('ranked-bar exports keep raw ranks and horizontal orientation for the published dashboard', () => {
+  const option = buildSavedChartOption({
+    title: 'SDG Rank',
+    chart_type: 'rankedBar',
+    labels: ['SDG 1', 'SDG 2'],
+    values_data: [12, 45],
+    chart_data: {
+      rankedBar: { selectedYear: 2025, reverseOrder: true },
+      series: [{ data: [{ name: 'SDG 1', value: 12, rawValue: 12 }, { name: 'SDG 2', value: 45, rawValue: 45 }] }]
+    }
+  });
+
+  assert.equal(option.xAxis.type, 'value');
+  assert.equal(option.yAxis.type, 'category');
+  assert.deepEqual(option.yAxis.data, ['SDG 2', 'SDG 1']);
+  assert.deepEqual(option.series[0].data.map(point => point.value), [45, 12]);
+  assert.deepEqual(option.series[0].data.map(point => point.rawValue), [45, 12]);
+  assert.equal(option.yAxis.inverse, false);
 });
 
 test('builds a printable graph sheet with row data and branding', () => {
@@ -132,6 +152,12 @@ test('public removal hides charts without deleting the saved graph record', () =
   assert.match(dashboardSource, /Unpublish|Hide this published chart from the Observatory/);
   assert.match(dashboardSource, /action=unpublish/);
   assert.match(apiSource, /action\s*===\s*'unpublish'|action\s*===\s*"unpublish"/);
+});
+
+test('record approval does not auto-publish every saved graph for that record', () => {
+  const apiSource = fs.readFileSync(path.join(__dirname, '..', '..', 'api', 'iris.php'), 'utf8');
+  assert.doesNotMatch(apiSource, /UPDATE saved_graphs SET is_published = 1 WHERE record_id IN/);
+  assert.doesNotMatch(apiSource, /UPDATE saved_graphs SET is_published = \? WHERE record_id = \?/);
 });
 
 test('builds a printable pie chart preview before the data table', () => {

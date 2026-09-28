@@ -412,6 +412,7 @@
                     <option value="pie"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Pie Chart</option>
                     <option value="doughnut"><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i> Doughnut Chart</option>
                     <option value="polarArea"><i class="fa-solid fa-compass" aria-hidden="true"></i> Polar Area</option>
+                    <option value="rankedBar"><i class="fa-solid fa-ranking-star" aria-hidden="true"></i> Ranked Bar Chart</option>
                   </select>
                 </div>
               </div>
@@ -434,6 +435,15 @@
                     <option value="1">1 decimal</option>
                     <option value="2" selected>2 decimals</option>
                   </select>
+                </div>
+                <div id="studioRankedYearWrapper" style="display: none; align-items: center; gap: 0.35rem;">
+                  <label style="font-size: 0.75rem; font-weight: 700; color: #334155; white-space: nowrap;" id="studioRankedYearLabel">Year:</label>
+                  <select id="studioRankedYearSelect" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Year for Ranked Bar Chart"></select>
+                </div>
+                <div id="studioRankedReverseOrderWrapper" style="display: none; align-items: center; gap: 0.35rem;">
+                  <label style="font-size: 0.75rem; font-weight: 700; color: #334155; white-space: nowrap;" id="studioRankedReverseOrderLabel">
+                    <input id="studioRankedReverseOrder" type="checkbox" style="accent-color: var(--clsu-green); margin-right: 0.25rem;" aria-label="Reverse ranked bar display order">Reverse order
+                  </label>
                 </div>
                 <div id="studioFieldWarning" style="display:none; font-size: 0.75rem; color: #DC2626; font-weight: 700; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 4px; padding: 0.2rem 0.6rem;"></div>
               </div>

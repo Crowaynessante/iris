@@ -13,6 +13,7 @@
     const normalized = String(type).trim();
     const lower = normalized.toLowerCase();
     if (lower === 'polar-area' || lower === 'polararea') return 'polarArea';
+    if (lower === 'ranked-bar' || lower === 'rankedbar' || lower === 'ranked') return 'rankedBar';
     if (lower === 'barh' || lower === 'horizontal') return 'bar';
     if (lower === 'bar' || lower === 'column' || lower === 'vertical') return 'bar';
     if (lower === 'line') return 'line';
@@ -73,6 +74,7 @@
       pie: 'pie chart',
       doughnut: 'Doughnut chart',
       polarArea: 'Polar Area chart',
+      rankedBar: 'Ranked Bar chart',
       line: 'Line chart',
       bar: 'Bar chart'
     };
@@ -95,7 +97,41 @@
     const values = Array.isArray(source.values_data) && source.values_data.length ? source.values_data : chartValues(chartData);
     const type = explicitType;
     const seriesName = source.title || 'Value';
-    const reverse = source.value_axis_reversed === true || source.valueAxisReversed === true || source.value_axis_reversed === 1 || source.valueAxisReversed === 1;
+    const reverse = Boolean(
+      source.value_axis_reversed === true || source.valueAxisReversed === true || source.value_axis_reversed === 1 || source.valueAxisReversed === 1 ||
+      source.reverse_order === true || source.reverseOrder === true || source.reverse_order === 1 || source.reverseOrder === 1 ||
+      chartData?.rankedBar?.reverseOrder === true || chartData?.rankedBar?.reverse_order === true || chartData?.reverse_order === true || chartData?.reverseOrder === true
+    );
+
+    if (type === 'rankedBar') {
+      const rankedMeta = chartData?.rankedBar || source.rankedBar || {};
+      const selectedYear = rankedMeta.selectedYear ?? rankedMeta.selected_year ?? source.selected_year ?? source.selectedYear ?? null;
+      const displayLabels = reverse ? labels.slice().reverse() : labels.slice();
+      const displayValues = reverse ? values.slice().reverse() : values.slice();
+      const rankedSeries = displayValues.map((value, index) => ({
+        value: Number(value ?? 0),
+        rawValue: Number(value ?? 0),
+        name: displayLabels[index] || `Item ${index + 1}`
+      }));
+      return {
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: params => {
+          const point = Array.isArray(params) ? params[0] : params;
+          const label = displayLabels[point.dataIndex] || point.name || 'Item';
+          const value = Number(displayValues[point.dataIndex] ?? 0);
+          return `${label}<br/>Rank: <b>${value}</b>${selectedYear !== null && selectedYear !== undefined && selectedYear !== 'all' ? `<br/>Year: <b>${Number(selectedYear)}</b>` : ''}`;
+        } },
+        grid: { left: '6%', right: '6%', bottom: '6%', top: '6%', containLabel: true },
+        xAxis: { type: 'value', min: 0, axisLabel: { color: '#4b5563' } },
+        yAxis: { type: 'category', data: displayLabels, axisLabel: { color: '#4b5563', fontSize: 11 }, inverse: false },
+        series: [{
+          name: seriesName,
+          type: 'bar',
+          data: rankedSeries,
+          itemStyle: { color: '#10b981', borderRadius: [0, 4, 4, 0] },
+          label: { show: true, position: 'right', color: '#111827', formatter: params => Number(params.data?.rawValue ?? params.value ?? 0) }
+        }]
+      };
+    }
 
     if (type === 'pie' || type === 'doughnut') {
       return {

@@ -152,6 +152,7 @@ require_once __DIR__.'/includes/header.php';
                                 <option value="pie">Pie Chart</option>
                                 <option value="doughnut">Doughnut Chart</option>
                                 <option value="polarArea">Polar Area</option>
+                                <option value="rankedBar">Ranked Bar Chart</option>
                             </select>
                         </div>
                     </div>
@@ -173,6 +174,15 @@ require_once __DIR__.'/includes/header.php';
                                 <option value="1">1 decimal</option>
                                 <option value="2" selected>2 decimals</option>
                             </select>
+                        </div>
+                        <div id="studioRankedYearWrapper" style="display: none; align-items: center; gap: 0.35rem;">
+                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;" id="studioRankedYearLabel">Year:</label>
+                            <select id="studioRankedYearSelect" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Year for Ranked Bar Chart"></select>
+                        </div>
+                        <div id="studioRankedReverseOrderWrapper" style="display: none; align-items: center; gap: 0.35rem;">
+                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;" id="studioRankedReverseOrderLabel">
+                                <input id="studioRankedReverseOrder" type="checkbox" style="accent-color: var(--clsu-green); margin-right: 0.25rem;" aria-label="Reverse ranked bar display order">Reverse order
+                            </label>
                         </div>
                         <div id="studioFieldWarning" style="display:none; font-size: 0.75rem; color: #DC2626; font-weight: 700; background: rgba(254,242,242,0.9); border: 1px solid #FECACA; border-radius: 4px; padding: 0.2rem 0.6rem;"></div>
                     </div>

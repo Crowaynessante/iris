@@ -982,7 +982,10 @@ require_auth();
                     : null;
                 const labels = Array.isArray(graph.labels) ? graph.labels.map(v => String(v ?? '')) : (base?.xAxis?.data || []);
                 const storedType = String(graph.chart_type || 'bar').toLowerCase();
-                const type = ['bar', 'line', 'pie', 'doughnut', 'polararea'].includes(storedType) ? storedType : (base && base.series && base.series[0] && base.series[0].type ? base.series[0].type : 'bar');
+                const normalizedType = ['bar', 'line', 'pie', 'doughnut', 'polararea', 'rankedbar', 'ranked-bar'].includes(storedType)
+                    ? storedType.replace(/-+/g, '')
+                    : (base && base.series && base.series[0] && base.series[0].type ? base.series[0].type : 'bar');
+                const type = normalizedType === 'rankedbar' ? 'rankedBar' : normalizedType;
                 const values = Array.isArray(graph.values_data) ? graph.values_data.map(v => {
                     if (v === null || v === undefined || String(v).trim() === '') return null;
                     const n = Number(v);
@@ -1032,13 +1035,24 @@ require_auth();
                 }
                 chartInstances.push(chart);
 
-                const option = base || {
+                const option = base || (type === 'rankedBar' ? {
+                    tooltip: { trigger: 'axis', backgroundColor: tooltipBg, borderColor: tooltipBorder, textStyle: { color: tooltipText }, formatter: params => {
+                        const point = Array.isArray(params) ? params[0] : params;
+                        const label = labels[point.dataIndex] || point.name || 'Item';
+                        const value = values[point.dataIndex] ?? 0;
+                        return `${label}<br/>Rank: <b>${value}</b>`;
+                    } },
+                    grid: { left: '6%', right: '6%', bottom: '6%', top: '6%', containLabel: true },
+                    xAxis: { type: 'value', min: 0, axisLabel: { color: textColor } },
+                    yAxis: { type: 'category', data: labels.slice().reverse(), axisLabel: { color: textColor, fontSize: 10 } },
+                    series: [{ type: 'bar', data: values.slice().reverse().map((value, index) => ({ value, name: labels.slice().reverse()[index] || `Item ${index + 1}` })), itemStyle: { color: '#10b981', borderRadius: [0, 4, 4, 0] } }]
+                } : {
                     tooltip: { trigger: 'axis', backgroundColor: tooltipBg, borderColor: tooltipBorder, textStyle: { color: tooltipText } },
                     grid: { left: '4%', right: '4%', bottom: labels.length > 7 ? '15%' : '6%', top: '8%', containLabel: true },
                     xAxis: { type: 'category', data: labels, axisLabel: { color: textColor, rotate: labels.length > 6 ? 35 : 0 } },
                     yAxis: { type: 'value', axisLabel: { color: textColor } },
                     series: [{ type: type === 'line' ? 'line' : 'bar', data: values, itemStyle: { color: '#10b981' }, lineStyle: type === 'line' ? { width: 3, color: '#10b981' } : undefined }]
-                };
+                });
                 chart.setOption(option);
             });
         }

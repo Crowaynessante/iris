@@ -70,7 +70,9 @@ export async function getAndClearPendingUploads() {
 }
 
 export function initFileIngestion(ctx) {
-  const dropzone = $('dropzone'); const input = $('fileInput'); const browse = $('btnBrowse');
+  const dropzone = $('dropzone') || $('inlineUploadDropzone');
+  const input = $('fileInput') || document.querySelector('#inlineUploadDropzone input[type="file"]') || document.querySelector('input[type="file"][id="fileInput"]');
+  const browse = $('btnBrowse') || $('btnInlineBrowse');
   const trigger = $('uploadWidgetTrigger'); const modal = $('uploadWidgetModal'); const closeBtn = $('closeUploadWidget');
   const progressCard = $('progressCard'); const workspace = $('workspaceGrid');
   const status = $('progressStatus'); const percent = $('progressPercent'); const fill = $('progressFill');

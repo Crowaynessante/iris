@@ -159,7 +159,6 @@ try {
             if ($existing) {
                 $ph2=implode(',',array_fill(0,count($existing),'?'));
                 $pdo->prepare("UPDATE records SET status='Approved', updatedAt=NOW() WHERE id IN ($ph2)")->execute($existing);
-                $pdo->prepare("UPDATE saved_graphs SET is_published = 1 WHERE record_id IN ($ph2)")->execute($existing);
             }
             $set=array_fill_keys($existing,true); $results=[];
             foreach($ids as $x) $results[]=['id'=>$x,'success'=>isset($set[$x]),'error'=>isset($set[$x])?null:'Record not found'];
@@ -190,10 +189,6 @@ try {
             foreach(['extractedData','graphDrafts','metadata'] as $f) if(array_key_exists($f,$data)){ $col=$f;$sets[]="$col=?";$vals[]=json_encode($data[$f]); }
             if(array_key_exists('scannedAt',$data)){ $sets[]='scannedAt=?';$vals[]=date('Y-m-d H:i:s',strtotime($data['scannedAt'])); }
             if(!$sets) bad('No fields to update'); $sets[]='updatedAt=NOW()';$vals[]=$id;$stmt=$pdo->prepare('UPDATE records SET '.implode(',',$sets).' WHERE id=?');$stmt->execute($vals);if(!$stmt->rowCount()){$q=$pdo->prepare('SELECT id FROM records WHERE id=?');$q->execute([$id]);if(!$q->fetch())bad('Record not found',404);}
-            if (array_key_exists('status', $data)) {
-                $published = $data['status'] === 'Approved' ? 1 : 0;
-                $pdo->prepare('UPDATE saved_graphs SET is_published = ? WHERE record_id = ?')->execute([$published, $id]);
-            }
             $q=$pdo->prepare('SELECT * FROM records WHERE id=?');$q->execute([$id]);echo json_encode(output_record($q->fetch(PDO::FETCH_ASSOC)));exit;
         }
         if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {

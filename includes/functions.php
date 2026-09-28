@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__.'/../config/db.php';
 session_start();
-function base_url(string $path=''): string { $base=rtrim(dirname($_SERVER['SCRIPT_NAME']??''),'/\\'); while(str_ends_with($base,'/auth')||str_ends_with($base,'/admin')||str_ends_with($base,'/user')||str_ends_with($base,'/api'))$base=rtrim(dirname($base),'/\\'); return ($base==='/'?'':$base).'/'.ltrim($path,'/'); }
+function base_url(string $path=''): string { $base=rtrim(dirname($_SERVER['SCRIPT_NAME']??''),'/\\'); while(str_ends_with($base,'/auth')||str_ends_with($base,'/admin')||str_ends_with($base,'/user')||str_ends_with($base,'/api')||str_ends_with($base,'/scanner'))$base=rtrim(dirname($base),'/\\'); return ($base==='/'?'':$base).'/'.ltrim($path,'/'); }
 function e($v): string{return htmlspecialchars((string)$v,ENT_QUOTES,'UTF-8');}
 function redirect_to(string $path): never { header('Location: '.base_url($path)); exit; }
 function flash(string $key, ?string $value=null){ if($value!==null){$_SESSION['_flash'][$key]=$value;return;} $v=$_SESSION['_flash'][$key]??null;unset($_SESSION['_flash'][$key]);return $v; }
