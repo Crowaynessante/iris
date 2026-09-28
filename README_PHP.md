@@ -15,5 +15,11 @@ The Scanner uses browser-side JavaScript for spreadsheet ingestion and charting.
 ## PHP API
 
 - `api/iris.php` handles authenticated record and saved-graph operations.
-- `api/dashboard_graphs.php` supplies approved graph data to the public Observatory.
+- `api/dashboard_graphs.php` supplies only explicitly published (`saved_graphs.is_published = 1`) graphs to the public Observatory and sends no-cache headers.
 - `config/db.php` centralizes PDO setup and scanner table creation/compatibility migration.
+
+## Publish and Unpublish
+
+Record approval and graph publication are independent. The Studio Publish action updates `records.status` to `Approved` and saves its active chart with `saved_graphs.is_published = 1`. The Saved Graphs page publishes selected graph IDs without approving their source records. Observatory Unpublish sets that graph's `is_published` field to `0`; it does not delete the graph or its chart data.
+
+Graph publish/unpublish requests use `POST /api/iris.php?resource=graphs&id={graphId}&action=publish` or `action=unpublish` with JSON `{ "published": true|false }`. `api/iris.php` requires authentication and checks for the `admin` role before mutation. The public dashboard endpoint is read-only and exposes only rows with `is_published = 1`.

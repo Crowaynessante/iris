@@ -21,24 +21,24 @@ IRIS is a plain-PHP application for institutional data ingestion, review, and pu
   UPDATE users SET role = 'admin' WHERE username = 'YOUR_USERNAME';
   ```
 
-7. Sign in again. Administrators can open the Review Editor and Scanner; approved saved charts appear in the public Observatory.
+7. Sign in again. Administrators can open the Review Editor and Scanner; saved charts appear in the public Observatory only after their graph is explicitly published.
 
 ## Main Areas
 
-- **Admin and Review Editor:** manage uploaded records, review extracted data, adjust chart fields, and approve records or charts.
+- **Admin and Review Editor:** manage uploaded records, review extracted data, adjust chart fields, and publish a record with its active Studio chart.
 - **Scanner:** browser-based ingestion and parsing for supported spreadsheet and document formats, extraction review, and chart drafting.
-- **Saved Dashboard Graphs:** browse saved chart versions, print sheets, and export graph data.
-- **Public Observatory:** displays approved Scanner-Published Analytics. Guests do not see the admin-only Edit and menu controls.
+- **Saved Dashboard Graphs:** browse saved chart versions, publish individual or selected graphs, print sheets, and export graph data.
+- **Public Observatory:** displays graphs whose `saved_graphs.is_published` flag is true. Admins can unpublish a graph without deleting its saved data. Guests do not see admin-only controls.
 
 ## Charts
 
-Apache ECharts is used for interactive charts. The supported chart types are Bar, Line, Pie, Doughnut, and Polar Area. Spreadsheet drafts use the actual parsed rows, keep separate numerical columns as separate charts, detect chronological values for line charts, and omit identifier-like columns and invalid cells. Draft chart data is emitted in ECharts format and rendered by the existing ECharts adapter.
+Apache ECharts is used for interactive charts. Studio and saved graphs support Bar, Line, Pie, Doughnut, Polar Area, and Ranked Bar. Spreadsheet drafts use the parsed rows, keep separate numerical columns as separate charts, detect chronological values for line charts, and omit identifier-like columns and invalid cells. Draft chart data is emitted in ECharts format and rendered by the existing ECharts adapter.
 
 ## Database and API
 
-`config/db.php` provides the PDO connection and ensures the scanner record/graph tables exist. `api/iris.php` provides authenticated record and graph operations. `api/dashboard_graphs.php` returns approved graphs for the public Observatory.
+`config/db.php` provides the PDO connection and ensures the scanner record/graph tables exist. `api/iris.php` requires a signed-in user and an admin role for mutations. Record approval (`records.status`) and graph publication (`saved_graphs.is_published`) are separate fields and workflows. `api/dashboard_graphs.php` returns only explicitly published graphs and disables HTTP caching so publish/unpublish changes appear immediately.
 
-Scanner browser persistence is managed by `scanner/js/database/dbManager.js`, which uses the PHP API and browser storage fallbacks. The PHP app does not require a separate Express server.
+Scanner persistence is managed by `scanner/js/database/dbManager.js`, which uses the PHP API as the canonical store and browser storage fallbacks for records. The upload handoff between admin pages uses IndexedDB. The PHP app does not require a separate Express server.
 
 ## Tests
 

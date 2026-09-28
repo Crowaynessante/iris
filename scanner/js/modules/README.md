@@ -4,9 +4,9 @@
 
 ## State and rendering
 
-[`state.js`](state.js) stores the active scan/record, queues, filters, and chart instances. [`chartEngine.js`](chartEngine.js) handles Studio row filtering, sorting, grouping, limits, and ECharts options. [`studioWorkbench.js`](studioWorkbench.js) connects Studio controls and persists selected chart settings.
+[`state.js`](state.js) stores the active scan/record, queues, filters, and chart instances. [`chartEngine.js`](chartEngine.js) handles Studio row filtering, sorting, grouping, limits, and ECharts options. [`studioWorkbench.js`](studioWorkbench.js) connects Studio controls and persists selected chart settings; Studio Publish approves the active record and publishes only its active chart.
 
-GraphEngine creates ECharts option objects from spreadsheet rows. Draft and saved graph cards use the existing `createChart()` ECharts adapter, which also converts older saved label/value payloads. The supported types are Bar, Line, Pie, Doughnut, and Polar Area.
+GraphEngine creates ECharts option objects from spreadsheet rows. Draft and saved graph cards use the existing `createChart()` ECharts adapter, which also converts older saved label/value payloads. General chart types are Bar, Line, Pie, Doughnut, and Polar Area; Studio and saved graphs additionally support Ranked Bar.
 
 ## Module responsibilities
 
@@ -14,14 +14,14 @@ GraphEngine creates ECharts option objects from spreadsheet rows. Draft and save
 | --- | --- |
 | `navigation.js` | Scanner and admin view switching |
 | `navigationTabs.js` | Scanner and admin tab switching |
-| `fileIngestion.js` | File selection, drag/drop, samples, progress, and scan orchestration |
+| `fileIngestion.js` | File selection, drag/drop, samples, progress, IndexedDB upload handoff, and scan orchestration |
 | `queue.js` | Ingestion queue and active scan selection |
 | `overviewTab.js` | Extracted fields and scan overview |
 | `viewerTab.js` | Basic scan viewer |
 | `graphsTab.js` | Draft chart cards and print actions |
-| `savedGraphsTab.js` | Saved graph cards, filtering, selection, exports, print, and deletion |
+| `savedGraphsTab.js` | Saved graph cards, filtering, selection, explicit per-graph publish, exports, print, and deletion |
 | `adminPortal.js` | Record archive, search, statistics, and status actions |
-| `studioWorkbench.js` | Studio record setup, field mapping, save, and approval |
+| `studioWorkbench.js` | Studio record setup, field mapping, save, and publish of the active chart |
 | `documentViewer.js` | Document viewing, paging, zoom, and copy behavior |
 | `tableGrid.js` | Editable Studio table and row/column operations |
 | `chartEngine.js` | ECharts rendering and Studio data transformations |
@@ -29,7 +29,7 @@ GraphEngine creates ECharts option objects from spreadsheet rows. Draft and save
 
 ## Saved Graphs and Exports
 
-Saved graph rows are stored through `dbManager.js` and the PHP graph API. SQL-formatted `.txt` exports are generated from saved labels, values, and metadata; print sheets render chart previews and data tables separately.
+Saved graph rows are stored through `dbManager.js` and the authenticated PHP graph API. The `is_published` flag is independent of record approval; Saved Graphs publishes selected IDs, while Studio Publish approves the record and publishes its active chart. Observatory Unpublish clears the same graph flag without deleting chart data. SQL-formatted `.txt` exports are generated from saved labels, values, and metadata; print sheets render chart previews and data tables separately.
 
 ## Development Checks
 

@@ -4,15 +4,16 @@
 
 ## Storage
 
-- MySQL is the canonical store when the PHP API is available.
-- IndexedDB and localStorage provide browser-side fallback for records.
+- MySQL is the canonical store when the authenticated PHP API is available.
+- IndexedDB and localStorage provide browser-side fallback for records; IndexedDB also carries pending upload files between admin pages.
 - Saved graph snapshots are linked to records through `record_id`.
+- `records.status` tracks record review/approval. `saved_graphs.is_published` independently controls public visibility; approving a record does not publish every graph attached to it.
 
 `config/db.php` contains the PDO connection settings and ensures the scanner `records` and `saved_graphs` tables exist. `database.sql` contains the schema for a fresh installation.
 
 ## Saved Graph Data
 
-Saved graphs store chart type, labels, original values, rank metadata, axis metadata, and creation time. The supported chart types are Bar, Line, Pie, Doughnut, and Polar Area.
+Saved graphs store chart type, labels, original values, rank metadata, axis metadata, publication state, and creation time. Studio and saved graphs support Bar, Line, Pie, Doughnut, Polar Area, and Ranked Bar. Publication is explicit and is not inferred from record status.
 
 ## PHP API Routes
 
@@ -24,11 +25,13 @@ GET/PUT/DELETE /api/iris.php?resource=records&id={recordId}
 GET/POST       /api/iris.php?resource=graphs
 GET/DELETE     /api/iris.php?resource=graphs&id={graphId}
 GET            /api/iris.php?resource=graphs&record_id={recordId}
+POST           /api/iris.php?resource=graphs&id={graphId}&action=publish
+POST           /api/iris.php?resource=graphs&id={graphId}&action=unpublish
 POST           /api/iris.php?resource=graphs&action=export
 ```
 
-Bulk actions use the corresponding `action` query parameter. The public Observatory reads approved graph data from `api/dashboard_graphs.php`.
+Graph publish/unpublish requests send JSON `{ "published": true|false }`. `api/iris.php` requires a signed-in admin for mutations and returns the persisted graph ID and publication state. The public Observatory reads only rows with `saved_graphs.is_published = 1` from `api/dashboard_graphs.php`; that endpoint disables caching so state changes are visible on refresh.
 
 ## Graph Operations
 
-`DatabaseManager` provides record CRUD, graph save/read/delete, database-copy export, and printable sheet helpers. SQL-formatted text export is built in `../modules/savedGraphsTab.js` from the loaded graph data and is separate from database export. Print Sheet and Print All use `../graphExport.js`.
+`DatabaseManager` provides record CRUD, graph save/read/delete/publish, database-copy export, and printable sheet helpers. Studio Publish approves the record and saves only the active chart as published. Saved Graphs Publish changes only selected graph rows; Observatory Unpublish clears the same `is_published` field without deleting chart data. SQL-formatted text export is built in `../modules/savedGraphsTab.js` from loaded graph data and is separate from database export. Print Sheet and Print All use `../graphExport.js`.

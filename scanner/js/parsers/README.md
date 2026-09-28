@@ -2,6 +2,8 @@
 
 Parser modules convert browser-selected files into scan data used by the Scanner UI and PHP-backed record persistence. Libraries are loaded by the scanner page; this directory does not contain a separate parser service.
 
+Parsing and upload handoff do not publish data. Parsed files enter the Scanner review workflow; record status and saved-graph publication are controlled separately by authenticated admin workflows.
+
 ## Parsers
 
 - `excelParser.js` reads XLSX, XLS, and CSV workbook data through SheetJS and returns sheets, headers, rows, numeric statistics, metadata, and text.
@@ -37,4 +39,4 @@ Parser output may include:
 }
 ```
 
-Preserve the fields consumed by `ScannerOrchestrator`, overview rendering, document viewing, graph drafting, and record persistence when changing a parser.
+Preserve the fields consumed by `ScannerOrchestrator`, overview rendering, document viewing, graph drafting, and record persistence when changing a parser. Pending upload files are handed off through IndexedDB; prepare file buffers before opening the write transaction so it remains active while records are added.
