@@ -40,19 +40,14 @@ export function initStudioWorkbench(ctx) {
       subtitle: $('studioChartSubtitleDisplay'),
       categorySelect: $('studioCategoryCol'),
       valueSelect: $('studioValueCol'),
+      valuePrecision: $('studioValuePrecisionSelect'),
       filterField: $('studioFilterField'),
       filterOperator: $('studioFilterOperator'),
       filterValue: $('studioFilterValue'),
       filterUpperValue: $('studioFilterUpperValue'),
       sortOrder: $('studioSortOrder'),
       rowLimit: $('studioRowLimit'),
-      groupDuplicates: $('studioGroupDuplicates'),
-      reverseSortOrder: $('studioReverseSortOrder'),
-      reverseValueAxis: $('studioReverseValueAxis'),
-      yearRankingControls: $('studioYearRankingControls'),
-      showCumulativeLine: $('studioShowCumulativeLine'),
-      show80Reference: $('studioShow80Reference'),
-      showBarValueLabels: $('studioShowBarValueLabels')
+      groupDuplicates: $('studioGroupDuplicates')
     }
   });
   ctx.api.updateStudioChart = () => ctx.state.studioActiveRecord && ctx.api.renderStudioChart(ctx.state.studioActiveRecord);
@@ -61,20 +56,18 @@ export function initStudioWorkbench(ctx) {
     const info = ctx.api.getStudioActiveSheet(record); const sheet = info?.data;
     document.querySelectorAll('.studio-cell-input').forEach(input => { const row = Number(input.dataset.row); const column = Number(input.dataset.col); if (sheet?.rows?.[row]) sheet.rows[row][column] = parseEditableValue(input.value); });
     let savedChart = null; const chart = ctx.state.studioChartInstance;
-    if (chart) { const options = chart.getOption(); const current = window.ChartData.serializeChartState(options, ctx.state.studioChartConfig || {}); savedChart = { record_id: record.id, title: $('studioChartTitleInput')?.value || 'Observatory Draft', chart_type: $('studioChartTypeSelect')?.value || 'bar', orientation: ctx.state.studioChartConfig?.orientation || 'vertical', rankSemantic: ctx.state.studioChartConfig?.rankSemantic === true, rankValueMin: ctx.state.studioChartConfig?.rankValueMin, rankValueMax: ctx.state.studioChartConfig?.rankValueMax, valueAxisReversed: ctx.state.studioChartConfig?.valueAxisReversed === true, valueAxisMin: ctx.state.studioChartConfig?.valueAxisMin, valueAxisMax: ctx.state.studioChartConfig?.valueAxisMax, chartOptions: ctx.state.studioChartConfig?.chartOptions, labels: current.labels, values_data: current.values }; }
+    if (chart) { const options = chart.getOption(); const current = window.ChartData.serializeChartState(options, ctx.state.studioChartConfig || {}); savedChart = { record_id: record.id, title: $('studioChartTitleInput')?.value || 'Observatory Draft', chart_type: $('studioChartTypeSelect')?.value || 'bar', orientation: ctx.state.studioChartConfig?.orientation || 'vertical', rankSemantic: ctx.state.studioChartConfig?.rankSemantic === true, rankValueMin: ctx.state.studioChartConfig?.rankValueMin, rankValueMax: ctx.state.studioChartConfig?.rankValueMax, valueAxisMin: ctx.state.studioChartConfig?.valueAxisMin, valueAxisMax: ctx.state.studioChartConfig?.valueAxisMax, labels: current.labels, values_data: current.values, chart_data: options }; }
     const updated = await ctx.dbManager.updateRecord(record.id, { docType: $('studioDocTypeInput')?.value.trim() || record.docType, status: approve ? 'Approved' : ($('studioStatusSelect')?.value || record.status), adminNotes: $('studioNotesInput')?.value.trim() || record.adminNotes, extractedData: record.extractedData, graphDrafts: [] });
     if (savedChart) await ctx.dbManager.saveGraph(savedChart);
     ctx.state.studioActiveRecord = { ...record, ...updated };
     if (ctx.state.activeScan?.id === record.id) { ctx.state.activeScan = { ...ctx.state.activeScan, ...updated }; await ctx.api.renderOverviewTab(ctx.state.activeScan); ctx.api.renderViewerTab(ctx.state.activeScan); await ctx.api.renderGraphsTab(ctx.state.activeScan); }
     window.IRIS_STUDIO_DIRTY = false;
-    await ctx.api.renderAdminPortal(); alert(`Dataset '${record.fileName}' successfully saved to database!${approve ? ' (Approved for Observatory)' : ''}`);
+    await ctx.api.renderAdminPortal(); alert(`Dataset '${record.fileName}' successfully saved to database!${approve ? ' (Published)' : ''}`);
   };
-  ['studioChartTypeSelect', 'studioCategoryCol', 'studioValueCol', 'studioFilterField', 'studioFilterOperator', 'studioFilterValue', 'studioFilterUpperValue', 'studioSortOrder', 'studioRowLimit', 'studioGroupDuplicates', 'studioShowCumulativeLine', 'studioShow80Reference', 'studioShowBarValueLabels'].forEach(id => $(id)?.addEventListener('change', () => { if (id === 'studioChartTypeSelect') { const sheet = ctx.api.getStudioActiveSheet(ctx.state.studioActiveRecord)?.data; if (sheet) ctx.api.updateFieldSelectOptions(sheet); } window.IRIS_STUDIO_DIRTY = true; ctx.api.updateStudioChart(); }));
+  ['studioChartTypeSelect', 'studioCategoryCol', 'studioValueCol', 'studioValuePrecisionSelect', 'studioFilterField', 'studioFilterOperator', 'studioFilterValue', 'studioFilterUpperValue', 'studioSortOrder', 'studioRowLimit', 'studioGroupDuplicates'].forEach(id => $(id)?.addEventListener('change', () => { if (id === 'studioChartTypeSelect') { const sheet = ctx.api.getStudioActiveSheet(ctx.state.studioActiveRecord)?.data; if (sheet) ctx.api.updateFieldSelectOptions(sheet); } window.IRIS_STUDIO_DIRTY = true; ctx.api.updateStudioChart(); }));
   $('studioFilterValue')?.addEventListener('input', () => { window.IRIS_STUDIO_DIRTY = true; ctx.api.updateStudioChart(); }); $('studioRowLimit')?.addEventListener('input', () => { window.IRIS_STUDIO_DIRTY = true; ctx.api.updateStudioChart(); }); $('studioChartTitleInput')?.addEventListener('input', event => { window.IRIS_STUDIO_DIRTY = true; event.target.setAttribute('data-customized', 'true'); });
   ['studioDocTypeInput', 'studioStatusSelect', 'studioNotesInput'].forEach(id => $(id)?.addEventListener('change', () => { window.IRIS_STUDIO_DIRTY = true; }));
   document.addEventListener('input', event => { if (event.target?.classList?.contains('studio-cell-input') || event.target?.classList?.contains('header-rename-input')) window.IRIS_STUDIO_DIRTY = true; });
-  $('studioReverseSortOrder')?.addEventListener('click', event => { const active = event.currentTarget.getAttribute('aria-pressed') === 'true'; event.currentTarget.setAttribute('aria-pressed', String(!active)); window.IRIS_STUDIO_DIRTY = true; ctx.api.updateStudioChart(); }); $('studioReverseValueAxis')?.addEventListener('click', event => { const active = event.currentTarget.getAttribute('aria-pressed') === 'true'; event.currentTarget.setAttribute('aria-pressed', String(!active)); window.IRIS_STUDIO_DIRTY = true; ctx.api.updateStudioChart(); });
   const updateFilterInputs = () => { const operator = $('studioFilterOperator'); const upper = $('studioFilterUpperValue'); if (upper) upper.style.display = operator?.value === 'between' ? 'inline-block' : 'none'; };
   $('studioFilterOperator')?.addEventListener('change', updateFilterInputs); updateFilterInputs();
-  new MutationObserver(() => { if ($('studioChartTypeSelect')?.value === 'year_ranking') ctx.api.updateStudioChart(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 }

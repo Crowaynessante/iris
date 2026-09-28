@@ -30,8 +30,8 @@ test('review workspace navigation restores the scanner view and scroll position'
 });
 
 test('review and dashboard layouts have mobile overflow protections', () => {
-  assert.match(styles, /grid-template-columns: minmax\(220px, 290px\) minmax\(0, 1fr\)/);
   assert.match(styles, /grid-template-columns: minmax\(0, 480px\) minmax\(0, 1fr\)/);
+  assert.match(styles, /@media \(max-width: 1200px\)/);
   assert.match(styles, /@media \(max-width: 700px\)/);
   assert.match(styles, /\.table-container\s*\{[\s\S]*overflow-x: auto/);
   assert.match(styles, /\.modal-card\s*\{[\s\S]*max-height: calc\(100vh - 2rem\)/);

@@ -1,18 +1,78 @@
+export function formatChartValueForDisplay(value, precision = 2) {
+  const raw = String(value ?? '').trim();
+  if (raw === '') return '';
+  const normalized = raw.replace(/,/g, '');
+  if (!/^-?(?:\d+|\d*\.\d+)$/.test(normalized)) {
+    return raw;
+  }
+  const number = Number(normalized);
+  if (!Number.isFinite(number)) {
+    return raw;
+  }
+  const precisionValue = Number.isFinite(Number(precision))
+    ? Math.max(0, Math.min(2, Number(precision)))
+    : 2;
+  return Number(number).toLocaleString(undefined, {
+    minimumFractionDigits: precisionValue,
+    maximumFractionDigits: precisionValue
+  });
+}
+
 export function createChart(ctx, type, chartData, { reverseOrder = false } = {}) {
-  const data = JSON.parse(JSON.stringify(chartData));
-  const labels = (data.labels || []).map((label, index) => label !== null && label !== undefined && String(label).trim() !== '' ? String(label) : `Item ${index + 1}`);
-  data.labels = reverseOrder ? labels.slice().reverse() : labels;
-  console.log('createChart labels:', JSON.stringify(data.labels));
-  if (reverseOrder) data.datasets?.forEach(dataset => { dataset.data = (dataset.data || []).slice().reverse(); });
-  const horizontal = chartData.orientation === 'horizontal' && type === 'bar';
-  console.log('horizontal:', horizontal, 'chartType:', type);
-  const rankSemantic = chartData.rankSemantic === true;
-  if (rankSemantic) data.datasets?.forEach(dataset => { const values = dataset.data || []; const numericValues = values.map(value => window.ChartMapping.parseRankValue(value)).filter(value => value !== null); const maximum = Math.max(...numericValues); dataset.data = values.map(value => { const numeric = window.ChartMapping.parseRankValue(value); return numeric !== null ? maximum - numeric : value; }); });
-  const rankTickLabel = value => String(chartData.rankValueMax !== undefined ? chartData.rankValueMax - value : value);
-  const valueScale = { type: 'linear', reverse: rankSemantic ? false : chartData.valueAxisReversed === true, min: chartData.valueAxisMin, max: chartData.valueAxisMax, ticks: { color: '#94A3B8', callback: rankSemantic ? rankTickLabel : undefined, font: { family: 'Outfit, sans-serif' } }, grid: { color: 'rgba(255,255,255,0.05)' } };
-  console.log('category axis config:', JSON.stringify(horizontal ? { type: 'category', ticks: valueScale.ticks, grid: valueScale.grid } : { type: 'category', ticks: valueScale.ticks, grid: valueScale.grid }));
-  const categoryScale = { type: 'category', labels: data.labels, ticks: { color: '#94A3B8', font: { family: 'Outfit, sans-serif' } }, grid: valueScale.grid };
-  return new window.Chart(ctx, { type, data, options: { responsive: true, maintainAspectRatio: false, indexAxis: horizontal ? 'y' : 'x', plugins: { legend: { display: type === 'pie', labels: { color: '#94A3B8', font: { family: 'Outfit, sans-serif' } } } }, scales: type === 'pie' ? {} : { x: horizontal ? valueScale : categoryScale, y: horizontal ? { ...categoryScale, labels: data.labels } : valueScale } } });
+  const source = chartData || {};
+  const sourceSeries = source.series?.[0];
+  const firstDataset = source.datasets?.[0];
+  const axis = Array.isArray(source.xAxis) ? source.xAxis[0] : source.xAxis;
+  const polarAxis = source.angleAxis;
+  let labels = axis?.data || polarAxis?.data || source.labels || [];
+  let values = sourceSeries?.data || firstDataset?.data || source.values || [];
+  const seriesName = sourceSeries?.name || firstDataset?.label || source.seriesName || 'Value';
+  if (sourceSeries?.type === 'pie' && Array.isArray(values)) {
+    labels = values.map((point, index) => point?.name ?? labels[index] ?? `Item ${index + 1}`);
+    values = values.map(point => point && typeof point === 'object' ? point.value : point);
+  }
+  labels = labels.map((label, index) => label !== null && label !== undefined && String(label).trim() !== '' ? String(label) : `Item ${index + 1}`);
+  values = values.map(value => value && typeof value === 'object' ? value.value : value);
+  if (reverseOrder) { labels.reverse(); values.reverse(); }
+
+  const colors = source.color || ['#009639', '#E0A70D', '#1E6031', '#3B82F6', '#0D9488', '#D97706'];
+  const option = {
+    color: colors,
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    legend: { data: [seriesName] },
+    series: []
+  };
+  if (type === 'pie' || type === 'doughnut') {
+    option.tooltip = { trigger: 'item', formatter: '{b}: {c} ({d}%)' };
+    option.legend = { data: labels, type: 'scroll', bottom: 0 };
+    option.series = [{
+      name: seriesName,
+      type: 'pie',
+      radius: type === 'doughnut' ? ['45%', '72%'] : '68%',
+      data: labels.map((name, index) => ({ name, value: values[index] })),
+      label: { show: true, formatter: '{b}: {d}%' },
+      itemStyle: { borderColor: '#FFFFFF', borderWidth: 2 }
+    }];
+  } else if (type === 'polarArea') {
+    option.polar = {};
+    option.angleAxis = { type: 'category', data: labels, startAngle: 90 };
+    option.radiusAxis = { type: 'value' };
+    option.series = [{ name: seriesName, type: 'bar', coordinateSystem: 'polar', data: values }];
+  } else {
+    option.xAxis = { type: 'category', data: labels, axisLabel: { interval: 0 } };
+    option.yAxis = { type: 'value', name: seriesName };
+    option.series = [{
+      name: seriesName,
+      type: type === 'line' ? 'line' : 'bar',
+      data: values,
+      smooth: type === 'line',
+      itemStyle: { color: colors[0] },
+      lineStyle: type === 'line' ? { color: colors[0], width: 3 } : undefined
+    }];
+  }
+  const chart = window.echarts.init(ctx);
+  chart.setOption(option);
+  return chart;
 }
 export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const legacyMode = arg1 && arg1.state && arg1.api && arg2 && typeof arg2 === 'object';
@@ -36,13 +96,7 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
     filterUpperValue: document.getElementById('studioFilterUpperValue'),
     sortOrder: document.getElementById('studioSortOrder'),
     rowLimit: document.getElementById('studioRowLimit'),
-    groupDuplicates: document.getElementById('studioGroupDuplicates'),
-    reverseSortOrder: document.getElementById('studioReverseSortOrder'),
-    reverseValueAxis: document.getElementById('studioReverseValueAxis'),
-    yearRankingControls: document.getElementById('studioYearRankingControls'),
-    showCumulativeLine: document.getElementById('studioShowCumulativeLine'),
-    show80Reference: document.getElementById('studioShow80Reference'),
-    showBarValueLabels: document.getElementById('studioShowBarValueLabels')
+    groupDuplicates: document.getElementById('studioGroupDuplicates')
   };
   const canvas = elements.canvas || document.getElementById('studioChartCanvas');
   const emptyState = elements.emptyState || document.getElementById('studioChartEmptyState');
@@ -52,7 +106,6 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const titleInput = elements.titleInput || document.getElementById('studioChartTitleInput');
   const subtitle = elements.subtitle || document.getElementById('studioChartSubtitleDisplay');
   if (!canvas || !typeSelect || !record) return;
-  if (elements.yearRankingControls) elements.yearRankingControls.style.display = typeSelect.value === 'year_ranking' ? 'flex' : 'none';
   const getStudioActiveSheet = options.getStudioActiveSheet || (ctx && ctx.api && ctx.api.getStudioActiveSheet) || (() => null);
   const dispose = () => { canvas?._studioResizeObserver?.disconnect?.(); canvas._studioResizeObserver = null; state.studioChartInstance?.dispose?.(); state.studioChartInstance = null; };
   const empty = message => { dispose(); canvas.style.display = 'none'; if (emptyState) emptyState.style.display = 'flex'; if (emptyMsg) emptyMsg.textContent = message; };
@@ -69,8 +122,8 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const valueCol = Number.isInteger(value) && value >= 0 && value < sheet.headers.length ? value : inferred.valueColumn;
   if (labelCol === valueCol) { warn('Category and Value fields must be different columns.'); return empty('Category and Value fields must be different columns. Please adjust Field Mapping above.'); }
   const type = typeSelect.value || 'bar';
-  const yearRanking = type === 'year_ranking';
-  const circular = ['pie', 'doughnut', 'polarArea'].includes(type);
+  const circular = ['pie', 'doughnut'].includes(type);
+  const polar = type === 'polarArea';
   const isYearLike = value => window.ChartMapping.parseNumericValue(value) !== null && window.ChartMapping.parseNumericValue(value) >= 1900 && window.ChartMapping.parseNumericValue(value) <= 2100 && /^\s*\d{4}\s*$/.test(String(value));
   const valueIsYear = /year/i.test(String(sheet.headers[valueCol] || '')) || sheet.rows.some(row => row?.[valueCol] !== null && row?.[valueCol] !== undefined && isYearLike(row[valueCol]));
   const labelIsYear = /year/i.test(String(sheet.headers[labelCol] || '')) || sheet.rows.some(row => row?.[labelCol] !== null && row?.[labelCol] !== undefined && isYearLike(row[labelCol]));
@@ -84,9 +137,12 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const filterValue = ((elements.filterValue?.value || document.getElementById('studioFilterValue')?.value) || '').trim();
   const upper = Number(elements.filterUpperValue?.value ?? document.getElementById('studioFilterUpperValue')?.value);
   const sortOrder = elements.sortOrder?.value || document.getElementById('studioSortOrder')?.value || 'source';
+  const displayPrecision = Number.isFinite(Number(elements.valuePrecision?.value ?? document.getElementById('studioValuePrecisionSelect')?.value))
+    ? Math.max(0, Math.min(2, Number(elements.valuePrecision?.value ?? document.getElementById('studioValuePrecisionSelect')?.value)))
+    : 2;
   const limit = Math.max(1, Math.min(100, Number(elements.rowLimit?.value ?? document.getElementById('studioRowLimit')?.value) || 30));
   const group = elements.groupDuplicates?.checked !== false;
-  const rows = sheet.rows.map((row, index) => { const rawValue = row?.[!yearRanking && valueIsYear && !labelIsYear ? labelCol : valueCol]; return { sourceIndex: index, row: row || [], label: String(row?.[!yearRanking && valueIsYear ? valueCol : labelCol] ?? `Item ${index + 1}`).trim() || `Item ${index + 1}`, value: rankSemantic ? window.ChartMapping.parseRankValue(rawValue) : window.ChartMapping.parseNumericValue(rawValue), rawValue }; }).filter(item => item.value !== null);
+  const rows = sheet.rows.map((row, index) => { const rawValue = row?.[valueIsYear && !labelIsYear ? labelCol : valueCol]; return { sourceIndex: index, row: row || [], label: String(row?.[valueIsYear ? valueCol : labelCol] ?? `Item ${index + 1}`).trim() || `Item ${index + 1}`, value: rankSemantic ? window.ChartMapping.parseRankValue(rawValue) : window.ChartMapping.parseNumericValue(rawValue), rawValue }; }).filter(item => item.value !== null);
   if (!rows.length) { warn(`The selected Value column "${headerName}" contains no numeric data. Choose a different Value field.`); return empty(`No numeric data found in column "${headerName}". Please select a numeric Value field above.`); }
   let chartRows = rows;
   if (filterValue && ['all', 'contains'].includes(operator)) {
@@ -102,29 +158,15 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
     const numeric = Number(filterValue);
     chartRows = rows.filter(item => { const cells = filterField === 'context' ? [item.row[labelCol]] : filterField === 'value' ? [item.row[valueCol]] : item.row; const text = cells.map(cell => String(cell ?? '')).join(' ').toLowerCase(); const query = filterValue.toLowerCase(); if (operator === 'contains') return text.includes(query); if (operator === 'starts-with') return text.startsWith(query); if (operator === 'ends-with') return text.endsWith(query); if (operator === 'equals') return text === query; if (operator === 'not-equals') return text !== query; if (operator === 'greater-than') return Number.isFinite(numeric) && item.value > numeric; if (operator === 'less-than') return Number.isFinite(numeric) && item.value < numeric; if (operator === 'between') return Number.isFinite(numeric) && Number.isFinite(upper) && item.value >= numeric && item.value <= upper; return true; });
   } else { state.studioFilterPreviousQuery = ''; state.studioFilterPreviousResults = null; state.studioFilterPreviousScope = ''; }
-  const reverseSortOrder = elements.reverseSortOrder?.getAttribute('aria-pressed') === 'true' || document.getElementById('studioReverseSortOrder')?.getAttribute('aria-pressed') === 'true';
-  if (type === 'year_ranking') {
-    if (group) chartRows = window.ChartData.groupAndSum(chartRows);
-    const effectiveSortOrder = sortOrder === 'source' ? (rankSemantic ? 'value-asc' : 'value-desc') : sortOrder;
-    if (effectiveSortOrder === 'value-asc') chartRows.sort((a, b) => a.value - b.value);
-    if (effectiveSortOrder === 'value-desc') chartRows.sort((a, b) => b.value - a.value);
-    if (effectiveSortOrder === 'label-asc') chartRows.sort((a, b) => a.label.localeCompare(b.label));
-    if (effectiveSortOrder === 'label-desc') chartRows.sort((a, b) => b.label.localeCompare(a.label));
-    if (reverseSortOrder) chartRows.reverse();
-    chartRows = chartRows.slice(0, limit);
-  } else {
-    if (sortOrder === 'value-asc') chartRows.sort((a, b) => a.value - b.value);
-    if (sortOrder === 'value-desc') chartRows.sort((a, b) => b.value - a.value);
-    if (sortOrder === 'label-asc') chartRows.sort((a, b) => a.label.localeCompare(b.label));
-    if (sortOrder === 'label-desc') chartRows.sort((a, b) => b.label.localeCompare(a.label));
-    if (reverseSortOrder) chartRows.reverse();
-    chartRows = chartRows.slice(0, limit);
-  }
+  if (sortOrder === 'value-asc') chartRows.sort((a, b) => a.value - b.value);
+  if (sortOrder === 'value-desc') chartRows.sort((a, b) => b.value - a.value);
+  if (sortOrder === 'label-asc') chartRows.sort((a, b) => a.label.localeCompare(b.label));
+  if (sortOrder === 'label-desc') chartRows.sort((a, b) => b.label.localeCompare(a.label));
+  chartRows = chartRows.slice(0, limit);
   if (!chartRows.length) return empty('No data matches the current filter. Try adjusting the filter criteria.');
-  if (group && type !== 'year_ranking') chartRows = circular ? window.ChartData.prepareCircularData(chartRows, true).rows : window.ChartData.groupAndAggregate(chartRows);
+  if (group) chartRows = circular ? window.ChartData.prepareCircularData(chartRows, true).rows : window.ChartData.groupAndAggregate(chartRows);
   const fullLabels = chartRows.map(row => row.label);
   const labels = fullLabels.slice();
-  const reverseValueAxis = elements.reverseValueAxis?.getAttribute('aria-pressed') === 'true' || document.getElementById('studioReverseValueAxis')?.getAttribute('aria-pressed') === 'true';
   const rawValues = chartRows.map(row => row.value);
   const values = rankSemantic ? (() => { const maximum = Math.max(...rawValues); return rawValues.map(value => maximum - value); })() : rawValues;
   const yMin = Math.min(...values); const yMax = Math.max(...values); const axisMin = rankSemantic ? 0 : yMin >= 0 && yMin <= yMax * 0.8 ? 0 : Math.floor(yMin * 0.9);
@@ -132,13 +174,7 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const horizontal = yearOnValueAxis && type === 'bar';
   const rankValueMin = rankSemantic ? 0 : undefined;
   const rankValueMax = rankSemantic ? Math.max(...rawValues) : undefined;
-  const yearRankingOptions = type === 'year_ranking' ? {
-    measureName: headerName,
-    showCumulativeLine: elements.showCumulativeLine?.checked !== false,
-    show80Reference: elements.show80Reference?.checked !== false,
-    showBarValueLabels: elements.showBarValueLabels?.checked !== false
-  } : undefined;
-  state.studioChartConfig = { orientation: horizontal ? 'horizontal' : 'vertical', valueAxisReversed: reverseValueAxis, rankSemantic, rankValueMin, rankValueMax, valueAxisMin: axisMin, valueAxisMax: yMax, labels: fullLabels.slice(), chartOptions: yearRankingOptions };
+  state.studioChartConfig = { orientation: horizontal ? 'horizontal' : 'vertical', rankSemantic, rankValueMin, rankValueMax, valueAxisMin: axisMin, valueAxisMax: yMax, labels: fullLabels.slice() };
   show();
   const isDark = document.documentElement.classList.contains('dark');
   const textColor = isDark ? '#E5E7EB' : '#1F2937';
@@ -146,20 +182,10 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const subtextColor = isDark ? '#9CA3AF' : '#4B5563';
   const gridLineColor = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)';
 
+  const formatValue = value => formatChartValueForDisplay(value, displayPrecision);
+
   state.studioChartInstance = window.echarts.init(canvas);
-  state.studioChartInstance.setOption(type === 'year_ranking' ? (() => {
-    const option = window.ChartMapping.buildYearRankingOption({
-      measureName: headerName,
-      rows: chartRows,
-      rankSemantic,
-      preserveOrder: true,
-      ...yearRankingOptions,
-      isDark,
-      width: canvas.clientWidth
-    });
-    option.title = { ...(option.title || {}), text: titleInput?.value || `${headerName} — ${info.name}`, left: 'center', top: 24, textStyle: { color: labelColor, fontSize: 14, fontWeight: 700 } };
-    return option;
-  })() : {
+  state.studioChartInstance.setOption({
     animationDuration: 350,
     title: {
       text: titleInput?.value || `${headerName} — ${info.name}`,
@@ -171,28 +197,28 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
       backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
       borderColor: isDark ? '#374151' : '#E5E7EB',
       textStyle: { color: labelColor },
-      formatter: circular ? '{b}: {c} ({d}%)' : params => {
+      formatter: circular ? params => `${params.name}: ${formatValue(params.value)} (${params.percent}%)` : params => {
         const point = Array.isArray(params) ? params[0] : params;
-        return `<b>${fullLabels[point.dataIndex] || point.name}</b><br/>${headerName}: <b>${rankSemantic ? rawValues[point.dataIndex] : point.value}</b>`;
+        const rawValue = rankSemantic ? rawValues[point.dataIndex] : Number(point.value ?? 0);
+        return `<b>${fullLabels[point.dataIndex] || point.name}</b><br/>${headerName}: <b>${formatValue(rawValue)}</b>`;
       }
     },
     legend: {
-      show: circular,
+      show: circular || polar,
       data: [...new Set(fullLabels)],
       bottom: 0,
       type: 'scroll',
       textStyle: { color: textColor, fontSize: 11, fontWeight: 600 }
     },
-    grid: circular ? undefined : {
+    grid: circular || polar ? undefined : {
       left: '4%',
       right: '4%',
       top: 50,
       bottom: chartRows.length > 6 ? 80 : 50,
       containLabel: true
     },
-    xAxis: circular ? undefined : {
+    xAxis: circular || polar ? undefined : {
       type: horizontal ? 'value' : 'category',
-      inverse: horizontal && reverseValueAxis && !rankSemantic,
       min: horizontal ? axisMin : undefined,
       max: horizontal ? yMax : undefined,
       data: horizontal ? undefined : labels,
@@ -204,13 +230,12 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
         fontSize: 11,
         fontWeight: 600,
         color: textColor,
-        formatter: horizontal && rankSemantic ? value => String(rankValueMax + rankValueMin - value) : undefined
+        formatter: value => formatValue(value)
       },
       splitLine: horizontal ? { lineStyle: { type: 'dashed', color: gridLineColor, width: 1 } } : { show: false }
     },
-    yAxis: circular ? undefined : {
+    yAxis: circular || polar ? undefined : {
       type: horizontal ? 'category' : 'value',
-      inverse: !horizontal && reverseValueAxis && !rankSemantic,
       data: horizontal ? labels : undefined,
       name: horizontal ? '' : headerName,
       nameTextStyle: { fontSize: 12, fontWeight: 700, color: labelColor, padding: [0, 0, 8, 0] },
@@ -221,20 +246,30 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
         color: textColor,
         fontSize: 11,
         fontWeight: 600,
-        formatter: !horizontal && rankSemantic ? value => String(rankValueMax + rankValueMin - value) : undefined
+        formatter: value => formatValue(value)
       },
       splitLine: horizontal ? { show: false } : { lineStyle: { type: 'dashed', color: gridLineColor, width: 1 } }
     },
-    series: [circular ? {
-      type: type === 'doughnut' ? 'pie' : type,
-      radius: type === 'doughnut' ? ['45%', '72%'] : type === 'polarArea' ? ['15%', '72%'] : '68%',
+    polar: polar ? {} : undefined,
+    angleAxis: polar ? { type: 'category', data: labels, startAngle: 90, axisLabel: { color: textColor } } : undefined,
+    radiusAxis: polar ? { type: 'value', name: headerName, splitLine: { lineStyle: { color: gridLineColor } }, axisLabel: { color: textColor } } : undefined,
+    series: [polar ? {
+      name: headerName,
+      type: 'bar',
+      coordinateSystem: 'polar',
+      data: values,
+      itemStyle: { color: '#009639' },
+      label: { show: chartRows.length <= 20, position: 'middle', color: '#FFFFFF', formatter: '{c}' }
+    } : circular ? {
+      type: 'pie',
+      radius: type === 'doughnut' ? ['45%', '72%'] : '68%',
       center: ['50%', '45%'],
       data: fullLabels.map((label, index) => ({
         name: label,
         value: values[index],
         itemStyle: { color: ['#009639', '#1E6031', '#E0A70D', '#3B82F6', '#8B5CF6', '#F59E0B', '#10B981', '#EF4444', '#38BDF8', '#F97316'][index % 10] }
       })),
-      label: { show: true, position: 'outside', color: textColor, fontSize: 11, fontWeight: 600, formatter: '{b}', distance: 12 },
+      label: { show: true, position: 'outside', color: textColor, fontSize: 11, fontWeight: 600, formatter: params => `${params.name}: ${formatValue(params.value)}`, distance: 12 },
       labelLine: { show: true, length: 12, length2: 8, lineStyle: { color: subtextColor, width: 1 } },
       itemStyle: { borderColor: isDark ? '#1F2937' : '#FFFFFF', borderWidth: 2 },
       emphasis: { itemStyle: { shadowBlur: 12, shadowColor: 'rgba(15, 23, 42, 0.38)' } }
@@ -250,7 +285,7 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
         fontSize: 11,
         fontWeight: 700,
         color: labelColor,
-        formatter: '{c}'
+        formatter: params => formatValue(params.value)
       }
     }]
   });

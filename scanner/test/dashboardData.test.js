@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { prepareCircularData, groupAndSum, serializeChartState } = require('../js/chartData');
+const { prepareCircularData, serializeChartState } = require('../js/chartData');
 const { pairSelectedText } = require('../js/sourceIngestion');
 const { normalizeGraphExportItem, buildPrintableGraphSheet } = require('../js/graphExport');
 const savedGraphsSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'modules', 'savedGraphsTab.js'), 'utf8');
@@ -14,17 +14,6 @@ test('deduplicates circular chart legend labels while grouping remains optional'
   assert.deepEqual(ungrouped.legendLabels, ['North', 'South']);
   assert.equal(ungrouped.rows.length, 3);
   assert.deepEqual(grouped.rows, [{ label: 'North', value: 5 }, { label: 'South', value: 4 }]);
-});
-
-test('Year Ranking duplicate labels are summed rather than averaged', () => {
-  assert.deepEqual(groupAndSum([
-    { label: '2024', value: 90 },
-    { label: '2024', value: 80 },
-    { label: '2023', value: 70 }
-  ]), [
-    { label: '2024', value: 170 },
-    { label: '2023', value: 70 }
-  ]);
 });
 
 test('serializes the current edited chart series after an entity is removed', () => {
@@ -59,6 +48,21 @@ test('normalizes saved and draft graphs into a single export payload', () => {
   assert.deepEqual(payload.values_data, [120, 150]);
 });
 
+test('preserves the exact saved ECharts chart type when the type is nested inside chartData', () => {
+  const payload = normalizeGraphExportItem({
+    title: 'Distribution',
+    chartData: {
+      type: 'polarArea',
+      labels: ['North', 'South'],
+      series: [{ data: [{ name: 'North', value: 65 }, { name: 'South', value: 35 }] }]
+    }
+  }, 'rec_456');
+
+  assert.equal(payload.chart_type, 'polarArea');
+  assert.deepEqual(payload.labels, ['North', 'South']);
+  assert.deepEqual(payload.values_data, [65, 35]);
+});
+
 test('builds a printable graph sheet with row data and branding', () => {
   const html = buildPrintableGraphSheet({
     title: 'Quality score',
@@ -76,23 +80,6 @@ test('builds a printable graph sheet with row data and branding', () => {
   assert.match(html, /aria-label="Bar chart"/);
 });
 
-  test('prints Year Ranking with the shared ECharts builder and cumulative data column', () => {
-    const html = buildPrintableGraphSheet({
-      title: 'Year Ranking',
-      chart_type: 'year_ranking',
-      chart_options: { measureName: 'Enrollment', showCumulativeLine: true, show80Reference: true, showBarValueLabels: true },
-      labels: ['2024', '2023', '2022'],
-      values_data: [90, 90, 80]
-    });
-
-    assert.match(html, /echarts@5\.5\.1/);
-    assert.match(html, /ChartMapping\.buildYearRankingOption/);
-    assert.match(html, /Cumulative %/);
-    assert.match(html, /34\.62%/);
-    assert.match(html, /69\.23%/);
-    assert.match(html, /100%/);
-  });
-
 test('text export contains SQL statements and graph metadata comments', () => {
   assert.match(savedGraphsSource, /export function buildTextExport/);
   assert.match(savedGraphsSource, /CREATE TABLE IF NOT EXISTS/);
@@ -108,14 +95,43 @@ test('SQL file export uses the shared SQL content and SQL download type', () => 
   assert.match(savedGraphsSource, /\.sql`/);
 });
 
-test('saved graph database actions bypass the export choice modal', () => {
-  assert.match(savedGraphsSource, /graph-action-button export-saved-mysql/);
-  assert.match(savedGraphsSource, /<span>Reflect DB<\/span>/);
-  assert.match(savedGraphsSource, /graph-action-button export-saved-print/);
-  assert.match(savedGraphsSource, /graph-action-delete btn-table-delete delete-saved-graph/);
-  assert.match(savedGraphsSource, /exportGraphs\(\[graph\.id\], 'database', graph, \[graph\]\)/);
-  assert.match(savedGraphsSource, /exportGraphs\(ids, 'database', null, selectedGraphs\)/);
-  assert.equal(savedGraphsSource.includes("showExportChoice(mode => exportGraphs([graph.id]"), false);
+test('saved graph publish controls work for individual and bulk actions', () => {
+  assert.match(savedGraphsSource, /graph-action-button graph-action-publish/);
+  assert.match(savedGraphsSource, /<span>Publish<\/span>/);
+  assert.match(savedGraphsSource, /savedGraphsPublishSelected/);
+  assert.match(savedGraphsSource, /publishSelectedGraphs\(selectedGraphs\)/);
+  assert.match(savedGraphsSource, /approveRecords\(recordIds\)/);
+  assert.match(savedGraphsSource, /Publish/);
+});
+
+test('saved graph publish helpers are exposed globally for all files', () => {
+  assert.match(savedGraphsSource, /window\.SavedGraphsTab|window\.GraphExport/);
+  assert.match(savedGraphsSource, /publishSelectedGraphs\s*[:=]/);
+  assert.match(savedGraphsSource, /publishSavedGraphs|publishSelectedGraphs/);
+});
+
+test('public dashboard includes a manual summary card snapshot section and admin card controls', () => {
+  const dashboardSource = fs.readFileSync(path.join(__dirname, '..', '..', 'user', 'dashboard.php'), 'utf8');
+  const adminSource = fs.readFileSync(path.join(__dirname, '..', '..', 'admin', 'review_editor.php'), 'utf8');
+  assert.match(dashboardSource, /Latest Performance Snapshot/i);
+  assert.match(dashboardSource, /summary-card|snapshot-cards/i);
+  assert.match(adminSource, /summary card|summary-card|summaryCards/i);
+  assert.match(dashboardSource, /No decimals/);
+  assert.match(dashboardSource, /1 decimal/);
+  assert.match(dashboardSource, /2 decimals/);
+  assert.doesNotMatch(dashboardSource, /0 decimals/);
+  assert.match(adminSource, /No decimals/);
+  assert.match(adminSource, /1 decimal/);
+  assert.match(adminSource, /2 decimals/);
+  assert.doesNotMatch(adminSource, /0 decimals/);
+});
+
+test('public removal hides charts without deleting the saved graph record', () => {
+  const dashboardSource = fs.readFileSync(path.join(__dirname, '..', '..', 'user', 'dashboard.php'), 'utf8');
+  const apiSource = fs.readFileSync(path.join(__dirname, '..', '..', 'api', 'iris.php'), 'utf8');
+  assert.match(dashboardSource, /Unpublish|Hide this published chart from the Observatory/);
+  assert.match(dashboardSource, /action=unpublish/);
+  assert.match(apiSource, /action\s*===\s*'unpublish'|action\s*===\s*"unpublish"/);
 });
 
 test('builds a printable pie chart preview before the data table', () => {
@@ -128,6 +144,27 @@ test('builds a printable pie chart preview before the data table', () => {
 
   assert.match(html, /aria-label="pie chart"/);
   assert.ok(html.indexOf('chart-preview') < html.indexOf('<table>'));
+});
+
+test('renders polar-area print sheets as a dedicated polar chart instead of a pie slice layout', () => {
+  const html = buildPrintableGraphSheet({
+    title: 'Regional spread',
+    chart_type: 'polarArea',
+    labels: ['North', 'South', 'West'],
+    values_data: [18, 42, 30]
+  });
+
+  assert.match(html, /Chart Type: POLARAREA/);
+  assert.match(html, /aria-label="Polar Area chart"/);
+  assert.doesNotMatch(html, /aria-label="pie chart"/);
+});
+
+test('studio chart previews use the same decimal precision control as summary cards', () => {
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.php'), 'utf8');
+  const engine = fs.readFileSync(path.join(__dirname, '..', 'js', 'modules', 'chartEngine.js'), 'utf8');
+  assert.match(html, /studioValuePrecisionSelect|Display Precision/i);
+  assert.match(html, /No decimals|1 decimal|2 decimals/i);
+  assert.match(engine, /formatChartValueForDisplay|displayPrecision/);
 });
 
 test('axis controls are structural and no longer user-facing', () => {

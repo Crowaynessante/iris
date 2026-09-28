@@ -8,7 +8,7 @@ require_once __DIR__.'/includes/header.php';
     <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
         <div>
             <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--clsu-green);">Saved Dashboard Graphs</h2>
-            <p style="font-size: 0.88rem; color: var(--text-muted);">Approved and saved chart versions grouped per file record.</p>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">Published chart versions grouped per file record.</p>
         </div>
         <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
             <button id="savedGraphsViewAllBtn" type="button" class="saved-graphs-bulk-button">View All</button>
@@ -26,6 +26,7 @@ require_once __DIR__.'/includes/header.php';
         <span id="savedGraphsSelectionCount" style="font-size: 0.8rem; color: var(--text-muted);">0 selected</span>
         <button id="savedGraphsPrintAll" type="button" class="saved-graphs-bulk-button" disabled>Print All</button>
         <button id="savedGraphsExportSelected" type="button" class="saved-graphs-bulk-button" disabled>Export</button>
+        <button id="savedGraphsPublishSelected" type="button" class="saved-graphs-bulk-button" disabled><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Publish</button>
         <button id="savedGraphsDeleteSelected" type="button" class="archive-delete-button" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
     </div>
 

@@ -48,6 +48,7 @@ require_auth();
     <!-- Apache ECharts CDN -->
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
     <script src="<?= e(base_url('scanner/js/chartMapping.js')) ?>"></script>
+    <script src="<?= e(base_url('scanner/js/graphExport.js')) ?>"></script>
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Google Fonts -->
@@ -174,17 +175,246 @@ require_auth();
     </nav>
 
     <!-- Main Container -->
+    <style>
+        :root {
+            --iris-green: #1E6031;
+            --iris-green-soft: #edf6ef;
+            --iris-green-soft-strong: #dfeee3;
+            --iris-gold: #E0A70D;
+            --iris-gold-soft: #fff8db;
+            --iris-border: #dfe7df;
+            --iris-surface: #ffffff;
+            --iris-surface-alt: #f7faf7;
+            --iris-text: #1f2937;
+            --iris-text-soft: #475569;
+            --iris-text-faint: #64748b;
+        }
+
+        html.dark {
+            --iris-green: #6ee7b7;
+            --iris-green-soft: rgba(16, 185, 129, 0.12);
+            --iris-green-soft-strong: rgba(16, 185, 129, 0.2);
+            --iris-gold: #fbbf24;
+            --iris-gold-soft: rgba(251, 191, 36, 0.12);
+            --iris-border: rgba(148, 163, 184, 0.26);
+            --iris-surface: #111827;
+            --iris-surface-alt: #172033;
+            --iris-text: #e2e8f0;
+            --iris-text-soft: #cbd5e1;
+            --iris-text-faint: #94a3b8;
+        }
+
+        .summary-card-shell {
+            background: linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(247,250,247,0.98) 100%);
+            border: 1px solid var(--iris-border);
+            box-shadow: 0 12px 32px rgba(30, 96, 49, 0.09);
+        }
+
+        html.dark .summary-card-shell {
+            background: linear-gradient(180deg, rgba(17,24,39,0.98) 0%, rgba(23,32,51,0.97) 100%);
+            border-color: rgba(110, 231, 183, 0.22);
+            box-shadow: 0 12px 28px rgba(15, 23, 42, 0.26);
+        }
+
+        .summary-card-shell .summary-card-title {
+            color: var(--iris-green);
+            letter-spacing: 0.13em;
+        }
+
+        .summary-card-shell .summary-card-year-badge {
+            background: linear-gradient(180deg, rgba(255, 215, 84, 0.22), rgba(240, 180, 34, 0.15));
+            border: 1px solid rgba(224, 167, 13, 0.4);
+            color: #7a4c00;
+        }
+
+        html.dark .summary-card-shell .summary-card-year-badge {
+            background: rgba(251, 191, 36, 0.12);
+            border-color: rgba(251, 191, 36, 0.25);
+            color: #fef3c7;
+        }
+
+        .summary-card-shell .summary-card-label {
+            color: var(--iris-text-soft);
+        }
+
+        .summary-card-shell .summary-card-second-row {
+            border-top-color: rgba(30, 96, 49, 0.12);
+        }
+
+        html.dark .summary-card-shell .summary-card-second-row {
+            border-top-color: rgba(148, 163, 184, 0.2);
+        }
+
+        html.dark body,
+        html.dark .bg-gray-50,
+        html.dark .bg-gray-100,
+        html.dark .bg-white,
+        html.dark .bg-slate-100,
+        html.dark .bg-slate-800,
+        html.dark .bg-slate-900,
+        html.dark [class*="bg-white"],
+        html.dark [class*="bg-gray-"],
+        html.dark [class*="bg-slate-"] {
+            color: var(--iris-text);
+        }
+
+        html.dark .text-gray-500,
+        html.dark .text-gray-600,
+        html.dark .text-slate-500,
+        html.dark .text-slate-600,
+        html.dark .text-gray-400,
+        html.dark .text-slate-400,
+        html.dark .text-gray-700,
+        html.dark .text-slate-700,
+        html.dark .text-gray-900,
+        html.dark .text-slate-900,
+        html.dark .text-slate-300,
+        html.dark .text-slate-200 {
+            color: var(--iris-text-soft) !important;
+        }
+
+        html.dark .text-gray-800,
+        html.dark .text-gray-700,
+        html.dark .text-slate-800,
+        html.dark .text-slate-700 {
+            color: var(--iris-text) !important;
+        }
+
+        html.dark .border-gray-200,
+        html.dark .border-gray-300,
+        html.dark .border-slate-200,
+        html.dark .border-slate-300,
+        html.dark .border-slate-600,
+        html.dark .border-slate-700,
+        html.dark .dark\:border-gray-700,
+        html.dark .dark\:border-slate-700 {
+            border-color: rgba(148, 163, 184, 0.28) !important;
+        }
+
+        html.dark input,
+        html.dark textarea,
+        html.dark select,
+        html.dark .form-input,
+        html.dark .dark\:bg-gray-900,
+        html.dark .dark\:bg-gray-800,
+        html.dark .dark\:bg-slate-800,
+        html.dark .dark\:bg-slate-900 {
+            background-color: rgba(15, 23, 42, 0.9) !important;
+            border-color: rgba(148, 163, 184, 0.3) !important;
+            color: var(--iris-text) !important;
+        }
+
+        html.dark ::placeholder {
+            color: #94a3b8 !important;
+        }
+
+        html.dark .bg-emerald-100,
+        html.dark .bg-emerald-50,
+        html.dark .dark\:bg-emerald-900\/60,
+        html.dark .dark\:bg-gray-800\/60,
+        html.dark .dark\:bg-gray-900\/60 {
+            background-color: rgba(16, 185, 129, 0.12) !important;
+        }
+
+        html.dark .text-emerald-800,
+        html.dark .text-emerald-700,
+        html.dark .text-emerald-600,
+        html.dark .dark\:text-emerald-300,
+        html.dark .dark\:text-emerald-400 {
+            color: #a7f3d0 !important;
+        }
+
+        html.dark .text-amber-800,
+        html.dark .dark\:text-amber-300 {
+            color: #fde68a !important;
+        }
+    </style>
+
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8" id="overview">
         <?php if (flash('error')): ?>
             <div class="flex items-center p-4 text-red-800 rounded-xl bg-red-50 dark:bg-gray-800 dark:text-red-400 border border-red-200 dark:border-red-800" role="alert"><i class="fa-solid fa-circle-exclamation text-lg mr-3"></i><div class="text-sm font-medium"><?= htmlspecialchars(flash('error')) ?></div></div>
         <?php endif; ?>
+
+        <section id="summary-card-section" class="space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                <div>
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                        <i class="fa-solid fa-chart-simple text-amber-500 mr-2"></i> Latest Performance Snapshot
+                    </h2>
+                </div>
+                <?php if (($_SESSION['role'] ?? null) === 'admin'): ?>
+                    <button type="button" id="toggleSummaryCardForm" class="inline-flex items-center px-3 py-2 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500">
+                        <i class="fa-solid fa-plus mr-2"></i> Add summary card
+                    </button>
+                <?php endif; ?>
+            </div>
+
+            <?php if (($_SESSION['role'] ?? null) === 'admin'): ?>
+                <div id="summaryCardsAdminFormPanel" class="hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-sm">
+                    <form id="summaryCardsAdminForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="hidden" name="id" id="summaryCardId" />
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Title
+                            <input type="text" name="title" id="summaryCardTitle" class="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" required>
+                        </label>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Main Value
+                            <input type="text" name="main_value" id="summaryCardMainValue" class="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" required>
+                        </label>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Main Label
+                            <input type="text" name="main_label" id="summaryCardMainLabel" class="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm" required>
+                        </label>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Year / Date
+                            <input type="text" name="year_date" id="summaryCardYearDate" class="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm">
+                        </label>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Secondary Label
+                            <input type="text" name="secondary_label" id="summaryCardSecondaryLabel" class="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm">
+                        </label>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Secondary Value
+                            <input type="text" name="secondary_value" id="summaryCardSecondaryValue" class="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm">
+                        </label>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200 md:col-span-2">
+                            Description
+                            <textarea name="description" id="summaryCardDescription" rows="2" class="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm"></textarea>
+                        </label>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Display Order
+                            <input type="number" name="display_order" id="summaryCardDisplayOrder" value="0" min="0" class="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm">
+                        </label>
+                        <label class="block text-sm font-semibold text-gray-700 dark:text-gray-200">
+                            Display Precision
+                            <select name="display_precision" id="summaryCardDisplayPrecision" class="mt-1 w-full rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 px-3 py-2 text-sm">
+                                <option value="0">No decimals</option>
+                                <option value="1">1 decimal</option>
+                                <option value="2" selected>2 decimals</option>
+                            </select>
+                        </label>
+                        <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-200 md:col-span-2">
+                            <input type="checkbox" id="summaryCardPublished" name="is_published" checked>
+                            Publish this card
+                        </label>
+                        <div class="md:col-span-2 flex items-center justify-end gap-3">
+                            <button type="button" id="cancelSummaryCardForm" class="rounded-xl border border-gray-300 dark:border-gray-700 px-4 py-2 text-sm font-semibold text-gray-700 dark:text-gray-200">Cancel</button>
+                            <button type="submit" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Save card</button>
+                        </div>
+                    </form>
+                </div>
+            <?php endif; ?>
+
+            <div id="summaryCardsGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"></div>
+        </section>
+
         <section id="scanner-published-graphs" class="space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
                 <div>
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
                         <i class="fa-solid fa-chart-column text-emerald-500 mr-2"></i> Scanner-Published Analytics
                     </h2>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">Approved visualizations published from the IRIS Scanner</p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Published visualizations available from the IRIS Scanner</p>
                 </div>
                 <span id="publishedGraphCount" class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">
                     <i class="fa-solid fa-circle-check mr-1"></i> Loading published graphs
@@ -192,7 +422,7 @@ require_auth();
             </div>
             <div id="scannerPublishedGraphsGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div id="scannerPublishedGraphsEmpty" class="lg:col-span-2 p-6 rounded-2xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60 text-center text-sm text-gray-500 dark:text-gray-400">
-                    <i class="fa-solid fa-chart-simple text-lg mr-1"></i> No approved scanner graphs have been published yet.
+                    <i class="fa-solid fa-chart-simple text-lg mr-1"></i> No published scanner graphs are available yet.
                 </div>
             </div>
         </section>
@@ -262,6 +492,289 @@ require_auth();
             localStorage.setItem('iris-theme', nextMode);
             loadPublishedScannerGraphs();
         });
+
+        function formatSummaryCardValue(value, precision) {
+            const raw = String(value ?? '').trim();
+            if (raw === '') return '';
+            const normalized = raw.replace(/,/g, '');
+            if (!/^-?(?:\d+|\d*\.\d+)$/.test(normalized)) {
+                return raw;
+            }
+            const number = Number(normalized);
+            if (!Number.isFinite(number)) {
+                return raw;
+            }
+            const precisionValue = Number(precision);
+            const digits = Number.isFinite(precisionValue)
+                ? Math.max(0, Math.min(2, precisionValue))
+                : 2;
+            return Number(number).toLocaleString(undefined, {
+                minimumFractionDigits: digits,
+                maximumFractionDigits: digits
+            });
+        }
+
+        function renderSummaryCards(cards) {
+            const grid = document.getElementById('summaryCardsGrid');
+            if (!grid) return;
+            const visibleCards = Array.isArray(cards) ? cards.filter(card => card && (card.is_published === true || card.is_published === 1 || card.is_published === '1')) : [];
+            if (!visibleCards.length) {
+                grid.innerHTML = '<div class="md:col-span-2 xl:col-span-4 rounded-2xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800/60 text-center text-sm text-gray-500 dark:text-gray-400 py-10">No performance snapshot cards are currently published.</div>';
+                return;
+            }
+
+            const isAdmin = <?= json_encode(($_SESSION['role'] ?? null) === 'admin') ?>;
+            grid.innerHTML = visibleCards
+                .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0))
+                .map(card => {
+                    const mainValue = formatSummaryCardValue(card.main_value, card.display_precision ?? 2);
+                    const secondaryValue = card.secondary_value ? formatSummaryCardValue(card.secondary_value, card.display_precision ?? 2) : '';
+                    const secondaryLabel = card.secondary_label ? escapeHtmlDashboard(card.secondary_label) : '';
+                    const description = card.description ? escapeHtmlDashboard(card.description) : '';
+                    const mainLabel = escapeHtmlDashboard(card.main_label || 'Current snapshot');
+                    const yearDate = escapeHtmlDashboard(card.year_date || '');
+                    const adminControls = isAdmin ? `
+                        <div class="mt-4 flex flex-wrap gap-2">
+                            <button type="button" class="summary-card-edit rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1.5 text-[11px] font-semibold text-gray-700 dark:text-gray-200" data-id="${escapeHtmlDashboard(card.id)}">Edit</button>
+                            <button type="button" class="summary-card-toggle rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-2.5 py-1.5 text-[11px] font-semibold text-gray-700 dark:text-gray-200" data-id="${escapeHtmlDashboard(card.id)}" data-published="${card.is_published ? '1' : '0'}">${card.is_published ? 'Unpublish' : 'Publish'}</button>
+                            <button type="button" class="summary-card-delete rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-2.5 py-1.5 text-[11px] font-semibold text-red-700 dark:text-red-300" data-id="${escapeHtmlDashboard(card.id)}">Delete</button>
+                        </div>` : '';
+                    return `
+                        <article class="summary-card-shell rounded-2xl p-5 shadow-sm">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <div class="summary-card-title text-[10px] font-bold uppercase tracking-[0.14em]">${escapeHtmlDashboard(card.title || 'Performance Snapshot')}</div>
+                                    <div class="mt-2 text-3xl font-extrabold text-gray-900 dark:text-white">${escapeHtmlDashboard(mainValue)}</div>
+                                </div>
+                                ${yearDate ? `<span class="summary-card-year-badge rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wide">${yearDate}</span>` : ''}
+                            </div>
+                            <div class="summary-card-label mt-2 text-xs font-semibold uppercase tracking-wide">${mainLabel}</div>
+                            ${secondaryLabel || secondaryValue ? `<div class="summary-card-second-row mt-4 flex items-baseline justify-between gap-3 border-t pt-3 text-xs">
+                                <span class="summary-card-label">${secondaryLabel}</span>
+                                <span class="font-bold text-gray-900 dark:text-white">${escapeHtmlDashboard(secondaryValue)}</span>
+                            </div>` : ''}
+                            ${description ? `<p class="mt-3 text-sm text-gray-600 dark:text-gray-300">${description}</p>` : ''}
+                            ${adminControls}
+                        </article>`;
+                }).join('');
+
+            if (isAdmin) {
+                document.querySelectorAll('.summary-card-edit').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const id = button.dataset.id;
+                        const cardsLookup = Array.isArray(cards) ? cards : [];
+                        const card = cardsLookup.find(item => String(item.id) === String(id));
+                        if (!card) return;
+                        document.getElementById('summaryCardId').value = card.id || '';
+                        document.getElementById('summaryCardTitle').value = card.title || '';
+                        document.getElementById('summaryCardMainValue').value = card.main_value || '';
+                        document.getElementById('summaryCardMainLabel').value = card.main_label || '';
+                        document.getElementById('summaryCardYearDate').value = card.year_date || '';
+                        document.getElementById('summaryCardSecondaryLabel').value = card.secondary_label || '';
+                        document.getElementById('summaryCardSecondaryValue').value = card.secondary_value || '';
+                        document.getElementById('summaryCardDescription').value = card.description || '';
+                        document.getElementById('summaryCardDisplayOrder').value = card.display_order ?? 0;
+                        document.getElementById('summaryCardDisplayPrecision').value = String(card.display_precision ?? 2);
+                        document.getElementById('summaryCardPublished').checked = !!card.is_published;
+                        summaryCardsAdminFormPanel.classList.remove('hidden');
+                        summaryCardsAdminForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    });
+                });
+
+                document.querySelectorAll('.summary-card-toggle').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const id = button.dataset.id;
+                        const published = button.dataset.published === '1';
+                        await fetch('<?= e(base_url('api/iris.php')) ?>?resource=summary_cards&id=' + encodeURIComponent(id), {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                            body: JSON.stringify({ is_published: !published })
+                        });
+                        if (typeof refreshSummaryCardsAdmin === 'function') {
+                            refreshSummaryCardsAdmin();
+                        }
+                        loadSummaryCards();
+                    });
+                });
+
+                document.querySelectorAll('.summary-card-delete').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const id = button.dataset.id;
+                        if (!confirm('Delete this summary card?')) return;
+                        await fetch('<?= e(base_url('api/iris.php')) ?>?resource=summary_cards&id=' + encodeURIComponent(id), {
+                            method: 'DELETE',
+                            headers: { Accept: 'application/json' }
+                        });
+                        if (typeof refreshSummaryCardsAdmin === 'function') {
+                            refreshSummaryCardsAdmin();
+                        }
+                        loadSummaryCards();
+                    });
+                });
+            }
+        }
+
+        async function loadSummaryCards() {
+            try {
+                const response = await fetch('<?= e(base_url('api/dashboard_graphs.php')) ?>', { headers: { Accept: 'application/json' } });
+                if (!response.ok) throw new Error('Unable to load summary cards');
+                const payload = await response.json();
+                renderSummaryCards(payload.cards || []);
+            } catch (error) {
+                const grid = document.getElementById('summaryCardsGrid');
+                if (grid) {
+                    grid.innerHTML = '<div class="md:col-span-2 xl:col-span-4 rounded-2xl border border-dashed border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200 px-4 py-6 text-sm text-center">Summary cards could not be loaded.</div>';
+                }
+            }
+        }
+
+        <?php if (($_SESSION['role'] ?? null) === 'admin'): ?>
+            const summaryCardsAdminForm = document.getElementById('summaryCardsAdminForm');
+            const summaryCardsAdminFormPanel = document.getElementById('summaryCardsAdminFormPanel');
+            const toggleSummaryCardFormButton = document.getElementById('toggleSummaryCardForm');
+            const cancelSummaryCardFormButton = document.getElementById('cancelSummaryCardForm');
+
+            async function refreshSummaryCardsAdmin() {
+                const response = await fetch('<?= e(base_url('api/iris.php')) ?>?resource=summary_cards', { headers: { Accept: 'application/json' } });
+                if (!response.ok) throw new Error('Unable to load summary cards');
+                const cards = await response.json();
+                const container = document.getElementById('summaryCardAdminList');
+                if (!container) return;
+                if (!Array.isArray(cards) || cards.length === 0) {
+                    container.innerHTML = '<div class="rounded-xl border border-dashed border-gray-300 dark:border-gray-700 px-4 py-6 text-sm text-gray-500 dark:text-gray-400 text-center">No summary cards yet.</div>';
+                    return;
+                }
+                container.innerHTML = cards
+                    .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0))
+                    .map(card => `
+                        <div class="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/60 p-3">
+                            <div class="flex items-start justify-between gap-3">
+                                <div>
+                                    <div class="text-sm font-bold text-gray-900 dark:text-white">${escapeHtmlDashboard(card.title || 'Snapshot Card')}</div>
+                                    <div class="text-xs text-gray-500 dark:text-gray-400">${escapeHtmlDashboard(card.main_value || '')} · ${escapeHtmlDashboard(card.main_label || '')}</div>
+                                </div>
+                                <span class="rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${card.is_published ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' : 'bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-300'}">${card.is_published ? 'Published' : 'Draft'}</span>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-2">
+                                <button type="button" class="summary-card-edit rounded-lg border border-gray-300 dark:border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200" data-id="${escapeHtmlDashboard(card.id)}">Edit</button>
+                                <button type="button" class="summary-card-toggle rounded-lg border border-gray-300 dark:border-gray-700 px-2.5 py-1.5 text-xs font-semibold text-gray-700 dark:text-gray-200" data-id="${escapeHtmlDashboard(card.id)}" data-published="${card.is_published ? '1' : '0'}">${card.is_published ? 'Unpublish' : 'Publish'}</button>
+                                <button type="button" class="summary-card-delete rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-2.5 py-1.5 text-xs font-semibold text-red-700 dark:text-red-300" data-id="${escapeHtmlDashboard(card.id)}">Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
+
+                document.querySelectorAll('.summary-card-edit').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const id = button.dataset.id;
+                        const card = cards.find(item => item.id === id);
+                        if (!card) return;
+                        document.getElementById('summaryCardId').value = card.id;
+                        document.getElementById('summaryCardTitle').value = card.title || '';
+                        document.getElementById('summaryCardMainValue').value = card.main_value || '';
+                        document.getElementById('summaryCardMainLabel').value = card.main_label || '';
+                        document.getElementById('summaryCardYearDate').value = card.year_date || '';
+                        document.getElementById('summaryCardSecondaryLabel').value = card.secondary_label || '';
+                        document.getElementById('summaryCardSecondaryValue').value = card.secondary_value || '';
+                        document.getElementById('summaryCardDescription').value = card.description || '';
+                        document.getElementById('summaryCardDisplayOrder').value = card.display_order ?? 0;
+                        document.getElementById('summaryCardDisplayPrecision').value = String(card.display_precision ?? 2);
+                        document.getElementById('summaryCardPublished').checked = !!card.is_published;
+                        summaryCardsAdminFormPanel.classList.remove('hidden');
+                        summaryCardsAdminForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    });
+                });
+
+                document.querySelectorAll('.summary-card-toggle').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const id = button.dataset.id;
+                        const published = button.dataset.published === '1';
+                        await fetch('<?= e(base_url('api/iris.php')) ?>?resource=summary_cards&id=' + encodeURIComponent(id), {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                            body: JSON.stringify({ is_published: !published })
+                        });
+                        refreshSummaryCardsAdmin();
+                        loadSummaryCards();
+                    });
+                });
+
+                document.querySelectorAll('.summary-card-delete').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const id = button.dataset.id;
+                        if (!confirm('Delete this summary card?')) return;
+                        await fetch('<?= e(base_url('api/iris.php')) ?>?resource=summary_cards&id=' + encodeURIComponent(id), {
+                            method: 'DELETE',
+                            headers: { Accept: 'application/json' }
+                        });
+                        refreshSummaryCardsAdmin();
+                        loadSummaryCards();
+                    });
+                });
+            }
+
+            summaryCardsAdminForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const payload = {
+                    title: document.getElementById('summaryCardTitle').value.trim(),
+                    main_value: document.getElementById('summaryCardMainValue').value.trim(),
+                    main_label: document.getElementById('summaryCardMainLabel').value.trim(),
+                    year_date: document.getElementById('summaryCardYearDate').value.trim(),
+                    secondary_label: document.getElementById('summaryCardSecondaryLabel').value.trim(),
+                    secondary_value: document.getElementById('summaryCardSecondaryValue').value.trim(),
+                    description: document.getElementById('summaryCardDescription').value.trim(),
+                    display_order: Number(document.getElementById('summaryCardDisplayOrder').value || 0),
+                    display_precision: (() => {
+                        const precisionValue = Number(document.getElementById('summaryCardDisplayPrecision').value);
+                        return Number.isFinite(precisionValue) ? precisionValue : 2;
+                    })(),
+                    is_published: document.getElementById('summaryCardPublished').checked
+                };
+
+                const id = document.getElementById('summaryCardId').value;
+                const url = '<?= e(base_url('api/iris.php')) ?>?resource=summary_cards' + (id ? '&id=' + encodeURIComponent(id) : '');
+                const method = id ? 'PUT' : 'POST';
+                const response = await fetch(url, {
+                    method,
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const error = await response.json().catch(() => ({}));
+                    alert(error.error || 'Unable to save summary card');
+                    return;
+                }
+                summaryCardsAdminForm.reset();
+                document.getElementById('summaryCardDisplayOrder').value = '0';
+                document.getElementById('summaryCardDisplayPrecision').value = '2';
+                document.getElementById('summaryCardPublished').checked = true;
+                summaryCardsAdminFormPanel.classList.add('hidden');
+                await refreshSummaryCardsAdmin();
+                loadSummaryCards();
+            });
+
+            toggleSummaryCardFormButton?.addEventListener('click', () => {
+                summaryCardsAdminForm.reset();
+                summaryCardsAdminFormPanel.classList.toggle('hidden');
+                document.getElementById('summaryCardId').value = '';
+                document.getElementById('summaryCardDisplayOrder').value = '0';
+                document.getElementById('summaryCardDisplayPrecision').value = '2';
+                document.getElementById('summaryCardPublished').checked = true;
+            });
+
+            cancelSummaryCardFormButton?.addEventListener('click', () => {
+                summaryCardsAdminForm.reset();
+                summaryCardsAdminFormPanel.classList.add('hidden');
+            });
+
+            const summaryCardAdminList = document.createElement('div');
+            summaryCardAdminList.id = 'summaryCardAdminList';
+            summaryCardAdminList.className = 'grid gap-3';
+            const formPanel = document.getElementById('summaryCardsAdminFormPanel');
+            if (formPanel) {
+                formPanel.appendChild(summaryCardAdminList);
+            }
+            refreshSummaryCardsAdmin().catch(() => {});
+        <?php endif; ?>
 
         // --- Apache ECharts Data & Initialization ---
         const trendYears = [];
@@ -464,25 +977,27 @@ require_auth();
                 const card = document.createElement('div');
                 card.className = 'scanner-published-card bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm';
                 const chartId = `scannerPublishedChart_${index}`;
-                const labels = Array.isArray(graph.labels) ? graph.labels.map(v => String(v ?? '')) : [];
-                const type = String(graph.chart_type || 'bar').toLowerCase();
+                const base = window.GraphExport && typeof window.GraphExport.buildSavedChartOption === 'function'
+                    ? window.GraphExport.buildSavedChartOption(graph)
+                    : null;
+                const labels = Array.isArray(graph.labels) ? graph.labels.map(v => String(v ?? '')) : (base?.xAxis?.data || []);
+                const storedType = String(graph.chart_type || 'bar').toLowerCase();
+                const type = ['bar', 'line', 'pie', 'doughnut', 'polararea'].includes(storedType) ? storedType : (base && base.series && base.series[0] && base.series[0].type ? base.series[0].type : 'bar');
                 const values = Array.isArray(graph.values_data) ? graph.values_data.map(v => {
-                    if (type === 'year_ranking' && (v === null || v === undefined || String(v).trim() === '')) return null;
+                    if (v === null || v === undefined || String(v).trim() === '') return null;
                     const n = Number(v);
-                    return Number.isFinite(n) ? n : (type === 'year_ranking' ? null : 0);
-                }) : [];
-                const source = graph.source_file_name ? `Source: ${graph.source_file_name}` : 'Source: IRIS Scanner';
+                    return Number.isFinite(n) ? n : null;
+                }) : (base && Array.isArray(base.series?.[0]?.data) ? base.series[0].data.map(item => typeof item === 'object' ? Number(item.value ?? 0) : Number(item ?? 0)) : []);
                 card.innerHTML = `
                     <div class="flex items-start justify-between gap-4 pb-4 border-b border-gray-100 dark:border-gray-700">
                         <div class="min-w-0">
                             <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center">
                                 <i class="fa-solid fa-chart-line text-emerald-500 mr-2"></i>${escapeHtmlDashboard(graph.title || 'Published Observatory Chart')}
                             </h3>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">${escapeHtmlDashboard(source)}</p>
                         </div>
                         <div class="shrink-0 flex items-center gap-2">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">APPROVED</span>
-                            ${canManagePublishedGraphs ? `<button type="button" class="published-graph-delete inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-semibold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 dark:text-red-300 dark:bg-red-900/30 dark:border-red-800" data-graph-id="${escapeHtmlDashboard(graph.id)}" title="Remove this published chart"><i class="fa-solid fa-trash mr-1" aria-hidden="true"></i> Delete</button>` : ''}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300">PUBLISHED</span>
+                            ${canManagePublishedGraphs ? `<button type="button" class="published-graph-delete inline-flex items-center px-2.5 py-1.5 rounded-lg text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 hover:bg-amber-100 dark:text-amber-300 dark:bg-amber-900/30 dark:border-amber-800" data-graph-id="${escapeHtmlDashboard(graph.id)}" title="Hide this published chart from the Observatory"><i class="fa-solid fa-eye-slash mr-1" aria-hidden="true"></i> Unpublish</button>` : ''}
                         </div>
                     </div>
                     <div id="${chartId}" class="w-full h-72 pt-4"></div>`;
@@ -490,12 +1005,16 @@ require_auth();
 
                 card.querySelector('.published-graph-delete')?.addEventListener('click', async event => {
                     const button = event.currentTarget;
-                    if (!confirm(`Remove "${graph.title || 'this published chart'}" from the Observatory?`)) return;
+                    if (!confirm(`Remove "${graph.title || 'this published chart'}" from the Observatory? It will remain saved and can be published again later.`)) return;
                     button.disabled = true;
                     try {
-                        const response = await fetch('<?= e(base_url('api/iris.php')) ?>?resource=graphs&id=' + encodeURIComponent(graph.id), { method: 'DELETE', headers: { 'Accept': 'application/json' } });
+                        const response = await fetch('<?= e(base_url('api/iris.php')) ?>?resource=graphs&id=' + encodeURIComponent(graph.id) + '&action=unpublish', {
+                            method: 'POST',
+                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ published: false })
+                        });
                         const payload = await response.json().catch(() => ({}));
-                        if (!response.ok) throw new Error(payload.error || 'Unable to delete published chart.');
+                        if (!response.ok) throw new Error(payload.error || 'Unable to unpublish chart.');
                         loadPublishedScannerGraphs();
                     } catch (error) {
                         button.disabled = false;
@@ -512,64 +1031,15 @@ require_auth();
                     card._chartResizeObserver.observe(elem);
                 }
                 chartInstances.push(chart);
-                const circular = ['pie', 'doughnut', 'polararea'].includes(type);
-                const horizontal = type === 'bar' && String(graph.orientation || '').toLowerCase() === 'horizontal';
-                const semanticRank = graph.rank_semantic === true;
-                const reverse = graph.value_axis_reversed === true && !semanticRank;
-                const axisMin = graph.value_axis_min !== null ? Number(graph.value_axis_min) : undefined;
-                const axisMax = graph.value_axis_max !== null ? Number(graph.value_axis_max) : undefined;
 
-                if (type === 'year_ranking' && window.ChartMapping) {
-                    const chartOptions = graph.chart_options || {};
-                    const measureName = chartOptions.measureName || 'Value';
-                    chart.setOption(window.ChartMapping.buildYearRankingOption({
-                        measureName,
-                        rows: labels.map((label, i) => ({ label, value: values[i] })).filter(row => Number.isFinite(row.value)),
-                        preserveOrder: true,
-                        rankSemantic: semanticRank || window.ChartMapping.isRankField(measureName),
-                        showCumulativeLine: chartOptions.showCumulativeLine !== false,
-                        show80Reference: chartOptions.show80Reference !== false,
-                        showBarValueLabels: chartOptions.showBarValueLabels !== false,
-                        isDark,
-                        width: elem.clientWidth
-                    }));
-                } else if (circular) {
-                    const pieType = type === 'polararea' ? 'pie' : 'pie';
-                    const sliceColors = ['#10b981', '#34d399', '#3b82f6', '#f59e0b', '#8b5cf6', '#f97316', '#14b8a6', '#ef4444', '#eab308', '#6366f1'];
-                    chart.setOption({
-                        backgroundColor: 'transparent',
-                        tooltip: { trigger: 'item', backgroundColor: tooltipBg, borderColor: tooltipBorder, textStyle: { color: tooltipText }, formatter: '{b}: {c} ({d}%)' },
-                        legend: { type: 'scroll', bottom: 0, textStyle: { color: textColor, fontSize: 11 } },
-                        series: [{
-                            type: pieType,
-                            radius: type === 'doughnut' ? ['45%', '70%'] : type === 'polararea' ? ['15%', '70%'] : '65%',
-                            center: ['50%', '45%'],
-                            data: labels.map((label, i) => ({
-                                name: label || `Item ${i + 1}`,
-                                value: values[i] ?? 0,
-                                itemStyle: { color: sliceColors[i % sliceColors.length] }
-                            })),
-                            itemStyle: { borderColor: isDark ? '#1f2937' : '#ffffff', borderWidth: 2 }
-                        }]
-                    });
-                } else {
-                    const seriesData = values;
-                    const option = {
-                        backgroundColor: 'transparent',
-                        tooltip: {
-                            trigger: 'axis',
-                            axisPointer: { type: 'shadow' },
-                            backgroundColor: tooltipBg,
-                            borderColor: tooltipBorder,
-                            textStyle: { color: tooltipText }
-                        },
-                        grid: { left: '4%', right: '4%', bottom: labels.length > 7 ? '15%' : '6%', top: '8%', containLabel: true },
-                        xAxis: horizontal ? { type: 'value', min: axisMin, max: axisMax, inverse: reverse, splitLine: { lineStyle: { color: splitLineColor } }, axisLabel: { color: textColor } } : { type: 'category', data: labels, axisLabel: { color: textColor, rotate: labels.length > 6 ? 35 : 0 }, axisLine: { lineStyle: { color: splitLineColor } } },
-                        yAxis: horizontal ? { type: 'category', data: labels, axisLabel: { color: textColor }, axisLine: { lineStyle: { color: splitLineColor } } } : { type: 'value', min: axisMin, max: axisMax, inverse: reverse || semanticRank, splitLine: { lineStyle: { color: splitLineColor } }, axisLabel: { color: textColor } },
-                        series: [{ type: type === 'line' ? 'line' : 'bar', smooth: type === 'line', data: seriesData, itemStyle: { color: '#10b981', borderRadius: type === 'bar' ? [4, 4, 0, 0] : undefined }, lineStyle: type === 'line' ? { width: 3, color: '#10b981' } : undefined }]
-                    };
-                    chart.setOption(option);
-                }
+                const option = base || {
+                    tooltip: { trigger: 'axis', backgroundColor: tooltipBg, borderColor: tooltipBorder, textStyle: { color: tooltipText } },
+                    grid: { left: '4%', right: '4%', bottom: labels.length > 7 ? '15%' : '6%', top: '8%', containLabel: true },
+                    xAxis: { type: 'category', data: labels, axisLabel: { color: textColor, rotate: labels.length > 6 ? 35 : 0 } },
+                    yAxis: { type: 'value', axisLabel: { color: textColor } },
+                    series: [{ type: type === 'line' ? 'line' : 'bar', data: values, itemStyle: { color: '#10b981' }, lineStyle: type === 'line' ? { width: 3, color: '#10b981' } : undefined }]
+                };
+                chart.setOption(option);
             });
         }
 
@@ -593,6 +1063,7 @@ require_auth();
         }
 
         document.addEventListener('DOMContentLoaded', () => {
+            loadSummaryCards();
             loadPublishedScannerGraphs();
             window.addEventListener('resize', () => {
                 chartInstances.forEach(chart => chart?.resize?.());

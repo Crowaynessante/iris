@@ -8,30 +8,170 @@
       .replace(/'/g, '&#39;');
   }
 
-  function normalizeGraphExportItem(graphData, recordId) {
+  function normalizeChartType(type, fallback = 'bar') {
+    if (type === undefined || type === null || String(type).trim() === '') return fallback;
+    const normalized = String(type).trim();
+    const lower = normalized.toLowerCase();
+    if (lower === 'polar-area' || lower === 'polararea') return 'polarArea';
+    if (lower === 'barh' || lower === 'horizontal') return 'bar';
+    if (lower === 'bar' || lower === 'column' || lower === 'vertical') return 'bar';
+    if (lower === 'line') return 'line';
+    if (lower === 'pie') return 'pie';
+    if (lower === 'doughnut') return 'doughnut';
+    if (lower === 'radar') return 'line';
+    return fallback;
+  }
+
+  function resolveChartType(graphData, fallback = 'bar') {
     const source = graphData || {};
     const chartData = source.chartData || {};
-    const labels = Array.isArray(source.labels)
-      ? source.labels
-      : (Array.isArray(chartData.labels) ? chartData.labels : []);
+    const candidates = [
+      source.chart_type,
+      source.chartType,
+      source.primaryType,
+      source.type,
+      source.series?.[0]?.type,
+      chartData.chart_type,
+      chartData.chartType,
+      chartData.primaryType,
+      chartData.type,
+      chartData.series?.[0]?.type,
+      source.chartData?.series?.[0]?.type,
+      source.chartData?.datasets?.[0]?.type,
+      source.chartData?.datasets?.[0]?.series?.[0]?.type
+    ];
+    for (const candidate of candidates) {
+      const next = normalizeChartType(candidate, fallback);
+      if (next !== fallback || candidate !== undefined) {
+        const resolved = normalizeChartType(candidate, fallback);
+        if (resolved && resolved !== fallback) return resolved;
+      }
+    }
+    return fallback;
+  }
+
+  function chartLabels(chartData) {
+    if (Array.isArray(chartData?.labels)) return chartData.labels;
+    const axis = Array.isArray(chartData?.xAxis) ? chartData.xAxis[0] : chartData?.xAxis;
+    if (Array.isArray(axis?.data)) return axis.data;
+    if (Array.isArray(chartData?.angleAxis?.data)) return chartData.angleAxis.data;
+    const points = chartData?.series?.[0]?.data;
+    return Array.isArray(points) && points.some(point => point && typeof point === 'object' && point.name !== undefined)
+      ? points.map(point => point.name)
+      : [];
+  }
+
+  function chartValues(chartData) {
+    if (Array.isArray(chartData?.datasets?.[0]?.data)) return chartData.datasets[0].data;
+    const points = chartData?.series?.[0]?.data;
+    return Array.isArray(points) ? points.map(point => point && typeof point === 'object' ? point.value : point) : [];
+  }
+
+  function formatChartTypeLabel(chartType) {
+    const normalized = resolveChartType({ chart_type: chartType }, 'bar');
+    const labels = {
+      pie: 'pie chart',
+      doughnut: 'Doughnut chart',
+      polarArea: 'Polar Area chart',
+      line: 'Line chart',
+      bar: 'Bar chart'
+    };
+    return labels[normalized] || `${String(normalized).charAt(0).toUpperCase()}${String(normalized).slice(1)} chart`;
+  }
+
+  function readChartConfig(rawConfig) {
+    if (!rawConfig || typeof rawConfig !== 'object') return {};
+    if (Array.isArray(rawConfig)) return rawConfig[0] && typeof rawConfig[0] === 'object' ? rawConfig[0] : {};
+    if (rawConfig.chartData && typeof rawConfig.chartData === 'object') return rawConfig.chartData;
+    if (rawConfig.option && typeof rawConfig.option === 'object') return rawConfig.option;
+    return rawConfig;
+  }
+
+  function buildSavedChartOption(graph) {
+    const source = graph || {};
+    const chartData = readChartConfig(source.chart_data || source.chartData || source.chartDataJson || source.option || source.config || {});
+    const explicitType = resolveChartType({ ...source, chartData }, 'bar');
+    const labels = Array.isArray(source.labels) && source.labels.length ? source.labels : chartLabels(chartData);
+    const values = Array.isArray(source.values_data) && source.values_data.length ? source.values_data : chartValues(chartData);
+    const type = explicitType;
+    const seriesName = source.title || 'Value';
+    const reverse = source.value_axis_reversed === true || source.valueAxisReversed === true || source.value_axis_reversed === 1 || source.valueAxisReversed === 1;
+
+    if (type === 'pie' || type === 'doughnut') {
+      return {
+        color: ['#10b981', '#34d399', '#3b82f6', '#f59e0b', '#8b5cf6', '#f97316', '#14b8a6'],
+        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+        legend: { type: 'scroll', bottom: 0, data: labels },
+        series: [{ type: 'pie', radius: type === 'doughnut' ? ['45%', '70%'] : '65%', center: ['50%', '45%'], data: labels.map((label, index) => ({ name: label || `Item ${index + 1}`, value: Number(values[index] ?? 0) })) }]
+      };
+    }
+
+    if (type === 'polarArea') {
+      return {
+        tooltip: { trigger: 'axis' },
+        polar: {},
+        angleAxis: { type: 'category', data: labels, startAngle: 90 },
+        radiusAxis: { type: 'value' },
+        series: [{ name: seriesName, type: 'bar', coordinateSystem: 'polar', data: values.map((value, index) => ({ value: Number(value ?? 0), name: labels[index] || `Item ${index + 1}` })) }]
+      };
+    }
+
+    const axisConfig = chartData?.xAxis || chartData?.yAxis || {};
+    const xAxis = axisConfig.xAxis || axisConfig[0] || {};
+    const yAxis = axisConfig.yAxis || axisConfig[1] || {};
+    const axisLabels = labels.length ? labels : Array.isArray(xAxis?.data) ? xAxis.data : [];
+    const axisMin = source.value_axis_min ?? source.valueAxisMin ?? yAxis.min ?? undefined;
+    const axisMax = source.value_axis_max ?? source.valueAxisMax ?? yAxis.max ?? undefined;
+
+    return {
+      backgroundColor: 'transparent',
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      grid: { left: '4%', right: '4%', bottom: axisLabels.length > 7 ? '15%' : '6%', top: '8%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        data: axisLabels,
+        inverse: reverse && type === 'bar',
+        axisLabel: { rotate: axisLabels.length > 6 ? 35 : 0 }
+      },
+      yAxis: {
+        type: 'value',
+        min: axisMin,
+        max: axisMax,
+        inverse: reverse || (source.rankSemantic === true || source.rank_semantic === true),
+      },
+      series: [{
+        name: seriesName,
+        type: type === 'line' ? 'line' : 'bar',
+        smooth: type === 'line',
+        data: values.map((value, index) => ({ value: Number(value ?? 0), name: axisLabels[index] || `Item ${index + 1}` })),
+        itemStyle: { color: '#10b981' },
+        lineStyle: type === 'line' ? { color: '#10b981', width: 3 } : undefined
+      }]
+    };
+  }
+
+  function normalizeGraphExportItem(graphData, recordId) {
+    const source = graphData || {};
+    const chartData = readChartConfig(source.chart_data || source.chartData || {});
+    const labels = Array.isArray(source.labels) ? source.labels : chartLabels(chartData);
     const valuesData = Array.isArray(source.values_data)
       ? source.values_data
       : (Array.isArray(source.valuesData) ? source.valuesData : []);
 
-    const numericSeries = Array.isArray(chartData.datasets) && chartData.datasets[0]
-      ? (Array.isArray(chartData.datasets[0].data) ? chartData.datasets[0].data : valuesData)
+    const numericSeries = (chartData.datasets?.[0] || chartData.series?.[0])
+      ? chartValues(chartData)
       : valuesData;
 
     const normalized = {
       record_id: source.record_id || source.recordId || recordId || null,
       title: source.title || source.name || 'Saved Graph Export',
-      chart_type: source.chart_type || source.chartType || source.primaryType || 'bar',
+      chart_type: resolveChartType({ ...source, chartData }, 'bar'),
       rankSemantic: source.rankSemantic === true || source.rank_semantic === true || source.rank_semantic === 1 || chartData.rankSemantic === true,
       rankValueMin: source.rankValueMin ?? chartData.rankValueMin,
       rankValueMax: source.rankValueMax ?? chartData.rankValueMax,
-      chartOptions: source.chartOptions || source.chart_options || {},
       labels: labels.length ? labels : (Array.isArray(chartData.labels) ? chartData.labels : []),
-      values_data: numericSeries.length ? numericSeries : (Array.isArray(source.data) ? source.data : [])
+      values_data: numericSeries.length ? numericSeries : (Array.isArray(source.data) ? source.data : []),
+      chart_data: chartData && Object.keys(chartData).length ? chartData : undefined
     };
 
     if (!normalized.record_id) {
@@ -41,93 +181,23 @@
     return normalized;
   }
 
-  function getYearRankingCumulative(graph, labels, values, rankSemantic, chartOptions) {
-    const mapping = root.ChartMapping || (typeof require === 'function' ? require('./chartMapping') : null);
-    if (!mapping?.buildYearRankingOption) return [];
-    const option = mapping.buildYearRankingOption({
-      measureName: chartOptions.measureName || 'Value',
-      rows: labels.map((label, index) => ({ label, value: Number(values[index]) })),
-      rankSemantic,
-      preserveOrder: true,
-      showCumulativeLine: true,
-      show80Reference: chartOptions.show80Reference !== false,
-      showBarValueLabels: chartOptions.showBarValueLabels !== false
-    });
-    return option.series.find(series => series.name === 'Cumulative')?.data.map(point => point.cumulativePercent) || [];
-  }
-
-  function yearRankingPrintScripts() {
-    return {
-      head: '<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script><script src="../scanner/js/chartMapping.js"></script>',
-      boot: `<script>
-        (() => {
-          const charts = [];
-          const observers = [];
-          document.querySelectorAll('[data-year-ranking]').forEach(host => {
-            const config = JSON.parse(host.dataset.yearRanking);
-            const chart = echarts.init(host);
-            chart.setOption(ChartMapping.buildYearRankingOption({
-              measureName: config.measureName,
-              rows: config.labels.map((label, index) => ({ label, value: Number(config.values[index]) })),
-              preserveOrder: true,
-              rankSemantic: config.rankSemantic,
-              showCumulativeLine: config.showCumulativeLine,
-              show80Reference: config.show80Reference,
-              showBarValueLabels: config.showBarValueLabels,
-              isDark: config.isDark,
-              width: host.clientWidth
-            }));
-            charts.push(chart);
-            if (typeof ResizeObserver !== 'undefined') {
-              const observer = new ResizeObserver(() => chart.resize());
-              observer.observe(host);
-              observers.push(observer);
-            }
-          });
-          window.addEventListener('resize', () => charts.forEach(chart => chart.resize()));
-          window.addEventListener('beforeunload', () => {
-            observers.forEach(observer => observer.disconnect());
-            charts.forEach(chart => chart.dispose());
-          });
-        })();
-      </script>`
-    };
-  }
-
   function buildPrintableGraphSheet(graph, context = {}) {
     const recordName = context.recordName || 'IRIS Report';
     const title = graph.title || 'Saved Graph';
-    const chartType = graph.chart_type || graph.chartType || 'bar';
+    const chartType = resolveChartType(graph, 'bar');
     const chartData = graph.chartData || {};
     const rankSemantic = graph.rank_semantic === 1 || graph.rank_semantic === true || graph.rankSemantic === true || chartData.rankSemantic === true;
-    const chartOptions = graph.chart_options || graph.chartOptions || {};
-    const labels = Array.isArray(graph.labels) ? graph.labels : (Array.isArray(chartData.labels) ? chartData.labels : []);
-    const values = Array.isArray(graph.values_data) ? graph.values_data : (Array.isArray(chartData.datasets?.[0]?.data) ? chartData.datasets[0].data : []);
-    const isYearRanking = String(chartType).toLowerCase() === 'year_ranking';
-    const cumulative = isYearRanking ? getYearRankingCumulative(graph, labels, values, rankSemantic, chartOptions) : [];
+    const labels = Array.isArray(graph.labels) ? graph.labels : chartLabels(chartData);
+    const values = Array.isArray(graph.values_data) ? graph.values_data : chartValues(chartData);
 
     const rows = labels.map((label, index) => `
       <tr>
         <td>${escapeHtml(label || `Item ${index + 1}`)}</td>
         <td>${escapeHtml(values[index] ?? '')}</td>
-        ${isYearRanking ? `<td>${escapeHtml(cumulative[index] === undefined ? '' : `${cumulative[index]}%`)}</td>` : ''}
       </tr>
     `).join('');
 
-    const printableChartId = `year-ranking-preview-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-    const printableChartConfig = escapeHtml(JSON.stringify({
-      labels,
-      values,
-      measureName: chartOptions.measureName || 'Value',
-      rankSemantic: rankSemantic || root.ChartMapping?.isRankField?.(chartOptions.measureName),
-      showCumulativeLine: chartOptions.showCumulativeLine !== false,
-      show80Reference: chartOptions.show80Reference !== false,
-      showBarValueLabels: chartOptions.showBarValueLabels !== false,
-      isDark: context.isDark === true
-    }));
-
     function buildChartSvg() {
-      if (isYearRanking) return `<div id="${printableChartId}" class="chart-preview" data-year-ranking="${printableChartConfig}" role="img" aria-label="Year Ranking chart"></div>`;
       const width = 760;
       const height = 320;
       const colors = ['#146C36', '#F59E0B', '#0D9488', '#10B981', '#D97706', '#2563EB'];
@@ -136,8 +206,9 @@
       const numericValues = rankSemantic ? rankValues.map(value => rankMaximum - value) : values.map(value => Number(value) || 0);
       const maxValue = Math.max(...numericValues, 1);
       const safeType = String(chartType).toLowerCase();
+      const chartLabel = formatChartTypeLabel(chartType);
 
-      if (safeType === 'pie' || safeType === 'doughnut' || safeType === 'polararea') {
+      if (safeType === 'pie' || safeType === 'doughnut') {
         const total = numericValues.reduce((sum, value) => sum + Math.max(value, 0), 0) || 1;
         const centerX = 220;
         const centerY = 160;
@@ -155,7 +226,28 @@
           return `<path d="${path}" fill="${colors[index % colors.length]}" stroke="#ffffff" stroke-width="2"><title>${escapeHtml(labels[index] || `Item ${index + 1}`)}: ${escapeHtml(value)}</title></path>`;
         }).join('');
         const legend = labels.map((label, index) => `<g transform="translate(390 ${55 + index * 28})"><rect width="14" height="14" fill="${colors[index % colors.length]}"/><text x="22" y="12" font-size="13" fill="#334155">${escapeHtml(label || `Item ${index + 1}`)}: ${escapeHtml(numericValues[index])}</text></g>`).join('');
-        return `<svg class="chart-preview" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(chartType)} chart">${slices}${safeType === 'doughnut' ? '<circle cx="220" cy="160" r="52" fill="white"/>' : ''}${legend}</svg>`;
+        return `<svg class="chart-preview" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(chartLabel)}">${slices}${safeType === 'doughnut' ? '<circle cx="220" cy="160" r="52" fill="white"/>' : ''}${legend}</svg>`;
+      }
+
+      if (safeType === 'polararea') {
+        const centerX = 220;
+        const centerY = 160;
+        const radius = 118;
+        const slots = numericValues.map((value, index) => {
+          const angle = (index / Math.max(numericValues.length, 1)) * Math.PI * 2 - Math.PI / 2;
+          const start = { x: centerX + Math.cos(angle) * 15, y: centerY + Math.sin(angle) * 15 };
+          const end = { x: centerX + Math.cos(angle) * (value / maxValue * radius + 18), y: centerY + Math.sin(angle) * (value / maxValue * radius + 18) };
+          const nextAngle = angle + (Math.PI * 2) / Math.max(numericValues.length, 1);
+          const control = { x: centerX + Math.cos((angle + nextAngle) / 2) * (value / maxValue * radius), y: centerY + Math.sin((angle + nextAngle) / 2) * (value / maxValue * radius) };
+          return `<path d="M ${start.x} ${start.y} Q ${control.x} ${control.y} ${end.x} ${end.y} L ${centerX} ${centerY} Z" fill="${colors[index % colors.length]}" opacity="0.9"><title>${escapeHtml(labels[index] || `Item ${index + 1}`)}: ${escapeHtml(value)}</title></path>`;
+        }).join('');
+        const outerRing = labels.map((label, index) => {
+          const angle = (index / Math.max(numericValues.length, 1)) * Math.PI * 2 - Math.PI / 2;
+          const x = centerX + Math.cos(angle) * (radius + 24);
+          const y = centerY + Math.sin(angle) * (radius + 24);
+          return `<text x="${x}" y="${y}" text-anchor="middle" font-size="11" fill="#475569">${escapeHtml(String(label || `Item ${index + 1}`).slice(0, 14))}</text>`;
+        }).join('');
+        return `<svg class="chart-preview" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(chartLabel)}">${slots}<circle cx="${centerX}" cy="${centerY}" r="18" fill="#ffffff"/><g>${outerRing}</g></svg>`;
       }
 
       const left = 55;
@@ -168,11 +260,11 @@
       if (safeType === 'line') {
         const points = numericValues.map((value, index) => `${left + step * index},${bottom - (value / maxValue) * plotHeight}`).join(' ');
         const dots = numericValues.map((value, index) => `<circle cx="${left + step * index}" cy="${bottom - (value / maxValue) * plotHeight}" r="4" fill="#146C36"/>`).join('');
-        return `<svg class="chart-preview" viewBox="0 0 ${width} ${height}" role="img" aria-label="Line chart">${grid}<polyline points="${points}" fill="none" stroke="#146C36" stroke-width="3"/>${dots}${labelsSvg}</svg>`;
+        return `<svg class="chart-preview" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(chartLabel)}">${grid}<polyline points="${points}" fill="none" stroke="#146C36" stroke-width="3"/>${dots}${labelsSvg}</svg>`;
       }
       const barWidth = Math.min(52, plotWidth / Math.max(numericValues.length, 1) * 0.65);
       const bars = numericValues.map((value, index) => { const x = left + (plotWidth / Math.max(numericValues.length, 1)) * index + 12; const barHeight = (value / maxValue) * plotHeight; return `<rect x="${x}" y="${bottom - barHeight}" width="${barWidth}" height="${barHeight}" fill="#146C36"><title>${escapeHtml(labels[index] || `Item ${index + 1}`)}: ${escapeHtml(value)}</title></rect>`; }).join('');
-      return `<svg class="chart-preview" viewBox="0 0 ${width} ${height}" role="img" aria-label="Bar chart">${grid}${bars}${labelsSvg}</svg>`;
+      return `<svg class="chart-preview" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(chartLabel)}">${grid}${bars}${labelsSvg}</svg>`;
     }
 
     return `
@@ -263,7 +355,6 @@
             .actions { display: none; }
           }
         </style>
-        ${isYearRanking ? yearRankingPrintScripts().head : ''}
       </head>
       <body>
         <div class="sheet">
@@ -272,7 +363,7 @@
               <strong>IRIS • CLSU Observatory</strong>
               <div class="meta">${escapeHtml(recordName)}</div>
             </div>
-            <div class="meta">Chart Type: ${escapeHtml(chartType.toUpperCase())}</div>
+            <div class="meta">Chart Type: ${escapeHtml(String(chartType).toUpperCase())}</div>
           </div>
           <h1>${escapeHtml(title)}</h1>
           <div class="meta">Printable export created from saved and cleaned graph data.</div>
@@ -282,18 +373,16 @@
               <tr>
                 <th>Category</th>
                 <th>Value</th>
-                ${isYearRanking ? '<th>Cumulative %</th>' : ''}
               </tr>
             </thead>
             <tbody>
-              ${rows || `<tr><td colspan="${isYearRanking ? 3 : 2}">No data available for this graph.</td></tr>`}
+              ${rows || '<tr><td colspan="2">No data available for this graph.</td></tr>'}
             </tbody>
           </table>
           <div class="actions">
             <button class="print-btn" onclick="window.print();">Print Sheet</button>
           </div>
         </div>
-        ${isYearRanking ? yearRankingPrintScripts().boot : ''}
       </body>
       </html>
     `;
@@ -312,13 +401,13 @@
     }).filter(Boolean).join('\n');
     const template = new DOMParser().parseFromString(buildPrintableGraphSheet({}, context), 'text/html');
     const style = template.querySelector('style')?.outerHTML || '';
-    const scripts = sheets.includes('data-year-ranking') ? yearRankingPrintScripts() : { head: '', boot: '' };
 
-    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><title>IRIS Saved Graphs - Printable Sheets</title>${style}${scripts.head}<style>.sheet { margin-bottom: 32px; page-break-after: always; } .sheet:last-child { page-break-after: auto; }</style></head><body>${sheets}<div class="actions"><button class="print-btn" onclick="window.print();">Print All</button></div>${scripts.boot}</body></html>`;
+    return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8" /><title>IRIS Saved Graphs - Printable Sheets</title>${style}<style>.sheet { margin-bottom: 32px; page-break-after: always; } .sheet:last-child { page-break-after: auto; }</style></head><body>${sheets}<div class="actions"><button class="print-btn" onclick="window.print();">Print All</button></div></body></html>`;
   }
 
   const api = {
     normalizeGraphExportItem,
+    buildSavedChartOption,
     buildPrintableGraphSheet,
     buildPrintableGraphSheets
   };

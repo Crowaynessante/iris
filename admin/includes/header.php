@@ -89,6 +89,7 @@ $pageTitle = $pageTitle ?? 'IRIS Admin Control Panel';
         html.dark #studioRowLimit,
         html.dark #studioCategoryCol,
         html.dark #studioValueCol,
+        html.dark #studioValuePrecisionSelect,
         html.dark #studioRecordSelect,
         html.dark #studioStatusSelect,
         html.dark #studioNotesInput,
@@ -104,6 +105,43 @@ $pageTitle = $pageTitle ?? 'IRIS Admin Control Panel';
         html.dark #savedDashboardGraphsContainer .chart-card { background: #1e293b !important; border-color: #334155 !important; color: #f8fafc !important; }
         html.dark #savedDashboardGraphsContainer h4 { color: #f8fafc !important; }
         html.dark #savedDashboardGraphsContainer select, html.dark #savedDashboardGraphsContainer input { background: #273449 !important; border-color: #475569 !important; color: #f8fafc !important; }
+        html.dark body,
+        html.dark .text-gray-500,
+        html.dark .text-gray-600,
+        html.dark .text-gray-700,
+        html.dark .text-slate-400,
+        html.dark .text-slate-500,
+        html.dark .text-slate-600,
+        html.dark .text-slate-700,
+        html.dark .text-slate-300,
+        html.dark .text-slate-200,
+        html.dark .text-zinc-400,
+        html.dark .text-zinc-500,
+        html.dark .text-zinc-600 {
+            color: #e2e8f0 !important;
+        }
+        html.dark .text-gray-800,
+        html.dark .text-gray-900,
+        html.dark .text-slate-800,
+        html.dark .text-slate-900,
+        html.dark .text-white {
+            color: #f8fafc !important;
+        }
+        html.dark input,
+        html.dark select,
+        html.dark textarea,
+        html.dark .form-input {
+            background: #273449 !important;
+            border-color: rgba(148,163,184,.32) !important;
+            color: #f8fafc !important;
+        }
+        html.dark .btn-save-modal,
+        html.dark .btn-approve-modal,
+        html.dark .btn-studio-action,
+        html.dark .export-cancel-button,
+        html.dark button {
+            color: #e2e8f0 !important;
+        }
     </style>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">

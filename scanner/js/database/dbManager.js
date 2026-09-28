@@ -206,6 +206,7 @@ class DatabaseManager {
   }
 
   async saveGraph(graphData) {
+    const chartData = graphData.chart_data || graphData.chartData || graphData.option || graphData.config || {};
     const payload = {
       id: graphData.id || `graph_${Date.now()}_${Math.random().toString(36).substr(2, 7)}`,
       record_id: graphData.record_id || graphData.recordId,
@@ -218,9 +219,10 @@ class DatabaseManager {
       rankSemantic: graphData.rankSemantic === true,
       rankValueMin: graphData.rankValueMin,
       rankValueMax: graphData.rankValueMax,
-      chartOptions: graphData.chartOptions || graphData.chart_options,
       labels: graphData.labels || [],
-      values_data: graphData.values_data || graphData.valuesData || graphData.data || []
+      values_data: graphData.values_data || graphData.valuesData || graphData.data || [],
+      chart_data: chartData && typeof chartData === 'object' ? chartData : {},
+      is_published: graphData.is_published === true || graphData.is_published === 1 || graphData.is_published === '1'
     };
 
     const response = await fetch(this.config.endpoints.graphs, {
@@ -334,13 +336,11 @@ class DatabaseManager {
         source: 'Saved Chart',
         primaryType: row.chart_type || 'bar',
         rankSemantic: row.rank_semantic === true || row.rank_semantic === 1,
-        chartOptions: row.chart_options || {},
         recommendation: 'Saved chart from the dashboard studio.',
         isDraft: true,
         chartData: {
           labels: Array.isArray(row.labels) ? row.labels : [],
           rankSemantic: row.rank_semantic === true || row.rank_semantic === 1,
-          chartOptions: row.chart_options || {},
           datasets: [{
             label: row.title || 'Series',
             data: Array.isArray(row.values_data) ? row.values_data : [],

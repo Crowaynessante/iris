@@ -242,7 +242,7 @@
         <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
           <div>
             <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--clsu-green);">Saved Dashboard Graphs</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted);">Approved and saved chart versions grouped per file record.</p>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Published chart versions grouped per file record.</p>
           </div>
           <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
             <button id="savedGraphsViewAllBtn" type="button" class="saved-graphs-bulk-button">View All</button>
@@ -260,6 +260,7 @@
           <span id="savedGraphsSelectionCount" style="font-size: 0.8rem; color: var(--text-muted);">0 selected</span>
           <button id="savedGraphsPrintAll" type="button" class="saved-graphs-bulk-button" disabled>Print All</button>
           <button id="savedGraphsExportSelected" type="button" class="saved-graphs-bulk-button" disabled>Export</button>
+          <button id="savedGraphsPublishSelected" type="button" class="saved-graphs-bulk-button" disabled><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Publish</button>
           <button id="savedGraphsDeleteSelected" type="button" class="archive-delete-button" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
         </div>
 
@@ -274,7 +275,7 @@
       <div style="background: #FFFFFF; border: 1px solid var(--border-light); border-left: 5px solid var(--clsu-green); border-radius: var(--radius-lg); padding: 1.5rem 2rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: var(--card-shadow);">
         <div>
           <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--clsu-green);">Review record editor</h2>
-          <p style="font-size: 0.88rem; color: var(--text-muted);">Review extracted fields, edit tabular cells, update draft status, and approve visualizations for the CLSU Observatory.</p>
+          <p style="font-size: 0.88rem; color: var(--text-muted);">Review extracted fields, edit tabular cells, update draft status, and publish visualizations for the CLSU Observatory.</p>
         </div>
       </div>
 
@@ -289,7 +290,7 @@
           <div id="statPendingDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-gold-dark);">0</div>
         </div>
         <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
-          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">APPROVED FOR DASHBOARD</div>
+          <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">PUBLISHED</div>
           <div id="statVerifiedDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-green-light);">0</div>
         </div>
         <div style="background: #FFFFFF; border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
@@ -407,7 +408,6 @@
                   <label style="font-size: 0.78rem; font-weight: 800; color: #334155; text-transform: uppercase;">Chart Type:</label>
                   <select id="studioChartTypeSelect" class="form-input" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.82rem; font-weight: 700; color: #0F172A;">
                     <option value="bar"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Bar Chart</option>
-                    <option value="year_ranking">Year Ranking</option>
                     <option value="line"><i class="fa-solid fa-chart-line" aria-hidden="true"></i> Line Chart</option>
                     <option value="pie"><i class="fa-solid fa-chart-pie" aria-hidden="true"></i> Pie Chart</option>
                     <option value="doughnut"><i class="fa-solid fa-circle-half-stroke" aria-hidden="true"></i> Doughnut Chart</option>
@@ -426,6 +426,14 @@
                 <div style="display: flex; align-items: center; gap: 0.35rem;">
                   <label style="font-size: 0.75rem; font-weight: 700; color: #334155; white-space: nowrap;" id="studioValueLabel">Value (Y-axis):</label>
                   <select id="studioValueCol" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Value column"></select>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.35rem;">
+                  <label style="font-size: 0.75rem; font-weight: 700; color: #334155; white-space: nowrap;" id="studioValuePrecisionLabel">Display Precision:</label>
+                  <select id="studioValuePrecisionSelect" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Display precision">
+                    <option value="0">No decimals</option>
+                    <option value="1">1 decimal</option>
+                    <option value="2" selected>2 decimals</option>
+                  </select>
                 </div>
                 <div id="studioFieldWarning" style="display:none; font-size: 0.75rem; color: #DC2626; font-weight: 700; background: #FEF2F2; border: 1px solid #FECACA; border-radius: 4px; padding: 0.2rem 0.6rem;"></div>
               </div>
@@ -457,16 +465,8 @@
                   <option value="label-asc">Label: A to Z</option>
                   <option value="label-desc">Label: Z to A</option>
                 </select>
-                <button id="studioReverseSortOrder" type="button" class="btn-studio-action" aria-pressed="false" style="padding: 0.3rem 0.55rem; font-size: 0.78rem;">⇄ Reverse order</button>
-                <button id="studioReverseValueAxis" type="button" class="btn-studio-action" aria-pressed="false" style="padding: 0.3rem 0.55rem; font-size: 0.78rem;">⇄ Reverse value axis</button>
                 <label style="font-size: 0.78rem; color: #334155; font-weight: 700; white-space: nowrap;">Show <input id="studioRowLimit" class="form-input" type="number" min="1" max="100" value="30" style="width: 4.5rem; display: inline-block; padding: 0.3rem 0.45rem; font-size: 0.78rem;"> rows</label>
                 <label style="font-size: 0.78rem; color: #334155; font-weight: 700; white-space: nowrap;"><input id="studioGroupDuplicates" type="checkbox" checked style="accent-color: var(--clsu-green); margin-right: 0.25rem;"> Group duplicate labels</label>
-              </div>
-
-              <div id="studioYearRankingControls" style="display:none; flex-wrap:wrap; gap:0.9rem; align-items:center; margin:0 0 0.75rem; padding:0.6rem 0.9rem; border:1px solid var(--border-light); border-radius:var(--radius-sm); color:var(--text-main); font-size:0.78rem;">
-                <label><input id="studioShowCumulativeLine" type="checkbox" checked> Show cumulative line</label>
-                <label><input id="studioShow80Reference" type="checkbox" checked> Show 80% reference</label>
-                <label><input id="studioShowBarValueLabels" type="checkbox" checked> Show bar value labels</label>
               </div>
 
               <!-- Chart Canvas -->
@@ -509,10 +509,10 @@
                   <input type="text" id="studioDocTypeInput" class="form-input" style="font-weight: 600; color: #0F172A;">
                 </div>
                 <div>
-                  <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: #334155; text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Approval Status</label>
+                  <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: #334155; text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Publication Status</label>
                   <select id="studioStatusSelect" class="form-input" style="font-weight: 600; color: #0F172A;">
                     <option value="Pending Review">Pending Review</option>
-                    <option value="Approved">Approved for Dashboard</option>
+                    <option value="Approved">Published</option>
                     <option value="Needs Revision">Needs Revision</option>
                   </select>
                 </div>
@@ -528,7 +528,7 @@
                   <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Dashboard Changes
                 </button>
                 <button id="studioBtnApprove" type="button" class="btn-approve-modal">
-                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i> Approve for Observatory
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i> Publish
                 </button>
               </div>
 
@@ -551,7 +551,7 @@
         <select id="adminStatusFilter" class="form-input" style="width: auto;">
           <option value="all">All Statuses</option>
           <option value="Pending Review">Pending Review</option>
-          <option value="Approved">Approved for Dashboard</option>
+          <option value="Approved">Published</option>
           <option value="Needs Revision">Needs Revision</option>
         </select>
       </div>

@@ -33,6 +33,39 @@ export function showExportChoice(onChoice) {
   });
 }
 
+export async function publishSavedGraphs(ctx, selectedGraphs = []) {
+  if (!ctx?.state || !ctx?.dbManager || !ctx?.api) {
+    throw new Error('Saved graph publishing requires a valid IRIS context.');
+  }
+
+  const state = ctx.state;
+  const graphs = selectedGraphs.length ? selectedGraphs : (ctx.api.savedGraphsVisible || []).filter(graph => state.savedGraphIds.has(graph.id));
+  if (!graphs.length) return { successCount: 0, published: [] };
+
+  const recordIds = [...new Set(graphs.map(graph => graph.record_id).filter(Boolean))];
+  if (!recordIds.length) return { successCount: 0, published: [] };
+
+  try {
+    const result = await ctx.dbManager.approveRecords(recordIds);
+    const count = Number(result?.successCount || 0);
+    if (typeof document !== 'undefined') {
+      const toast = document.createElement('div');
+      toast.className = 'pdf-copy-toast visible';
+      toast.textContent = `${count} record${count === 1 ? '' : 's'} published to the Observatory.`;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 3000);
+    }
+    if (ctx.api?.renderSavedGraphsTab) await ctx.api.renderSavedGraphsTab();
+    return result;
+  } catch (error) {
+    console.error('Publish failed:', error);
+    if (typeof window !== 'undefined') {
+      window.alert?.(`Publish failed: ${error.message || error}`);
+    }
+    throw error;
+  }
+}
+
 export function buildTextExport(graphs) {
   const sqlString = value => `'${String(value ?? '').replace(/\\/g, '\\\\').replace(/'/g, "''")}'`;
   const sqlValue = value => {
@@ -52,18 +85,8 @@ export function buildTextExport(graphs) {
   return graphs.map(graph => {
     const labels = Array.isArray(graph.labels) ? graph.labels : [];
     const values = Array.isArray(graph.values_data) ? graph.values_data : [];
-    const isYearRanking = graph.chart_type === 'year_ranking';
-    const chartOptions = graph.chart_options || graph.chartOptions || {};
-    const option = isYearRanking ? window.ChartMapping?.buildYearRankingOption?.({
-      measureName: chartOptions.measureName || 'Value',
-      rows: labels.map((label, index) => ({ label, value: Number(values[index]) })),
-      rankSemantic: graph.rank_semantic === true || graph.rank_semantic === 1,
-      preserveOrder: true,
-      showCumulativeLine: true
-    }) : null;
-    const cumulative = option?.series?.find(series => series.name === 'Cumulative')?.data.map(point => point.cumulativePercent) || [];
     const name = tableName(graph.title);
-    const rows = labels.map((label, index) => `  (${sqlValue(label)}, ${sqlValue(values[index])}${isYearRanking ? `, ${sqlValue(cumulative[index] === undefined ? null : cumulative[index])}` : ''})`).join(',\n');
+    const rows = labels.map((label, index) => `  (${sqlValue(label)}, ${sqlValue(values[index])})`).join(',\n');
     const statements = [
       `-- Title: ${graph.title || 'Saved Chart'}`,
       `-- Source: ${graph.source_file_name || graph.record_id || 'Unknown file'}`,
@@ -71,11 +94,10 @@ export function buildTextExport(graphs) {
       '',
       `CREATE TABLE IF NOT EXISTS \`${name}\` (`,
       '  `category` VARCHAR(255),',
-        `  \`value\` DECIMAL(10,2)${isYearRanking ? ',' : ''}`,
-        ...(isYearRanking ? ['  `cumulative_percent` DECIMAL(6,2) NULL'] : []),
+        '  `value` DECIMAL(10,2)',
       ');',
       '',
-      rows ? `INSERT INTO \`${name}\` (\`category\`, \`value\`${isYearRanking ? ', `cumulative_percent`' : ''}) VALUES\n${rows};` : ''
+      rows ? `INSERT INTO \`${name}\` (\`category\`, \`value\`) VALUES\n${rows};` : ''
     ].filter(Boolean);
     return statements.join('\n');
   }).join('\n\n');
@@ -89,6 +111,7 @@ export function initSavedGraphsTab(ctx) {
     const selectAll = $('savedGraphsSelectAll');
     const printAllButton = $('savedGraphsPrintAll');
     const exportButton = $('savedGraphsExportSelected');
+    const publishButton = $('savedGraphsPublishSelected');
     const deleteButton = $('savedGraphsDeleteSelected');
     const count = $('savedGraphsSelectionCount');
     if (selectAll) {
@@ -96,10 +119,13 @@ export function initSavedGraphsTab(ctx) {
       selectAll.indeterminate = selectedVisible > 0 && selectedVisible < visibleGraphs.length;
     }
     if (exportButton) exportButton.disabled = state.savedGraphIds.size === 0;
+    if (publishButton) publishButton.disabled = state.savedGraphIds.size === 0;
     if (printAllButton) printAllButton.disabled = state.savedGraphIds.size === 0;
     if (deleteButton) deleteButton.disabled = state.savedGraphIds.size === 0;
     if (count) count.textContent = `${state.savedGraphIds.size} selected`;
   };
+
+  const publishSelectedGraphs = async (selectedGraphs = []) => publishSavedGraphs(ctx, selectedGraphs);
 
   const exportGraphs = async (ids, mode, graph, selectedGraphs = []) => {
     console.log('Export handler started:', { ids, mode, graph, selectedGraphs });
@@ -149,43 +175,19 @@ export function initSavedGraphsTab(ctx) {
     const card = document.createElement('div');
     card.className = 'graph-card';
     const sourceName = getRecordName(graph, records);
-    const chartType = graph.chart_type || 'bar';
-    card.innerHTML = `<div class="graph-card-header"><div style="display:flex;gap:.6rem;align-items:flex-start;"><input class="saved-graph-checkbox" type="checkbox" data-graph-id="${escapeHtml(graph.id)}" ${state.savedGraphIds.has(graph.id) ? 'checked' : ''} aria-label="Select ${escapeHtml(graph.title || 'saved graph')}" /><div><div class="graph-card-title">${escapeHtml(graph.title || 'Saved Dashboard Chart')}</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:.25rem;">Version ${version}</div><div style="font-size:.75rem;color:var(--text-muted);">Source: ${escapeHtml(sourceName)}</div></div></div><div class="graph-card-actions"><span class="badge badge-low">SAVED</span><button class="graph-action-button export-saved-mysql" type="button" title="Reflect graph data in the database"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5M8 17h3"/></svg><span>Reflect DB</span></button><button class="graph-action-button export-saved-print" type="button" title="Print this graph"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v6H6z"/></svg><span>Print Sheet</span></button><button class="graph-action-button graph-action-delete btn-table-delete delete-saved-graph" type="button" data-graph-id="${escapeHtml(graph.id)}" title="Delete saved graph" aria-label="Delete saved graph"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div></div><div style="font-size:.82rem;color:var(--accent-cyan);margin-bottom:1rem;">Chart type: <strong>${escapeHtml(chartType.toUpperCase())}</strong></div><div class="graph-canvas-container" style="height:260px;position:relative;"><canvas id="${canvasId}"></canvas></div>`;
-    if (chartType === 'year_ranking') {
-      const host = document.createElement('div');
-      host.id = canvasId;
-      host.style.cssText = 'width:100%;height:100%;';
-      card.querySelector(`#${canvasId}`)?.replaceWith(host);
-    }
+    const savedType = graph.chart_type || 'bar';
+    const chartType = ['bar', 'line', 'pie', 'doughnut', 'polarArea'].includes(savedType) ? savedType : 'bar';
+    card.innerHTML = `<div class="graph-card-header"><div style="display:flex;gap:.6rem;align-items:flex-start;"><input class="saved-graph-checkbox" type="checkbox" data-graph-id="${escapeHtml(graph.id)}" ${state.savedGraphIds.has(graph.id) ? 'checked' : ''} aria-label="Select ${escapeHtml(graph.title || 'saved graph')}" /><div><div class="graph-card-title">${escapeHtml(graph.title || 'Saved Dashboard Chart')}</div><div style="font-size:.78rem;color:var(--text-muted);margin-top:.25rem;">Version ${version}</div><div style="font-size:.75rem;color:var(--text-muted);">Source: ${escapeHtml(sourceName)}</div></div></div><div class="graph-card-actions"><span class="badge badge-low">SAVED</span><button class="graph-action-button graph-action-publish" type="button" title="Publish this saved graph to the Observatory"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 2l7 7-1.4 1.4L13 5.8V18h-2V5.8L6.4 10.4 5 9l7-7zM5 20h14v2H5z"/></svg><span>Publish</span></button><button class="graph-action-button export-saved-mysql" type="button" title="Reflect graph data in the database"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8M8 13h5M8 17h3"/></svg><span>Reflect DB</span></button><button class="graph-action-button export-saved-print" type="button" title="Print this graph"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M6 9V4h12v5M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v6H6z"/></svg><span>Print Sheet</span></button><button class="graph-action-button graph-action-delete btn-table-delete delete-saved-graph" type="button" data-graph-id="${escapeHtml(graph.id)}" title="Delete saved graph" aria-label="Delete saved graph"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div></div><div style="font-size:.82rem;color:var(--accent-cyan);margin-bottom:1rem;">Chart type: <strong>${escapeHtml(chartType.toUpperCase())}</strong></div><div class="graph-canvas-container" style="height:260px;position:relative;"><div id="${canvasId}" style="height:100%;width:100%"></div></div>`;
 
     const render = () => {
       const chartHost = $(canvasId);
       if (!chartHost) return;
       card._savedChartResizeObserver?.disconnect?.();
       card._savedChart?.dispose?.();
-      card._savedChart?.destroy?.();
-      if (chartType === 'year_ranking' && window.echarts && window.ChartMapping) {
-        const savedOptions = graph.chart_options || {};
-        const rankSemantic = graph.rank_semantic === true || graph.rank_semantic === 1 || window.ChartMapping.isRankField(savedOptions.measureName);
-        const chartRows = (graph.labels || []).map((label, index) => ({ label, value: Number(graph.values_data?.[index]) })).filter(row => Number.isFinite(row.value));
-        card._savedChart = window.echarts.init(chartHost);
-        card._savedChart.setOption(window.ChartMapping.buildYearRankingOption({
-          measureName: savedOptions.measureName || 'Value',
-          rows: chartRows,
-          preserveOrder: true,
-          rankSemantic,
-          showCumulativeLine: savedOptions.showCumulativeLine !== false,
-          show80Reference: savedOptions.show80Reference !== false,
-          showBarValueLabels: savedOptions.showBarValueLabels !== false,
-          isDark: document.documentElement.classList.contains('dark'),
-          width: chartHost.clientWidth
-        }));
-        if (typeof ResizeObserver !== 'undefined') {
-          card._savedChartResizeObserver = new ResizeObserver(() => card._savedChart?.resize?.());
-          card._savedChartResizeObserver.observe(chartHost);
-        }
-      } else {
-        card._savedChart = createChart(chartHost, chartType, { orientation: graph.orientation, rankSemantic: graph.rank_semantic === 1 || graph.rank_semantic === true, rankValueMin: graph.rank_value_min, rankValueMax: graph.rank_value_max, valueAxisReversed: graph.value_axis_reversed === 1 || graph.value_axis_reversed === true, valueAxisMin: graph.value_axis_min, valueAxisMax: graph.value_axis_max, labels: graph.labels || [], datasets: [{ label: graph.title || 'Saved Series', data: graph.values_data || [] }] });
+      card._savedChart = createChart(chartHost, chartType, { orientation: graph.orientation, rankSemantic: graph.rank_semantic === 1 || graph.rank_semantic === true, rankValueMin: graph.rank_value_min, rankValueMax: graph.rank_value_max, valueAxisReversed: graph.value_axis_reversed === 1 || graph.value_axis_reversed === true, valueAxisMin: graph.value_axis_min, valueAxisMax: graph.value_axis_max, labels: graph.labels || [], datasets: [{ label: graph.title || 'Saved Series', data: graph.values_data || [] }] });
+      if (typeof ResizeObserver !== 'undefined') {
+        card._savedChartResizeObserver = new ResizeObserver(() => card._savedChart?.resize?.());
+        card._savedChartResizeObserver.observe(chartHost);
       }
     };
 
@@ -193,6 +195,7 @@ export function initSavedGraphsTab(ctx) {
       if (event.target.checked) state.savedGraphIds.add(graph.id); else state.savedGraphIds.delete(graph.id);
       refreshSelectionUi(ctx.api.savedGraphsVisible || []);
     };
+    card.querySelector('.graph-action-publish').onclick = () => publishSelectedGraphs([graph]);
     card.querySelector('.export-saved-mysql').onclick = () => exportGraphs([graph.id], 'database', graph, [graph]);
     card.querySelector('.export-saved-print').onclick = () => ctx.dbManager.printGraphSheet(graph, { recordName: sourceName });
     card.querySelector('.delete-saved-graph').onclick = async () => {
@@ -273,6 +276,10 @@ export function initSavedGraphsTab(ctx) {
     const selectedGraphs = (ctx.api.savedGraphsVisible || []).filter(graph => state.savedGraphIds.has(graph.id));
     if (ids.length) exportGraphs(ids, 'database', null, selectedGraphs);
   });
+  $('savedGraphsPublishSelected')?.addEventListener('click', () => {
+    const selectedGraphs = (ctx.api.savedGraphsVisible || []).filter(graph => state.savedGraphIds.has(graph.id));
+    publishSelectedGraphs(selectedGraphs);
+  });
   $('savedGraphsDeleteSelected')?.addEventListener('click', confirmBulkDelete);
   $('savedGraphsPrintAll')?.addEventListener('click', () => {
     const selectedGraphs = (ctx.api.savedGraphsVisible || []).filter(graph => state.savedGraphIds.has(graph.id));
@@ -290,4 +297,19 @@ export function initSavedGraphsTab(ctx) {
   new MutationObserver(() => {
     if ($('savedDashboardGraphsContainer')) ctx.api.renderSavedGraphsTab();
   }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+}
+
+if (typeof window !== 'undefined') {
+  const sharedSavedGraphsApi = window.SavedGraphsTab || {};
+  sharedSavedGraphsApi.publishSelectedGraphs = publishSavedGraphs;
+  sharedSavedGraphsApi.initSavedGraphsTab = initSavedGraphsTab;
+  sharedSavedGraphsApi.buildTextExport = buildTextExport;
+  sharedSavedGraphsApi.showExportChoice = showExportChoice;
+  sharedSavedGraphsApi.downloadText = downloadText;
+  window.SavedGraphsTab = sharedSavedGraphsApi;
+
+  const sharedGraphExportApi = window.GraphExport || {};
+  sharedGraphExportApi.publishSelectedGraphs = publishSavedGraphs;
+  sharedGraphExportApi.publishSavedGraphs = publishSavedGraphs;
+  window.GraphExport = sharedGraphExportApi;
 }

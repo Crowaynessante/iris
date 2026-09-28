@@ -32,11 +32,11 @@ IRIS is a plain-PHP application for institutional data ingestion, review, and pu
 
 ## Charts
 
-Apache ECharts is used for interactive charts. Studio, saved graph cards, the Observatory, and print output use the shared `ChartMapping.buildYearRankingOption()` builder for the `year_ranking` chart type. Year Ranking supports cumulative percentages, an optional 80% guide, sum-grouped duplicate labels, and rank-aware bar inversion. Its three display toggles are saved with the graph in `chart_options`.
+Apache ECharts is used for interactive charts. The supported chart types are Bar, Line, Pie, Doughnut, and Polar Area. Spreadsheet drafts use the actual parsed rows, keep separate numerical columns as separate charts, detect chronological values for line charts, and omit identifier-like columns and invalid cells. Draft chart data is emitted in ECharts format and rendered by the existing ECharts adapter.
 
 ## Database and API
 
-`config/db.php` provides the PDO connection and ensures the scanner record/graph tables exist, including an additive migration for `saved_graphs.chart_options`. `api/iris.php` provides authenticated record and graph operations. `api/dashboard_graphs.php` returns approved graphs for the public Observatory.
+`config/db.php` provides the PDO connection and ensures the scanner record/graph tables exist. `api/iris.php` provides authenticated record and graph operations. `api/dashboard_graphs.php` returns approved graphs for the public Observatory.
 
 Scanner browser persistence is managed by `scanner/js/database/dbManager.js`, which uses the PHP API and browser storage fallbacks. The PHP app does not require a separate Express server.
 

@@ -24,12 +24,6 @@
     }));
   }
 
-  function groupAndSum(rows) {
-    const grouped = new Map();
-    rows.forEach(row => grouped.set(row.label, (grouped.get(row.label) || 0) + row.value));
-    return Array.from(grouped, ([label, value]) => ({ label, value }));
-  }
-
   /**
    * Group for circular charts (sum duplicates).
    */
@@ -59,5 +53,5 @@
     return { labels, values };
   }
 
-  return { prepareCircularData, groupAndAggregate, groupAndSum, serializeChartState };
+  return { prepareCircularData, groupAndAggregate, serializeChartState };
 });

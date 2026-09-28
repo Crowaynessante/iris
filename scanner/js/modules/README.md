@@ -6,7 +6,7 @@
 
 [`state.js`](state.js) stores the active scan/record, queues, filters, and chart instances. [`chartEngine.js`](chartEngine.js) handles Studio row filtering, sorting, grouping, limits, and ECharts options. [`studioWorkbench.js`](studioWorkbench.js) connects Studio controls and persists selected chart settings.
 
-Year Ranking is explicitly selected with `chart_type: "year_ranking"`. Studio calls the shared `ChartMapping.buildYearRankingOption()` builder. The same builder is used by saved graph cards, draft cards, the public Observatory, and print export; do not add surface-specific Year Ranking option copies. Its `chart_options` persist the measure display name and cumulative/reference/bar-label toggles.
+GraphEngine creates ECharts option objects from spreadsheet rows. Draft and saved graph cards use the existing `createChart()` ECharts adapter, which also converts older saved label/value payloads. The supported types are Bar, Line, Pie, Doughnut, and Polar Area.
 
 ## Module responsibilities
 
@@ -29,7 +29,7 @@ Year Ranking is explicitly selected with `chart_type: "year_ranking"`. Studio ca
 
 ## Saved Graphs and Exports
 
-Saved graph rows and `chart_options` are stored through `dbManager.js` and the PHP graph API. SQL-formatted `.txt` exports are generated from saved labels, values, and metadata; print sheets render chart previews and data tables separately. Year Ranking print and data exports include a cumulative percentage column when meaningful.
+Saved graph rows are stored through `dbManager.js` and the PHP graph API. SQL-formatted `.txt` exports are generated from saved labels, values, and metadata; print sheets render chart previews and data tables separately.
 
 ## Development Checks
 

@@ -8,8 +8,38 @@ require_once __DIR__.'/includes/header.php';
     <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-left: 5px solid var(--clsu-green); border-radius: var(--radius-lg); padding: 1.5rem 2rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: var(--card-shadow);">
         <div>
             <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--clsu-green);">Review record editor</h2>
-            <p style="font-size: 0.88rem; color: var(--text-muted);">Review extracted fields, edit tabular cells, update draft status, and approve visualizations for the CLSU Observatory.</p>
+            <p style="font-size: 0.88rem; color: var(--text-muted);">Review extracted fields, edit tabular cells, update draft status, and publish visualizations for the CLSU Observatory.</p>
         </div>
+    </div>
+
+    <div class="card-panel" style="margin-bottom: 1.5rem; background: var(--bg-card); border: 1px solid var(--border-light); border-left: 5px solid var(--clsu-gold-dark); border-radius: var(--radius-md); padding: 1.25rem 1.5rem; box-shadow: var(--card-shadow);">
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <div>
+                <div style="font-size: 0.75rem; font-weight: 800; color: var(--clsu-green); text-transform: uppercase; letter-spacing: 0.06em;">Latest Performance Snapshot</div>
+                <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--text-main); margin-top: 0.2rem;">Admin-managed summary cards</h3>
+            </div>
+            <button id="toggleSummaryCardEditor" type="button" class="btn-save-modal"><i class="fa-solid fa-plus" aria-hidden="true"></i> Add summary card</button>
+        </div>
+        <div id="summaryCardEditorPanel" style="display:none; margin-top: 1rem; border: 1px solid var(--border-light); background: rgba(255,255,255,0.45); padding: 1rem; border-radius: var(--radius-md);">
+            <form id="summaryCardEditorForm" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                <input type="hidden" id="summaryCardEditorId">
+                <div><label class="form-label">Title</label><input type="text" id="summaryCardEditorTitle" class="form-input" required></div>
+                <div><label class="form-label">Main Value</label><input type="text" id="summaryCardEditorMainValue" class="form-input" required></div>
+                <div><label class="form-label">Main Label</label><input type="text" id="summaryCardEditorMainLabel" class="form-input" required></div>
+                <div><label class="form-label">Year / Date</label><input type="text" id="summaryCardEditorYearDate" class="form-input"></div>
+                <div><label class="form-label">Secondary Label</label><input type="text" id="summaryCardEditorSecondaryLabel" class="form-input"></div>
+                <div><label class="form-label">Secondary Value</label><input type="text" id="summaryCardEditorSecondaryValue" class="form-input"></div>
+                <div style="grid-column: 1 / -1;"><label class="form-label">Description</label><textarea id="summaryCardEditorDescription" class="form-input" rows="2"></textarea></div>
+                <div><label class="form-label">Display Order</label><input type="number" id="summaryCardEditorDisplayOrder" class="form-input" value="0" min="0"></div>
+                <div><label class="form-label">Display Precision</label><select id="summaryCardEditorPrecision" class="form-input"><option value="0">No decimals</option><option value="1">1 decimal</option><option value="2" selected>2 decimals</option></select></div>
+                <label style="display:flex; align-items:center; gap:0.5rem; margin-top:0.6rem; font-size:0.8rem; font-weight:700; color: var(--text-muted);"><input type="checkbox" id="summaryCardEditorPublished" checked> Publish card</label>
+                <div style="grid-column:1 / -1; display:flex; justify-content:flex-end; gap:0.75rem;">
+                    <button type="button" id="cancelSummaryCardEditor" class="export-cancel-button">Cancel</button>
+                    <button type="submit" class="btn-save-modal"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save summary card</button>
+                </div>
+            </form>
+        </div>
+        <div id="summaryCardEditorList" style="margin-top: 1rem; display:grid; gap:0.75rem;"></div>
     </div>
 
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
@@ -22,7 +52,7 @@ require_once __DIR__.'/includes/header.php';
             <div id="statPendingDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-gold-dark);">0</div>
         </div>
         <div style="background: var(--bg-card); border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
-            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">APPROVED FOR DASHBOARD</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">PUBLISHED</div>
             <div id="statVerifiedDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-green-light);">0</div>
         </div>
         <div style="background: var(--bg-card); border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
@@ -118,7 +148,6 @@ require_once __DIR__.'/includes/header.php';
                             <label style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; white-space: nowrap;">Chart Type:</label>
                             <select id="studioChartTypeSelect" class="form-input" style="width: auto; min-width: 150px; padding: 0.35rem 0.75rem; font-size: 0.82rem; font-weight: 700; color: var(--text-main);">
                                 <option value="bar">Bar Chart</option>
-                                <option value="year_ranking">Year Ranking</option>
                                 <option value="line">Line Chart</option>
                                 <option value="pie">Pie Chart</option>
                                 <option value="doughnut">Doughnut Chart</option>
@@ -136,6 +165,14 @@ require_once __DIR__.'/includes/header.php';
                         <div style="display: flex; align-items: center; gap: 0.35rem;">
                             <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;" id="studioValueLabel">Value (Y-axis):</label>
                             <select id="studioValueCol" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Value column"></select>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;" id="studioValuePrecisionLabel">Display Precision:</label>
+                            <select id="studioValuePrecisionSelect" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Display precision">
+                                <option value="0">No decimals</option>
+                                <option value="1">1 decimal</option>
+                                <option value="2" selected>2 decimals</option>
+                            </select>
                         </div>
                         <div id="studioFieldWarning" style="display:none; font-size: 0.75rem; color: #DC2626; font-weight: 700; background: rgba(254,242,242,0.9); border: 1px solid #FECACA; border-radius: 4px; padding: 0.2rem 0.6rem;"></div>
                     </div>
@@ -167,16 +204,8 @@ require_once __DIR__.'/includes/header.php';
                             <option value="label-asc">Label: A to Z</option>
                             <option value="label-desc">Label: Z to A</option>
                         </select>
-                        <button id="studioReverseSortOrder" type="button" class="btn-studio-action" aria-pressed="false" style="padding: 0.3rem 0.55rem; font-size: 0.78rem;">⇄ Reverse order</button>
-                        <button id="studioReverseValueAxis" type="button" class="btn-studio-action" aria-pressed="false" style="padding: 0.3rem 0.55rem; font-size: 0.78rem;">⇄ Reverse value axis</button>
                         <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; white-space: nowrap;">Show <input id="studioRowLimit" class="form-input" type="number" min="1" max="100" value="30" style="width: 4.5rem; display: inline-block; padding: 0.3rem 0.45rem; font-size: 0.78rem;"> rows</label>
                         <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; white-space: nowrap;"><input id="studioGroupDuplicates" type="checkbox" checked style="accent-color: var(--clsu-green); margin-right: 0.25rem;"> Group duplicate labels</label>
-                    </div>
-
-                    <div id="studioYearRankingControls" style="display:none; flex-wrap:wrap; gap:0.9rem; align-items:center; margin:0 0 0.75rem; padding:0.6rem 0.9rem; border:1px solid var(--border-light); border-radius:var(--radius-sm); color:var(--text-main); font-size:0.78rem;">
-                        <label><input id="studioShowCumulativeLine" type="checkbox" checked> Show cumulative line</label>
-                        <label><input id="studioShow80Reference" type="checkbox" checked> Show 80% reference</label>
-                        <label><input id="studioShowBarValueLabels" type="checkbox" checked> Show bar value labels</label>
                     </div>
 
                     <div style="height: 320px; position: relative; width: 100%; margin-bottom: 0.75rem;">
@@ -213,10 +242,10 @@ require_once __DIR__.'/includes/header.php';
                             <input type="text" id="studioDocTypeInput" class="form-input" style="font-weight: 600; color: var(--text-main);">
                         </div>
                         <div>
-                            <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Approval Status</label>
+                            <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Publication Status</label>
                             <select id="studioStatusSelect" class="form-input" style="font-weight: 600; color: var(--text-main);">
                                 <option value="Pending Review">Pending Review</option>
-                                <option value="Approved">Approved for Dashboard</option>
+                                <option value="Approved">Published</option>
                                 <option value="Needs Revision">Needs Revision</option>
                             </select>
                         </div>
@@ -231,7 +260,7 @@ require_once __DIR__.'/includes/header.php';
                             <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Dashboard Changes
                         </button>
                         <button id="studioBtnApprove" type="button" class="btn-approve-modal">
-                            <i class="fa-solid fa-circle-check" aria-hidden="true"></i> Approve for Observatory
+                            <i class="fa-solid fa-circle-check" aria-hidden="true"></i> Publish
                         </button>
                     </div>
                 </div>
@@ -248,7 +277,7 @@ require_once __DIR__.'/includes/header.php';
         <select id="adminStatusFilter" class="form-input" style="width: auto;">
             <option value="all">All Statuses</option>
             <option value="Pending Review">Pending Review</option>
-            <option value="Approved">Approved for Dashboard</option>
+            <option value="Approved">Published</option>
             <option value="Needs Revision">Needs Revision</option>
         </select>
     </div>
@@ -287,4 +316,132 @@ require_once __DIR__.'/includes/header.php';
     </div>
 </section>
 
+    <script>
+        (function () {
+            const summaryCardApi = '<?= e(base_url('api/iris.php')) ?>?resource=summary_cards';
+            const editorPanel = document.getElementById('summaryCardEditorPanel');
+            const editorList = document.getElementById('summaryCardEditorList');
+            const form = document.getElementById('summaryCardEditorForm');
+
+            async function refreshSummaryCardEditor() {
+                const response = await fetch(summaryCardApi, { headers: { Accept: 'application/json' } });
+                if (!response.ok) return;
+                const cards = await response.json();
+                if (!Array.isArray(cards) || !cards.length) {
+                    editorList.innerHTML = '<div class="rounded-xl border border-dashed border-gray-300 px-4 py-6 text-sm text-gray-500 text-center">No summary cards created yet.</div>';
+                    return;
+                }
+                editorList.innerHTML = cards
+                    .sort((a, b) => Number(a.display_order || 0) - Number(b.display_order || 0))
+                    .map(card => `
+                        <div class="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                            <div class="flex items-center justify-between gap-3">
+                                <div>
+                                    <div class="font-bold text-sm text-slate-900">${String(card.title || 'Summary Card')}</div>
+                                    <div class="text-xs text-slate-500">${String(card.main_value || '')} · ${String(card.main_label || '')}</div>
+                                </div>
+                                <span class="inline-flex items-center rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-wide ${card.is_published ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}">${card.is_published ? 'Published' : 'Draft'}</span>
+                            </div>
+                            <div class="flex gap-2 mt-3">
+                                <button type="button" class="summary-card-editor-edit btn-studio-action" data-id="${String(card.id)}">Edit</button>
+                                <button type="button" class="summary-card-editor-toggle btn-studio-action" data-id="${String(card.id)}" data-published="${card.is_published ? '1' : '0'}">${card.is_published ? 'Unpublish' : 'Publish'}</button>
+                                <button type="button" class="summary-card-editor-delete archive-delete-button" data-id="${String(card.id)}">Delete</button>
+                            </div>
+                        </div>
+                    `).join('');
+
+                editorList.querySelectorAll('.summary-card-editor-edit').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const id = button.dataset.id;
+                        const card = cards.find(item => item.id === id);
+                        if (!card) return;
+                        document.getElementById('summaryCardEditorId').value = card.id || '';
+                        document.getElementById('summaryCardEditorTitle').value = card.title || '';
+                        document.getElementById('summaryCardEditorMainValue').value = card.main_value || '';
+                        document.getElementById('summaryCardEditorMainLabel').value = card.main_label || '';
+                        document.getElementById('summaryCardEditorYearDate').value = card.year_date || '';
+                        document.getElementById('summaryCardEditorSecondaryLabel').value = card.secondary_label || '';
+                        document.getElementById('summaryCardEditorSecondaryValue').value = card.secondary_value || '';
+                        document.getElementById('summaryCardEditorDescription').value = card.description || '';
+                        document.getElementById('summaryCardEditorDisplayOrder').value = card.display_order ?? 0;
+                        document.getElementById('summaryCardEditorPrecision').value = String(card.display_precision ?? 2);
+                        document.getElementById('summaryCardEditorPublished').checked = !!card.is_published;
+                        editorPanel.style.display = 'block';
+                    });
+                });
+
+                editorList.querySelectorAll('.summary-card-editor-toggle').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const id = button.dataset.id;
+                        const published = button.dataset.published === '1';
+                        await fetch(summaryCardApi + '&id=' + encodeURIComponent(id), {
+                            method: 'PUT',
+                            headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ is_published: !published })
+                        });
+                        refreshSummaryCardEditor();
+                    });
+                });
+
+                editorList.querySelectorAll('.summary-card-editor-delete').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        if (!confirm('Delete this summary card?')) return;
+                        await fetch(summaryCardApi + '&id=' + encodeURIComponent(button.dataset.id), {
+                            method: 'DELETE',
+                            headers: { Accept: 'application/json' }
+                        });
+                        refreshSummaryCardEditor();
+                    });
+                });
+            }
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const payload = {
+                    title: document.getElementById('summaryCardEditorTitle').value.trim(),
+                    main_value: document.getElementById('summaryCardEditorMainValue').value.trim(),
+                    main_label: document.getElementById('summaryCardEditorMainLabel').value.trim(),
+                    year_date: document.getElementById('summaryCardEditorYearDate').value.trim(),
+                    secondary_label: document.getElementById('summaryCardEditorSecondaryLabel').value.trim(),
+                    secondary_value: document.getElementById('summaryCardEditorSecondaryValue').value.trim(),
+                    description: document.getElementById('summaryCardEditorDescription').value.trim(),
+                    display_order: Number(document.getElementById('summaryCardEditorDisplayOrder').value || 0),
+                    display_precision: (() => {
+                        const precisionValue = Number(document.getElementById('summaryCardEditorPrecision').value);
+                        return Number.isFinite(precisionValue) ? precisionValue : 2;
+                    })(),
+                    is_published: document.getElementById('summaryCardEditorPublished').checked
+                };
+                const id = document.getElementById('summaryCardEditorId').value;
+                const response = await fetch(summaryCardApi + (id ? '&id=' + encodeURIComponent(id) : ''), {
+                    method: id ? 'PUT' : 'POST',
+                    headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) {
+                    form.reset();
+                    document.getElementById('summaryCardEditorId').value = '';
+                    editorPanel.style.display = 'none';
+                    refreshSummaryCardEditor();
+                }
+            });
+
+            document.getElementById('toggleSummaryCardEditor').addEventListener('click', () => {
+                editorPanel.style.display = editorPanel.style.display === 'none' ? 'block' : 'none';
+                if (editorPanel.style.display === 'block') {
+                    form.reset();
+                    document.getElementById('summaryCardEditorId').value = '';
+                    document.getElementById('summaryCardEditorPrecision').value = '2';
+                    document.getElementById('summaryCardEditorPublished').checked = true;
+                }
+            });
+
+            document.getElementById('cancelSummaryCardEditor').addEventListener('click', () => {
+                form.reset();
+                editorPanel.style.display = 'none';
+            });
+
+            refreshSummaryCardEditor();
+        })();
+    </script>
 <?php require_once __DIR__.'/includes/footer.php'; ?>

@@ -8,13 +8,13 @@ This folder contains browser-side chart recommendations. It does not call an ext
 
 ## Shared chart utilities
 
-- `chartMapping.js` infers category/value columns, parses numbers and rank ranges, detects rank fields, and builds the shared ECharts options for Year Ranking.
-- `chartData.js` serializes chart state and supplies grouping helpers. Year Ranking duplicate labels are summed; the legacy bar/line grouping behavior remains separate.
-- `graphExport.js` normalizes export payloads and builds Print Sheet/Print All documents. Year Ranking print sheets render through the shared builder and include cumulative percentages in the table.
+- `chartMapping.js` infers category/value columns and parses numeric and rank values used by Studio charts.
+- `chartData.js` serializes chart state and supplies grouping helpers.
+- `graphExport.js` normalizes export payloads and builds Print Sheet/Print All documents.
 - `../modules/chartEngine.js` owns Studio option routing; `../modules/graphsTab.js` owns draft-card rendering.
 
 ## Chart types
 
-Bar, line, pie, doughnut, and polar-area charts use the existing Studio option path. The explicit `year_ranking` type uses `ChartMapping.buildYearRankingOption()` across Studio, saved charts, the Observatory, print, and data exports. It sorts the displayed measure values, computes cumulative percent after filtering/grouping/limiting, and supports an optional 80% reference. Rank-valued measures use `ChartMapping.isRankField()` and do not show a cumulative series.
+The supported types are Bar, Line, Pie, Doughnut, and Polar Area. Excel drafts use the parser-provided rows, retain separate numerical fields as separate chart suggestions, infer chronological sequences from values as well as headers, and emit Apache ECharts option objects. Invalid cells are omitted rather than converted to zero; identifier-like columns and structural document-statistics fallbacks are excluded from Excel chart generation.
 
 Saved-graph SQL-formatted text exports use graph data, not rendered canvas pixels. Print exports render a chart preview separately from the data table.

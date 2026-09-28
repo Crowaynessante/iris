@@ -216,7 +216,6 @@ CREATE TABLE IF NOT EXISTS saved_graphs (
     rank_semantic BOOLEAN DEFAULT FALSE,
     rank_value_min DECIMAL(20,8) NULL,
     rank_value_max DECIMAL(20,8) NULL,
-    chart_options JSON NULL,
     labels JSON,
     values_data JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

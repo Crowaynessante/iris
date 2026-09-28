@@ -31,17 +31,13 @@ class GraphEngine {
           drafts.push(...sheetDrafts);
         }
       });
+      return drafts;
     }
 
     // Case 2: Numbers detected in text (Docx, PDF, Image OCR)
     if (drafts.length === 0 && fileData.rawText) {
       const textDrafts = this.extractNumbersFromText(fileData.rawText, fileData.name);
       drafts.push(...textDrafts);
-    }
-
-    // Fallback: If no numerical table was automatically detected, create a summary draft
-    if (drafts.length === 0) {
-      drafts.push(this.createFallbackMetricDraft(fileData));
     }
 
     return drafts;
@@ -53,98 +49,157 @@ class GraphEngine {
   analyzeTableForGraphs(headers, rows, sourceLabel) {
     const drafts = [];
     if (!headers || headers.length < 2 || !rows || rows.length === 0) return drafts;
+    const validRows = rows.filter(row => Array.isArray(row) && row.some(value => value !== null && value !== undefined && String(value).trim() !== ''));
+    if (!validRows.length) return drafts;
 
-    // Identify string/label column and numeric columns
-    let labelColIndex = -1;
-    const numericColIndices = [];
+    const columns = headers.map((header, index) => {
+      const values = validRows.map(row => row[index]);
+      const present = values.filter(value => value !== null && value !== undefined && String(value).trim() !== '');
+      const temporalValues = present.map(value => this.parseTemporalValue(value));
+      const temporalCount = temporalValues.filter(value => value !== null).length;
+      const temporal = present.length > 0 && temporalCount / present.length >= 0.8 && new Set(temporalValues.filter(value => value !== null).map(value => value.order)).size > 1;
+      const numericValues = present.map(value => this.parseNumericValue(value));
+      const numericCount = numericValues.filter(value => value !== null).length;
+      const numeric = present.length > 0 && numericCount / present.length >= 0.6;
+      return { header: String(header || `Column ${index + 1}`), index, values, present, temporal, numeric };
+    });
+    const isIdentifierColumn = column => {
+      const header = column.header.toLowerCase().replace(/[_-]+/g, ' ');
+      if (/(^|\b)(id|identifier|uuid|guid|student\s*(no|number|id)|learner\s*(no|number|id)|matric(ulation)?\s*(no|number|id)?|registration\s*(no|number|id)|serial\s*(no|number|id)|code|account\s*(no|number))\b/.test(header)) return true;
+      const values = column.present.map(value => this.parseNumericValue(value)).filter(value => value !== null);
+      if (values.length < 3 || values.length / column.present.length < 0.9) return false;
+      const uniqueRatio = new Set(values).size / values.length;
+      const allIntegers = values.every(Number.isInteger);
+      const largeValues = values.filter(value => Math.abs(value) >= 10000).length / values.length >= 0.8;
+      return uniqueRatio >= 0.95 && allIntegers && largeValues;
+    };
+    const usableNumericColumns = columns.filter(column => column.numeric && !column.temporal && !isIdentifierColumn(column));
+    if (!usableNumericColumns.length) return drafts;
 
-    headers.forEach((h, colIdx) => {
-      let numCount = 0;
-      let strCount = 0;
-      const sampleSize = Math.min(rows.length, 30);
+    const temporalColumn = columns.find(column => column.temporal && !isIdentifierColumn(column));
+    const categoryColumn = temporalColumn || columns.find(column => !column.numeric && !isIdentifierColumn(column) && new Set(column.present.map(value => String(value).trim())).size > 1);
+    if (!categoryColumn) return drafts;
 
-      for (let r = 0; r < sampleSize; r++) {
-        const cell = rows[r] ? rows[r][colIdx] : null;
-        if (typeof cell === 'number' || (!isNaN(parseFloat(cell)) && isFinite(cell))) {
-          numCount++;
-        } else if (cell && String(cell).trim().length > 0) {
-          strCount++;
-        }
-      }
+    usableNumericColumns.forEach((metric, datasetIndex) => {
+      const chartRows = validRows.map((row, sourceIndex) => ({
+        sourceIndex,
+        label: this.formatCategoryValue(row[categoryColumn.index]),
+        order: temporalColumn ? this.parseTemporalValue(row[categoryColumn.index])?.order : sourceIndex,
+        value: this.parseNumericValue(row[metric.index])
+      })).filter(row => row.label !== '' && row.value !== null);
+      if (!chartRows.length) return;
+      if (temporalColumn) chartRows.sort((left, right) => left.order - right.order);
 
-      if (numCount >= sampleSize * 0.5) {
-        numericColIndices.push(colIdx);
-      } else if (labelColIndex === -1 && strCount >= sampleSize * 0.4) {
-        labelColIndex = colIdx;
-      }
+      const labels = chartRows.map(row => row.label);
+      const values = chartRows.map(row => row.value);
+      const total = values.reduce((sum, value) => sum + value, 0);
+      const isWhole = values.length > 1 && values.every(value => value >= 0) && total > 0 &&
+        (Math.abs(total - 1) <= 0.01 || Math.abs(total - 100) <= 1);
+      const primaryType = temporalColumn ? 'line' : isWhole ? 'pie' : 'bar';
+      const recommendation = temporalColumn
+        ? 'Line Chart recommended because the category values form a chronological sequence.'
+        : isWhole
+          ? 'Pie Chart recommended because the category values form a complete non-negative whole.'
+          : 'Bar Chart recommended to compare numerical values across categories.';
+      const headerName = metric.header;
+      const palette = this.colorPalettes[datasetIndex % this.colorPalettes.length];
+
+      drafts.push({
+        id: `draft_${Date.now()}_${datasetIndex}`,
+        title: `${headerName} — ${sourceLabel}`,
+        source: sourceLabel,
+        primaryType,
+        recommendation,
+        isDraft: true,
+        chartData: this.buildEChartsOption(primaryType, labels, values, headerName, palette)
+      });
     });
 
-    if (labelColIndex === -1) labelColIndex = 0;
-
-    if (numericColIndices.length > 0) {
-      const slicedRows = rows.slice(0, 15);
-      const labels = slicedRows.map(r => String(r[labelColIndex] || 'Item').trim());
-
-      numericColIndices.slice(0, 4).forEach((numColIdx, datasetIndex) => {
-        const headerName = headers[numColIdx] || `Metric ${datasetIndex + 1}`;
-        const rankSemantic = window.ChartMapping?.isRankField?.(headerName) === true;
-        const parseValue = rankSemantic ? window.ChartMapping.parseRankValue : value => parseFloat(value);
-        const dataValues = slicedRows.map(r => {
-          const val = parseValue(r[numColIdx]);
-          return val === null || !Number.isFinite(val) ? 0 : val;
-        });
-        const rankValueMin = rankSemantic ? Math.min(...dataValues) : undefined;
-        const rankValueMax = rankSemantic ? Math.max(...dataValues) : undefined;
-
-        const palette = this.colorPalettes[datasetIndex % this.colorPalettes.length];
-
-        // Determine recommended graph type
-        let primaryType = 'bar';
-        let recommendation = 'Bar Chart recommended to compare distinct categories side-by-side.';
-
-        const temporalKeywords = ['year', 'month', 'date', 'quarter', 'semester', 'time', 'day', 'period', 'yr'];
-        const isTemporal = temporalKeywords.some(kw => String(headers[labelColIndex]).toLowerCase().includes(kw));
-
-        const percentageKeywords = ['%', 'percent', 'share', 'ratio', 'distribution', 'rate', 'portion'];
-        const isPercentage = percentageKeywords.some(kw => headerName.toLowerCase().includes(kw));
-
-        if (isTemporal) {
-          primaryType = 'line';
-          recommendation = 'Line Chart recommended to observe chronological trends over time.';
-        } else if (isPercentage && labels.length <= 7) {
-          primaryType = 'pie';
-          recommendation = 'Pie Chart recommended to visualize proportional composition.';
-        }
-
-        drafts.push({
-          id: `draft_${Date.now()}_${datasetIndex}`,
-          title: `${headerName} — ${sourceLabel}`,
-          source: sourceLabel,
-          primaryType,
-          recommendation,
-          isDraft: true,
-          chartData: {
-            labels,
-            rankSemantic,
-            rankValueMin,
-            rankValueMax,
-            valueAxisMin: rankSemantic ? 0 : undefined,
-            valueAxisMax: rankSemantic ? rankValueMax - rankValueMin : undefined,
-            datasets: [{
-              label: headerName,
-              data: dataValues,
-              backgroundColor: primaryType === 'pie' ? this.colorPalettes.map(c => c.bg) : palette.bg,
-              borderColor: primaryType === 'pie' ? this.colorPalettes.map(c => c.border) : palette.border,
-              borderWidth: 2,
-              tension: 0.35,
-              fill: primaryType === 'line'
-            }]
-          }
-        });
-      });
-    }
-
     return drafts;
+  }
+
+  parseNumericValue(value) {
+    if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    if (value === null || value === undefined) return null;
+    const text = String(value).trim().replace(/,/g, '');
+    if (!text || !/^[-+]?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?%?$/i.test(text)) return null;
+    const parsed = Number(text.replace(/%$/, ''));
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  parseTemporalValue(value) {
+    if (value instanceof Date && Number.isFinite(value.getTime())) {
+      return { order: value.getTime(), label: this.formatCategoryValue(value) };
+    }
+    if (typeof value === 'number' && Number.isInteger(value) && value >= 1000 && value <= 9999 && value >= 1900 && value <= 2100) {
+      return { order: value, label: String(value) };
+    }
+    if (value === null || value === undefined) return null;
+    const text = String(value).trim();
+    if (/^(?:19|20|21)\d{2}$/.test(text)) return { order: Number(text), label: text };
+    const quarter = text.match(/^(\d{4})\s*[- ]?Q([1-4])$/i) || text.match(/^Q([1-4])\s*[- ]?(\d{4})$/i);
+    if (quarter) {
+      const year = /^Q/i.test(text) ? Number(quarter[2]) : Number(quarter[1]);
+      const quarterNumber = Number(/^Q/i.test(text) ? quarter[1] : quarter[2]);
+      return { order: year * 4 + quarterNumber, label: text };
+    }
+    if (/^(?:19|20|21)\d{2}[-/]\d{1,2}(?:[-/]\d{1,2})?$/.test(text) || /^\d{1,2}[-/](?:\d{1,2})[-/](?:19|20|21)\d{2}$/.test(text)) {
+      const timestamp = Date.parse(text);
+      if (Number.isFinite(timestamp)) return { order: timestamp, label: this.formatCategoryValue(value) };
+    }
+    const month = text.match(/^([A-Za-z]+)\s+(\d{4})$/);
+    if (month) {
+      const timestamp = Date.parse(`${month[1]} 1, ${month[2]}`);
+      if (Number.isFinite(timestamp)) return { order: timestamp, label: text };
+    }
+    return null;
+  }
+
+  formatCategoryValue(value) {
+    if (value instanceof Date && Number.isFinite(value.getTime())) {
+      return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+    }
+    return value === null || value === undefined ? '' : String(value).trim();
+  }
+
+  buildEChartsOption(type, labels, values, seriesName, palette = this.colorPalettes[0]) {
+    const option = {
+      color: [palette.border],
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+      legend: { data: [seriesName] },
+      series: []
+    };
+    if (type === 'pie' || type === 'doughnut') {
+      option.tooltip = { trigger: 'item', formatter: '{b}: {c} ({d}%)' };
+      option.legend = { data: labels, type: 'scroll', bottom: 0 };
+      option.series = [{
+        name: seriesName,
+        type: 'pie',
+        radius: type === 'doughnut' ? ['45%', '72%'] : '68%',
+        data: labels.map((name, index) => ({ name, value: values[index] })),
+        label: { show: true, formatter: '{b}: {d}%' },
+        itemStyle: { borderColor: '#FFFFFF', borderWidth: 2 }
+      }];
+      return option;
+    }
+    if (type === 'polarArea') {
+      option.polar = {};
+      option.angleAxis = { type: 'category', data: labels, startAngle: 90 };
+      option.radiusAxis = { type: 'value' };
+      option.series = [{ name: seriesName, type: 'bar', coordinateSystem: 'polar', data: values, itemStyle: { color: palette.border } }];
+      return option;
+    }
+    option.xAxis = { type: 'category', data: labels, axisLabel: { interval: 0 } };
+    option.yAxis = { type: 'value', name: seriesName };
+    option.series = [{
+      name: seriesName,
+      type: type === 'line' ? 'line' : 'bar',
+      data: values,
+      smooth: type === 'line',
+      itemStyle: { color: palette.border },
+      lineStyle: type === 'line' ? { color: palette.border, width: 3 } : undefined
+    }];
+    return option;
   }
 
   /**
@@ -173,60 +228,22 @@ class GraphEngine {
         id: `draft_text_${Date.now()}`,
         title: `Key Extracted Metrics — ${docName}`,
         source: 'Document Text & Key Values',
-        primaryType: matches.length <= 6 ? 'pie' : 'bar',
-        recommendation: matches.length <= 6 ? 'Pie/Doughnut Chart recommended for key metric breakdown.' : 'Bar Chart recommended for metric comparisons.',
+        primaryType: 'bar',
+        recommendation: 'Bar Chart recommended to compare extracted values.',
         isDraft: true,
-        chartData: {
-          labels,
-          datasets: [{
-            label: 'Extracted Value',
-            data,
-            backgroundColor: this.colorPalettes.map(c => c.bg),
-            borderColor: this.colorPalettes.map(c => c.border),
-            borderWidth: 2,
-            tension: 0.3
-          }]
-        }
+        chartData: this.buildEChartsOption('bar', labels, data, 'Extracted Value', this.colorPalettes[0])
       });
     }
 
     return drafts;
   }
 
-  /**
-   * Fallback draft summarizing document structure stats
-   */
-  createFallbackMetricDraft(fileData) {
-    const rawLen = fileData.rawText ? fileData.rawText.length : 0;
-    const wordCount = fileData.rawText ? fileData.rawText.split(/\s+/).filter(Boolean).length : 0;
-    const linesCount = fileData.rawText ? fileData.rawText.split('\n').filter(Boolean).length : 0;
-
-    return {
-      id: `draft_metric_${Date.now()}`,
-      title: `Document Content Metrics — ${fileData.name}`,
-      source: 'Document Structural Properties',
-      primaryType: 'bar',
-      recommendation: 'Baseline Bar chart summarizing document content volume and density.',
-      isDraft: true,
-      chartData: {
-        labels: ['Word Count (/10)', 'Character Length (/100)', 'Text Lines', 'Sections Detected'],
-        datasets: [{
-          label: 'Metric Value',
-          data: [
-            Math.round(wordCount / 10),
-            Math.round(rawLen / 100),
-            linesCount,
-            Math.max(1, Math.round(linesCount / 8))
-          ],
-          backgroundColor: 'rgba(139, 92, 246, 0.45)',
-          borderColor: '#8B5CF6',
-          borderWidth: 2
-        }]
-      }
-    };
-  }
 }
 
 if (typeof window !== 'undefined') {
   window.GraphEngine = GraphEngine;
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = GraphEngine;
 }

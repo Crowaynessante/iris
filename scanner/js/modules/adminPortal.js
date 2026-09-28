@@ -66,17 +66,18 @@ export function initAdminPortal(ctx) {
         return match ? new Date(Number(match[1])).toISOString() : '';
       })();
       const status = record.status || 'Pending Review';
+      const displayStatus = status === 'Approved' ? 'Published' : status;
       const approved = status === 'Approved';
       return `<tr>
         <td><input class="admin-record-checkbox" type="checkbox" data-id="${escape(record.id)}" aria-label="Select record ${escape(record.id)}"></td>
         <td>${escape(record.id)}</td>
         <td>${escape(record.fileName || 'Untitled')}</td>
         <td>${escape((record.fileType || 'UNKNOWN').toUpperCase())}</td>
-        <td><span class="badge">${escape(status)}</span></td>
+        <td><span class="badge">${escape(displayStatus)}</span></td>
         <td>${scannedDate ? escape(new Date(scannedDate).toLocaleString()) : 'N/A'}</td>
         <td><div style="display:flex;align-items:center;gap:.5rem;white-space:nowrap;">
           <button class="archive-load-button btn-table-load-studio" data-id="${escape(record.id)}"><i class="fa-solid fa-palette" aria-hidden="true"></i> Review</button>
-          ${approved ? '<span class="badge" style="font-weight:800;"><i class="fa-solid fa-check" aria-hidden="true"></i> Approved</span>' : `<button class="archive-load-button btn-table-approve" data-id="${escape(record.id)}"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Approve</button>`}
+          ${approved ? '<span class="badge" style="font-weight:800;"><i class="fa-solid fa-check" aria-hidden="true"></i> Published</span>' : `<button class="archive-load-button btn-table-approve" data-id="${escape(record.id)}"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Publish</button>`}
           <button class="archive-delete-button btn-table-delete" data-id="${escape(record.id)}" title="Delete record"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
         </div></td>
       </tr>`;
@@ -120,21 +121,21 @@ export function initAdminPortal(ctx) {
 
   const confirmBulk = async (mode) => {
     if (mode === 'approve') {
-      alert('Bulk approval is disabled so each chart can be reviewed and its warnings acknowledged in Studio.');
+      alert('Bulk publish is disabled so each chart can be reviewed and its warnings acknowledged in Studio.');
       return;
     }
     const ids = [...selectedRecordIds];
     if (!ids.length) return;
     const records = await ctx.dbManager.getAllRecords();
     const selected = records.filter(record => ids.includes(String(record.id)));
-    const verb = mode === 'approve' ? 'approve' : 'delete';
+    const verb = mode === 'approve' ? 'publish' : 'delete';
     const modal = document.createElement('div');
     modal.className = 'modal-overlay active';
     modal.innerHTML = `<div class="modal-card" style="max-width:620px;">
       <div class="modal-header"><h3 class="modal-title">Confirm bulk ${verb}</h3><button type="button" class="export-cancel-button" data-close>Cancel</button></div>
-      <p>${mode === 'approve' ? 'Approve' : 'Permanently delete'} <strong>${selected.length}</strong> selected upload${selected.length === 1 ? '' : 's'}${mode === 'approve' ? '?' : ' and their published Observatory charts?'}</p>
+      <p>${mode === 'approve' ? 'Publish' : 'Permanently delete'} <strong>${selected.length}</strong> selected upload${selected.length === 1 ? '' : 's'}${mode === 'approve' ? '?' : ' and their published Observatory charts?'}</p>
       <ul style="max-height:260px;overflow:auto;">${selected.map(r => `<li>${escape(r.fileName || 'Untitled')} <small>(${escape(r.id)})</small></li>`).join('')}</ul>
-      <div style="display:flex;justify-content:flex-end;gap:.75rem;margin-top:1rem;"><button type="button" class="${mode === 'approve' ? 'btn-approve-modal' : 'archive-delete-button'}" data-confirm>${mode === 'approve' ? '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Approve records' : '<i class="fa-solid fa-trash" aria-hidden="true"></i> Delete records'}</button></div>
+      <div style="display:flex;justify-content:flex-end;gap:.75rem;margin-top:1rem;"><button type="button" class="${mode === 'approve' ? 'btn-approve-modal' : 'archive-delete-button'}" data-confirm>${mode === 'approve' ? '<i class="fa-solid fa-circle-check" aria-hidden="true"></i> Publish records' : '<i class="fa-solid fa-trash" aria-hidden="true"></i> Delete records'}</button></div>
     </div>`;
     document.body.appendChild(modal);
     const close = () => modal.remove();
@@ -147,10 +148,10 @@ export function initAdminPortal(ctx) {
         close();
         selectedRecordIds.clear();
         await ctx.api.renderAdminPortal();
-        showToast(`${result.successCount} of ${ids.length} records ${mode === 'approve' ? 'approved' : 'deleted'} successfully.`);
+        showToast(`${result.successCount} of ${ids.length} records ${mode === 'approve' ? 'published' : 'deleted'} successfully.`);
       } catch (error) {
         action.disabled = false;
-        alert(`${mode === 'approve' ? 'Approval' : 'Delete'} failed: ${error.message}`);
+        alert(`${mode === 'approve' ? 'Publish' : 'Delete'} failed: ${error.message}`);
       }
     };
   };
