@@ -1,0 +1,10 @@
+IRIS Scanner -> Observatory Dashboard Improvements
+
+1. Duplicate published graphs are now merged on the public dashboard when they have the same title, chart type/orientation, rank settings, labels, and values. The newest copy is displayed and the card/count indicates merged duplicates.
+2. Published chart axes are now protected against stale/manual axis limits that would clip actual data. Axis bounds expand to contain the published values.
+3. Rank-semantic charts use a proper inverted rank axis and dynamically sized maximum so values such as 900.5 are not clipped by an old 200 maximum.
+4. Horizontal rank charts now also invert the value axis correctly.
+5. Published line charts include points and a subtle area fill for readability.
+6. Published cards show data-point count and duplicate-scan information when applicable.
+7. Added a refresh button and cache-busting request so newly approved scanner graphs can be reflected without a full page reload.
+8. Existing user dashboard design and legacy Observatory charts are preserved.
