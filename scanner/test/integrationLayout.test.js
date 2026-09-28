@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+const html = fs.readFileSync(path.join(__dirname, '..', 'index.php'), 'utf8');
 const styles = fs.readFileSync(path.join(__dirname, '..', 'css', 'styles.css'), 'utf8');
 
 test('review flow removes the admin destination and fake auth affordances', () => {

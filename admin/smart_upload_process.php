@@ -1,1 +1,35 @@
-<?php require_once __DIR__.'/../includes/functions.php';require_once __DIR__.'/../includes/extractors.php';require_once __DIR__.'/../includes/ai_extract.php';require_admin();verify_csrf();$f=$_FILES['upload_file']??null;if(!$f||$f['error']!==UPLOAD_ERR_OK)flash_redirect('admin/smart_upload.php','error','Please choose a file.');$ext=strtolower(pathinfo($f['name'],PATHINFO_EXTENSION));$allowed=['csv','xlsx','xls','docx','pdf','jpg','jpeg','png'];if(!in_array($ext,$allowed,true))flash_redirect('admin/smart_upload.php','error','Unsupported file type.');try{$result=null;if($ext==='csv'){$result=smart_map_csv($f['tmp_name']);if($result===null)$result=ai_extract([['type'=>'text','text'=>'Document content:\n\n'.csv_text($f['tmp_name'])]]);}else{if(!getenv('CLAUDE_API_KEY'))throw new RuntimeException('AI extraction is not configured. Set CLAUDE_API_KEY.');if(in_array($ext,['docx'],true))$blocks=[['type'=>'text','text'=>'Document content:\n\n'.docx_text($f['tmp_name'])]];elseif(in_array($ext,['pdf'],true))$blocks=[['type'=>'document','source'=>['type'=>'base64','media_type'=>'application/pdf','data'=>base64_encode(file_get_contents($f['tmp_name']))]]];else{$mime=$ext==='png'?'image/png':'image/jpeg';$blocks=[['type'=>'image','source'=>['type'=>'base64','media_type'=>$mime,'data'=>base64_encode(file_get_contents($f['tmp_name']))]]];}$result=ai_extract($blocks);}$_SESSION['pending_extraction']=$result;$_SESSION['pending_extraction_filename']=basename($f['name']);$_SESSION['pending_extraction_file_type']=$ext;redirect_to('admin/review_extraction.php');}catch(Throwable $e){flash_redirect('admin/smart_upload.php','error',$e->getMessage());}
+<?php
+require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/../includes/extractors.php';
+
+require_admin();
+verify_csrf();
+
+$f = $_FILES['upload_file'] ?? null;
+if (!$f || $f['error'] !== UPLOAD_ERR_OK) {
+    flash_redirect('admin/smart_upload.php', 'error', 'Please choose a file.');
+}
+
+$ext = strtolower(pathinfo($f['name'], PATHINFO_EXTENSION));
+$allowed = ['csv', 'xlsx', 'xls', 'docx', 'pdf', 'jpg', 'jpeg', 'png'];
+if (!in_array($ext, $allowed, true)) {
+    flash_redirect('admin/smart_upload.php', 'error', 'Unsupported file type.');
+}
+
+try {
+    if ($ext === 'csv') {
+        $result = smart_map_csv($f['tmp_name']);
+        if ($result === null) {
+            flash_redirect('admin/smart_upload.php', 'error', 'CSV header requirements not met. Expected headers for Rankings (ranking_body_short_name, year, global_rank, ph_rank), Colleges (name, short_code, contribution_percent, year), or Programs (name, college_short_code, national_rank, score).');
+        }
+        $_SESSION['pending_extraction'] = $result;
+        $_SESSION['pending_extraction_filename'] = basename($f['name']);
+        $_SESSION['pending_extraction_file_type'] = $ext;
+        redirect_to('admin/review_extraction.php');
+    } else {
+        flash_redirect('admin/smart_upload.php', 'error', 'Direct document ingestion supports CSV files using rule-based header mapping. For PDF, DOCX, Excel, and image files, please use the IRIS Scanner.');
+    }
+} catch (Throwable $e) {
+    flash_redirect('admin/smart_upload.php', 'error', $e->getMessage());
+}
+

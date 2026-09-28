@@ -11,7 +11,7 @@ import { initStudioWorkbench } from './modules/studioWorkbench.js';
 import { initStudioActions } from './modules/studioActions.js';
 import { initDocumentViewer } from './modules/documentViewer.js';
 import { initTableGrid } from './modules/tableGrid.js';
-import { initRecordEditModal } from './modules/recordEditModal.js';
+
 import { initNavigationTabs } from './modules/navigationTabs.js';
 
 // Chart behavior moved to chartEngine.js; these markers preserve the existing structural test contract.
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initTableGrid(ctx);
   initStudioWorkbench(ctx);
   initStudioActions(ctx);
-  initRecordEditModal(ctx);
+
   initAdminPortal(ctx);
   initNavigationTabs(ctx);
   initFileIngestion(ctx);
@@ -41,51 +41,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   ctx.api.setActiveScan = async scan => {
     ctx.state.activeScan = scan;
     ctx.api.renderQueue();
-    await ctx.api.renderOverviewTab(scan);
-    ctx.api.renderViewerTab(scan);
-    await ctx.api.renderGraphsTab(scan);
+    if (scan) {
+      const workspace = document.getElementById('workspaceGrid');
+      const inlineDropzone = document.getElementById('inlineUploadDropzone');
+      if (workspace) workspace.style.display = 'grid';
+      if (inlineDropzone) inlineDropzone.style.display = 'none';
+      await ctx.api.renderOverviewTab(scan);
+      ctx.api.renderViewerTab(scan);
+      await ctx.api.renderGraphsTab(scan);
+    }
   };
 
   ctx.api.renderQueue();
   window.IRISApp = ctx;
 
-  const workspace = document.getElementById('workspaceGrid');
-  try {
-    if (window.SampleGenerator) {
-      const demoFile = window.SampleGenerator.createSampleExcelFile();
-      const demoScan = await scanner.scanFile(demoFile, () => {});
-      ctx.state.queue = [demoScan];
-      if (workspace) workspace.style.display = 'grid';
-      await ctx.api.setActiveScan(demoScan);
-      return;
-    }
-  } catch (error) {
-    console.warn('Unable to load the default sample dataset:', error);
-  }
-
-  // Reopen the latest server-backed scan so navigation does not reset the workspace.
-  try {
-    const records = await ctx.dbManager.getAllRecords();
-    const latest = records
-      .filter(record => record && (record.fileType || record.fileName))
-      .sort((left, right) => new Date(right.scannedAt || 0) - new Date(left.scannedAt || 0))[0];
-    if (latest) {
-      const restoredScan = {
-        ...latest,
-        source: 'restored',
-        name: latest.fileName,
-        type: latest.fileType,
-        size: latest.fileSize,
-        sheetsData: latest.extractedData || {},
-        graphDrafts: latest.graphDrafts || [],
-        scannedAt: latest.scannedAt,
-        status: latest.status || 'Pending Review'
-      };
-      ctx.state.queue = [restoredScan];
-      if (workspace) workspace.style.display = 'grid';
-      await ctx.api.setActiveScan(restoredScan);
-    }
-  } catch (error) {
-    console.warn('Unable to restore the latest scanner record:', error);
+  if (document.getElementById('savedDashboardGraphsContainer')) {
+    await ctx.api.renderSavedGraphsTab?.();
   }
 });

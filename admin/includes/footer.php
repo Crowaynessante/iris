@@ -1,0 +1,90 @@
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-6 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 dark:text-gray-400 gap-4">
+            <div class="flex items-center space-x-2">
+                <span class="font-bold text-gray-800 dark:text-gray-200">IRIS Admin</span>
+                <span>&bull; IAO'S INTERNATIONAL RAPPORT INSIGHT SYSTEM</span>
+            </div>
+            <div>
+                Powered by Flowbite &amp; Tailwind CSS
+            </div>
+        </div>
+    </footer>
+
+    <!-- Theme Toggle & Script Setup -->
+    <script>
+        (function () {
+            const loader = document.getElementById('page-loader');
+            const hideLoader = () => { if (loader) loader.classList.add('hidden'); };
+            setTimeout(hideLoader, 90);
+            window.addEventListener('load', hideLoader);
+
+            document.querySelectorAll('.logo-refresh-trigger').forEach((link) => {
+                link.addEventListener('click', function (event) {
+                    const target = this.getAttribute('data-target') || this.href;
+                    event.preventDefault();
+                    loader && loader.classList.remove('hidden');
+                    const currentUrl = window.location.href.split('#')[0];
+                    if (target && target.split('#')[0] === currentUrl.split('#')[0]) {
+                        window.location.reload();
+                        return;
+                    }
+                    window.location.href = target;
+                });
+            });
+
+            window.addEventListener('beforeunload', (event) => {
+                if (window.IRIS_STUDIO_DIRTY) {
+                    event.preventDefault();
+                    event.returnValue = 'You have unsaved changes in the Review Editor. Are you sure you want to leave?';
+                    return event.returnValue;
+                }
+            });
+
+            window.addEventListener('resize', () => {
+                if (window.IRISApp?.state?.studioChartInstance) {
+                    try { window.IRISApp.state.studioChartInstance.resize(); } catch (e) {}
+                }
+            });
+        })();
+
+        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+        const themeToggleBtn = document.getElementById('theme-toggle');
+
+        if (document.documentElement.classList.contains('dark')) {
+            themeToggleLightIcon.classList.remove('hidden');
+        } else {
+            themeToggleDarkIcon.classList.remove('hidden');
+        }
+
+        themeToggleBtn.addEventListener('click', function() {
+            themeToggleDarkIcon.classList.toggle('hidden');
+            themeToggleLightIcon.classList.toggle('hidden');
+
+            const isDarkNow = document.documentElement.classList.contains('dark');
+            const nextMode = isDarkNow ? 'light' : 'dark';
+
+            document.documentElement.classList.toggle('dark', nextMode === 'dark');
+            localStorage.setItem('color-theme', nextMode);
+            localStorage.setItem('iris-theme', nextMode);
+        });
+    </script>
+
+    <script src="<?= e(base_url('scanner/js/parsers/excelParser.js')) ?>"></script>
+    <script src="<?= e(base_url('scanner/js/ai/graphEngine.js')) ?>"></script>
+    <script src="<?= e(base_url('scanner/js/database/dbManager.js')) ?>"></script>
+    <script src="<?= e(base_url('scanner/js/samples.js')) ?>"></script>
+    <script src="<?= e(base_url('scanner/js/scanner.js')) ?>"></script>
+    <script src="<?= e(base_url('scanner/js/tableFilter.js')) ?>"></script>
+    <script src="<?= e(base_url('scanner/js/chartData.js')) ?>"></script>
+    <script src="<?= e(base_url('scanner/js/chartMapping.js')) ?>"></script>
+    <script src="<?= e(base_url('scanner/js/sourceIngestion.js')) ?>"></script>
+    <script src="<?= e(base_url('scanner/js/documentPagination.js')) ?>"></script>
+    <script src="<?= e(base_url('scanner/js/graphExport.js')) ?>"></script>
+    <script type="module" src="<?= e(base_url('scanner/js/app.js')) ?>"></script>
+</body>
+</html>

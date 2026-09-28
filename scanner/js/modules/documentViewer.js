@@ -4,7 +4,14 @@ export function initDocumentViewer(ctx) {
   const copy = text => { const paired = window.SourceIngestion?.pairSelectedText(text, ctx.state.studioActiveRecord?.rawText || '') || text; navigator.clipboard?.writeText(paired).catch(() => {}); const status = $('docWindowCopyStatus'); if (status) { status.textContent = `<i class="fa-solid fa-check" aria-hidden="true"></i> Copied: "${paired.length > 25 ? `${paired.slice(0, 25)}...` : paired}"`; setTimeout(() => { status.textContent = ''; }, 2000); } };
   const zoom = () => { const label = $('acrobatZoomValue'); if (label) label.textContent = `${ctx.state.acrobatZoomLevel}%`; const stack = $('acrobatPagesStack'); if (stack) stack.style.transform = `scale(${ctx.state.acrobatZoomLevel / 100})`; };
   const page = number => { ctx.state.acrobatCurrentPage = Math.max(1, Math.min(number, ctx.state.acrobatTotalPages)); const input = $('acrobatCurrentPageInput'); if (input) input.value = ctx.state.acrobatCurrentPage; if (ctx.state.docWindowViewerInstance?.goToPage) return ctx.state.docWindowViewerInstance.goToPage(ctx.state.acrobatCurrentPage); [...ctx.state.docWindowDocxPages, ...ctx.state.docWindowFallbackPages].forEach((item, index) => { item.style.display = index + 1 === ctx.state.acrobatCurrentPage ? '' : 'none'; }); };
-  const wireToolbar = () => { $('btnAcrobatPrevPage').onclick = () => page(ctx.state.acrobatCurrentPage - 1); $('btnAcrobatNextPage').onclick = () => page(ctx.state.acrobatCurrentPage + 1); $('acrobatCurrentPageInput').onchange = event => { const value = Number(event.target.value); if (value >= 1 && value <= ctx.state.acrobatTotalPages) page(value); else event.target.value = ctx.state.acrobatCurrentPage; }; $('btnAcrobatZoomIn').onclick = () => { ctx.state.acrobatZoomLevel = Math.min(150, ctx.state.acrobatZoomLevel + 15); zoom(); }; $('btnAcrobatZoomOut').onclick = () => { ctx.state.acrobatZoomLevel = Math.max(70, ctx.state.acrobatZoomLevel - 15); zoom(); }; $('btnAcrobatFitWidth').onclick = () => { ctx.state.acrobatZoomLevel = 100; zoom(); }; };
+  const wireToolbar = () => {
+    const btnPrev = $('btnAcrobatPrevPage'); if (btnPrev) btnPrev.onclick = () => page(ctx.state.acrobatCurrentPage - 1);
+    const btnNext = $('btnAcrobatNextPage'); if (btnNext) btnNext.onclick = () => page(ctx.state.acrobatCurrentPage + 1);
+    const inputPage = $('acrobatCurrentPageInput'); if (inputPage) inputPage.onchange = event => { const value = Number(event.target.value); if (value >= 1 && value <= ctx.state.acrobatTotalPages) page(value); else event.target.value = ctx.state.acrobatCurrentPage; };
+    const btnZoomIn = $('btnAcrobatZoomIn'); if (btnZoomIn) btnZoomIn.onclick = () => { ctx.state.acrobatZoomLevel = Math.min(150, ctx.state.acrobatZoomLevel + 15); zoom(); };
+    const btnZoomOut = $('btnAcrobatZoomOut'); if (btnZoomOut) btnZoomOut.onclick = () => { ctx.state.acrobatZoomLevel = Math.max(70, ctx.state.acrobatZoomLevel - 15); zoom(); };
+    const btnFit = $('btnAcrobatFitWidth'); if (btnFit) btnFit.onclick = () => { ctx.state.acrobatZoomLevel = 100; zoom(); };
+  };
   const renderBody = record => {
     const area = $('studioDocContentArea'); if (!area) return;
     if (ctx.state.docWindowActiveView === 'sheet' && record.extractedData?.[ctx.state.docWindowActiveSheetKey]) {
@@ -15,10 +22,71 @@ export function initDocumentViewer(ctx) {
       area.querySelectorAll('.mini-sheet-cell').forEach(cell => cell.onclick = () => copy(cell.dataset.val)); return;
     }
     area.classList.remove('sheet-mode');
-    if ((record.fileType === 'pdf' || record.type === 'pdf') && (record.pdfBuffer || record.pdfDocReference || record.previewUrl) && typeof window.PdfViewerComponent !== 'undefined') { const viewer = new window.PdfViewerComponent(area, { showToolbar: false, scrollMode: 'single', onTextSelect: copy, onPageChange: (current, total) => { ctx.state.acrobatCurrentPage = current; ctx.state.acrobatTotalPages = total; $('acrobatCurrentPageInput').value = current; $('acrobatCurrentPageInput').max = total; $('acrobatTotalPagesSpan').textContent = total; } }); ctx.state.docWindowViewerInstance = viewer; viewer.loadDocument(record.pdfBuffer || record.pdfDocReference || record.previewUrl, record.fileName || 'document.pdf'); return; }
+    if ((record.fileType === 'pdf' || record.type === 'pdf') && (record.pdfBuffer || record.pdfDocReference || record.previewUrl) && typeof window.PdfViewerComponent !== 'undefined') {
+      const viewer = new window.PdfViewerComponent(area, {
+        showToolbar: false,
+        scrollMode: 'single',
+        onTextSelect: copy,
+        onPageChange: (current, total) => {
+          ctx.state.acrobatCurrentPage = current;
+          ctx.state.acrobatTotalPages = total;
+          const pageInput = $('acrobatCurrentPageInput');
+          if (pageInput) { pageInput.value = current; pageInput.max = total; }
+          const totalSpan = $('acrobatTotalPagesSpan');
+          if (totalSpan) totalSpan.textContent = total;
+        }
+      });
+      ctx.state.docWindowViewerInstance = viewer;
+      viewer.loadDocument(record.pdfBuffer || record.pdfDocReference || record.previewUrl, record.fileName || 'document.pdf');
+      return;
+    }
     if ((record.fileType === 'docx' || record.type === 'docx') && record.docxBuffer && typeof window.DocxViewerComponent !== 'undefined') { const viewer = new window.DocxViewerComponent(area, { showToolbar: false, onReady: () => { ctx.state.docWindowDocxPages = [...area.querySelectorAll('section.docx')]; ctx.state.acrobatTotalPages = Math.max(1, ctx.state.docWindowDocxPages.length); ctx.state.acrobatCurrentPage = 1; page(1); } }); ctx.state.docWindowViewerInstance = viewer; viewer.loadDocument(record.docxBuffer, record.fileName || 'document.docx'); return; }
     if (record.formattedHtml) { area.innerHTML = `<div class="docx-reader-container">${record.formattedHtml}</div>`; area.onmouseup = () => { const selected = window.getSelection()?.toString().trim(); if (selected) copy(selected); }; return; }
-    const raw = record.rawText || ''; const pages = window.DocumentPagination.paginateText(raw); ctx.state.acrobatTotalPages = pages.length; ctx.state.acrobatCurrentPage = 1; $('acrobatTotalPagesSpan').textContent = pages.length; $('acrobatCurrentPageInput').value = 1; $('acrobatCurrentPageInput').max = pages.length; area.innerHTML = `<div class="acrobat-pages-container" id="acrobatPagesStack">${pages.map((paragraphs, index) => `<div class="acrobat-page-card" data-page="${index + 1}" style="display:${index ? 'none' : 'block'}">${paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}<div class="acrobat-page-number-tag">Page ${index + 1} of ${pages.length}</div></div>`).join('')}</div>`; ctx.state.docWindowFallbackPages = [...area.querySelectorAll('.acrobat-page-card')]; area.onmouseup = () => { const selected = window.getSelection()?.toString().trim(); if (selected) copy(selected); }; zoom();
+    const raw = record.rawText || ''; const pages = window.DocumentPagination.paginateText(raw); ctx.state.acrobatTotalPages = pages.length; ctx.state.acrobatCurrentPage = 1;
+    const totalSpan = $('acrobatTotalPagesSpan'); if (totalSpan) totalSpan.textContent = pages.length;
+    const pageInput = $('acrobatCurrentPageInput'); if (pageInput) { pageInput.value = 1; pageInput.max = pages.length; }
+    area.innerHTML = `<div class="acrobat-pages-container" id="acrobatPagesStack">${pages.map((paragraphs, index) => `<div class="acrobat-page-card" data-page="${index + 1}" style="display:${index ? 'none' : 'block'}">${paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')}<div class="acrobat-page-number-tag">Page ${index + 1} of ${pages.length}</div></div>`).join('')}</div>`; ctx.state.docWindowFallbackPages = [...area.querySelectorAll('.acrobat-page-card')]; area.onmouseup = () => { const selected = window.getSelection()?.toString().trim(); if (selected) copy(selected); }; zoom();
   };
-  ctx.api.renderDocumentWindow = record => { if (!record) return; ctx.state.docWindowViewerInstance = null; ctx.state.docWindowDocxPages = []; ctx.state.docWindowFallbackPages = []; $('docWindowTitle').textContent = record.fileName || 'document'; const type = `${record.fileType || ''} ${record.fileName || ''}`.toLowerCase(); const badge = $('acrobatDocBadge'); if (badge) { badge.textContent = type.includes('xls') ? 'XLSX' : type.includes('pdf') ? 'PDF' : type.includes('doc') ? 'DOCX' : type.includes('img') ? 'IMG' : 'DOC'; } const sheets = Object.keys(record.extractedData || {}).filter(key => Array.isArray(record.extractedData[key]?.headers) && Array.isArray(record.extractedData[key]?.rows)); const selector = $('studioDocSheetSelectorContainer'); const select = $('studioDocSheetSelect'); ctx.state.docWindowActiveView = sheets.length ? 'sheet' : 'text'; if (sheets.length) { ctx.state.docWindowActiveSheetKey = sheets.includes(ctx.state.docWindowActiveSheetKey) ? ctx.state.docWindowActiveSheetKey : sheets[0]; selector.style.display = 'flex'; select.innerHTML = sheets.map(key => `<option value="${escapeHtml(key)}" ${key === ctx.state.docWindowActiveSheetKey ? 'selected' : ''}>${escapeHtml(key)}</option>`).join(''); select.onchange = event => { ctx.state.docWindowActiveSheetKey = event.target.value; renderBody(record); const sheet = ctx.api.getStudioActiveSheet(record)?.data; if (sheet) { ctx.api.updateFieldSelectOptions(sheet); ctx.api.renderStudioTableGrid(record); ctx.api.updateStudioChart(record); } }; } else { selector.style.display = 'none'; } $('acrobatPageNavControls').style.display = sheets.length ? 'none' : 'flex'; $('acrobatZoomControlsGroup').style.display = sheets.length ? 'none' : 'flex'; wireToolbar(); renderBody(record); };
+  ctx.api.renderDocumentWindow = record => {
+    if (!record) return;
+    ctx.state.docWindowViewerInstance = null;
+    ctx.state.docWindowDocxPages = [];
+    ctx.state.docWindowFallbackPages = [];
+    const titleEl = $('docWindowTitle');
+    if (titleEl) titleEl.textContent = record.fileName || 'document';
+    const type = `${record.fileType || ''} ${record.fileName || ''}`.toLowerCase();
+    const badge = $('acrobatDocBadge');
+    if (badge) {
+      badge.textContent = type.includes('xls') ? 'XLSX' : type.includes('pdf') ? 'PDF' : type.includes('doc') ? 'DOCX' : type.includes('img') ? 'IMG' : 'DOC';
+    }
+    const sheets = Object.keys(record.extractedData || {}).filter(key => Array.isArray(record.extractedData[key]?.headers) && Array.isArray(record.extractedData[key]?.rows));
+    const selector = $('studioDocSheetSelectorContainer');
+    const select = $('studioDocSheetSelect');
+    ctx.state.docWindowActiveView = sheets.length ? 'sheet' : 'text';
+    if (sheets.length) {
+      ctx.state.docWindowActiveSheetKey = sheets.includes(ctx.state.docWindowActiveSheetKey) ? ctx.state.docWindowActiveSheetKey : sheets[0];
+      if (selector) selector.style.display = 'flex';
+      if (select) {
+        select.innerHTML = sheets.map(key => `<option value="${escapeHtml(key)}" ${key === ctx.state.docWindowActiveSheetKey ? 'selected' : ''}>${escapeHtml(key)}</option>`).join('');
+        select.onchange = event => {
+          ctx.state.docWindowActiveSheetKey = event.target.value;
+          renderBody(record);
+          const sheet = ctx.api.getStudioActiveSheet(record)?.data;
+          if (sheet) {
+            ctx.api.updateFieldSelectOptions(sheet);
+            ctx.api.renderStudioTableGrid(record);
+            ctx.api.updateStudioChart(record);
+          }
+        };
+      }
+    } else {
+      if (selector) selector.style.display = 'none';
+    }
+    const navControls = $('acrobatPageNavControls');
+    if (navControls) navControls.style.display = sheets.length ? 'none' : 'flex';
+    const zoomControls = $('acrobatZoomControlsGroup');
+    if (zoomControls) zoomControls.style.display = sheets.length ? 'none' : 'flex';
+    wireToolbar();
+    renderBody(record);
+  };
 }

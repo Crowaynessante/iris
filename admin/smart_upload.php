@@ -1,12 +1,15 @@
-<?php require_once __DIR__.'/../includes/functions.php'; require_admin();$msg=flash('error');$key=!empty(getenv('CLAUDE_API_KEY'));
-$checks=['api_key'=>['ok'=>$key,'label'=>$key?'CLAUDE_API_KEY is set — Word, PDF, Excel, and image uploads can reach the AI.':'CLAUDE_API_KEY is not set for this PHP process — Word/PDF/Excel/image uploads will fail until it is.'],'curl'=>['ok'=>function_exists('curl_init'),'label'=>function_exists('curl_init')?'PHP cURL extension enabled.':'PHP cURL extension is missing — the AI service cannot be reached without it.'],'zip'=>['ok'=>class_exists('ZipArchive'),'label'=>class_exists('ZipArchive')?'ZipArchive available (needed to open .docx/.xlsx files).':'PHP zip extension is missing — Word (.docx) and Excel (.xlsx) files cannot be opened.'],'fileinfo'=>['ok'=>function_exists('finfo_open'),'label'=>function_exists('finfo_open')?'fileinfo extension enabled.':'PHP fileinfo extension is missing — file type detection may be less reliable.']];$allOk=$key&&$checks['curl']['ok']&&$checks['zip']['ok']; ?>
+<?php
+require_once __DIR__ . '/../includes/functions.php';
+require_admin();
+$msg = flash('error');
+?>
 
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart AI Document Ingestion - IRIS Admin</title>
+    <title>Rule-Based Document Ingestion - IRIS Admin</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -49,15 +52,15 @@ $checks=['api_key'=>['ok'=>$key,'label'=>$key?'CLAUDE_API_KEY is set — Word, P
             <div class="flex justify-between h-16">
                 <!-- Brand / Logo -->
                 <div class="flex items-center space-x-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-emerald-500/20">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black text-xl shadow-md">
                         <img src="<?= e(base_url('images/iris-logo.png')) ?>" alt="IRIS Logo" class="w-10 h-10 object-contain">
                     </div>
                     <div>
                         <div class="flex items-center space-x-2">
-                            <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent">Smart Extraction</span>
-                            <span class="text-xs px-2 py-0.5 font-bold rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">AI ASSISTED</span>
+                            <span class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Rule-Based Document Ingestion</span>
+                            <span class="text-xs px-2 py-0.5 font-bold rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300">CSV MAPPER</span>
                         </div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Multi-Format Document Ingestion &amp; Verification</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">CSV Header Mapping &amp; Verification</p>
                     </div>
                 </div>
 
@@ -73,11 +76,11 @@ $checks=['api_key'=>['ok'=>$key,'label'=>$key?'CLAUDE_API_KEY is set — Word, P
     <!-- Main Container -->
     <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
         
-        <?php if ($msg || ''): ?>
+        <?php if ($msg): ?>
             <div id="alert-error" class="flex items-center p-4 mb-4 text-red-800 rounded-xl bg-red-50 dark:bg-gray-800 dark:text-red-400 border border-red-200 dark:border-red-800" role="alert">
                 <i class="fa-solid fa-circle-exclamation text-lg mr-3"></i>
                 <div class="text-sm font-medium">
-                    <?= htmlspecialchars($msg ?: '') ?>
+                    <?= htmlspecialchars($msg) ?>
                 </div>
             </div>
         <?php endif; ?>
@@ -86,30 +89,21 @@ $checks=['api_key'=>['ok'=>$key,'label'=>$key?'CLAUDE_API_KEY is set — Word, P
         <div class="bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-6">
             <div>
                 <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-                    <i class="fa-solid fa-cloud-arrow-up text-emerald-500 mr-2.5"></i>
-                    Upload Supporting Academic Document
+                    <i class="fa-solid fa-cloud-arrow-up text-emerald-600 mr-2.5"></i>
+                    Upload CSV Document
                 </h2>
                 <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
-                    Upload ranking certificates, PDFs, Excel sheets, Word dossiers, or photos. IRIS extracts tables and structures data for your interactive verification before saving to the database.
+                    Upload CSV data files for rule-based header mapping. For PDF, DOCX, Excel, and image intake, use the browser-side IRIS Scanner tool.
                 </p>
             </div>
 
-            <!-- Supported Format Badges -->
+            <!-- Format Badges -->
             <div class="flex flex-wrap gap-2">
                 <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                    <i class="fa-solid fa-file-pdf mr-1.5 text-red-500"></i> PDF Documents
+                    <i class="fa-solid fa-file-csv mr-1.5 text-emerald-600"></i> Structured CSV Files
                 </span>
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                    <i class="fa-solid fa-file-excel mr-1.5 text-green-600"></i> Excel (.xlsx, .xls)
-                </span>
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                    <i class="fa-solid fa-file-word mr-1.5 text-blue-500"></i> Word (.docx)
-                </span>
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                    <i class="fa-solid fa-file-image mr-1.5 text-purple-500"></i> Images (PNG, JPG)
-                </span>
-                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                    <i class="fa-solid fa-file-csv mr-1.5 text-amber-500"></i> Raw CSV
+                <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300 border border-gray-200 dark:border-gray-600">
+                    <i class="fa-solid fa-qrcode mr-1.5 text-blue-500"></i> PDF/DOCX/OCR Intake -> IRIS Scanner
                 </span>
             </div>
 
@@ -127,50 +121,24 @@ $checks=['api_key'=>['ok'=>$key,'label'=>$key?'CLAUDE_API_KEY is set — Word, P
                                 <span class="text-emerald-600 dark:text-emerald-400">Click to upload</span> or drag and drop
                             </p>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
-                                PDF, XLSX, DOCX, CSV, PNG, or JPG (MAX. 20MB)
+                                CSV files with standard headers (MAX. 20MB)
                             </p>
                             <div id="dropZoneFilename" class="mt-3 text-xs font-bold px-3 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/80 dark:text-emerald-200 rounded-full hidden"></div>
                         </div>
-                        <input id="upload_file" name="upload_file" type="file" class="hidden" accept=".csv,.xlsx,.xls,.docx,.pdf,.jpg,.jpeg,.png" required />
+                        <input id="upload_file" name="upload_file" type="file" class="hidden" accept=".csv" required />
                     </label>
                 </div>
 
-                <button type="submit" id="submitBtn" class="w-full inline-flex items-center justify-center px-5 py-3 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 focus:ring-4 focus:ring-emerald-300 dark:focus:ring-emerald-800 rounded-xl shadow-lg transition-all">
-                    <i class="fa-solid fa-wand-magic-sparkles mr-2"></i> Upload &amp; Extract Data with AI
+                <button type="submit" id="submitBtn" class="w-full inline-flex items-center justify-center px-5 py-3 text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-500 focus:ring-4 focus:ring-emerald-300 dark:focus:ring-emerald-800 rounded-xl shadow-md transition-all">
+                    <i class="fa-solid fa-file-import mr-2"></i> Upload &amp; Map CSV Data
                 </button>
             </form>
 
             <div class="p-4 bg-emerald-50/50 dark:bg-gray-750 rounded-xl border border-emerald-100 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-300 flex items-start space-x-3">
                 <i class="fa-solid fa-shield-halved text-emerald-600 dark:text-emerald-400 text-base mt-0.5"></i>
                 <div>
-                    <span class="font-bold text-gray-900 dark:text-white">Verification Guarantee:</span> No database writes occur automatically. After extraction, you will be shown an interactive staging table where you can inspect, edit, or deselect individual rows prior to publishing.
+                    <span class="font-bold text-gray-900 dark:text-white">Verification Guarantee:</span> No database writes occur automatically. After rule-based mapping, you will be shown an interactive staging table where you can inspect, edit, or deselect individual rows prior to publishing.
                 </div>
-            </div>
-        </div>
-
-        <!-- Server Pipeline Capabilities & Prerequisites Component -->
-        <div class="bg-white dark:bg-gray-800 p-6 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-4">
-            <div class="pb-3 border-b border-gray-100 dark:border-gray-700">
-                <h2 class="text-base font-bold text-gray-900 dark:text-white flex items-center">
-                    <i class="fa-solid fa-server text-teal-500 mr-2"></i> Server Pipeline Capabilities
-                </h2>
-                <p class="text-xs text-gray-500 dark:text-gray-400">Installed system utilities for parsing complex documents</p>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <?php foreach ($checks as $check): ?>
-                    <div class="p-3.5 rounded-xl border <?= $check['ok'] ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/40 dark:bg-emerald-950/20' : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-750' ?> flex items-center space-x-3">
-                        <div class="w-8 h-8 rounded-lg <?= $check['ok'] ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400' : 'bg-gray-200 text-gray-500 dark:bg-gray-700 dark:text-gray-400' ?> flex items-center justify-center text-sm font-bold">
-                            <i class="fa-solid <?= $check['ok'] ? 'fa-check' : 'fa-info' ?>"></i>
-                        </div>
-                        <div>
-                            <div class="text-xs font-bold text-gray-900 dark:text-white"><?= htmlspecialchars($check['label']) ?></div>
-                            <div class="text-[11px] text-gray-500 dark:text-gray-400">
-                                <?= $check['ok'] ? 'Operational & Ready' : 'Optional configuration' ?>
-                            </div>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
             </div>
         </div>
 
@@ -208,3 +176,4 @@ $checks=['api_key'=>['ok'=>$key,'label'=>$key?'CLAUDE_API_KEY is set — Word, P
     </script>
 </body>
 </html>
+

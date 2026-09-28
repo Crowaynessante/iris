@@ -287,18 +287,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        const usernameInput = document.getElementById('username');
+        // ── Privacy-notice persistence ──────────────────────────────────
+        // The acceptance flag is stored in localStorage so it survives
+        // redirects (failed logins) and page reloads without re-showing
+        // the modal or re-disabling the submit button.
+        const PRIVACY_KEY = 'iris_privacy_accepted';
+
+        const usernameInput  = document.getElementById('username');
+        const privacyModal   = document.getElementById('privacyModal');
+        const acceptPrivacy  = document.getElementById('acceptPrivacy');
+        const declinePrivacy = document.getElementById('declinePrivacy');
+        const closePrivacyModalBtn = document.getElementById('closePrivacyModal');
+        const privacyConsentCheckbox = document.getElementById('privacyConsentCheckbox');
+        const loginForm   = document.getElementById('loginForm');
+        const submitButton = loginForm?.querySelector('button[type="submit"]');
+
+        // Clear placeholder "admin" if accidentally filled in.
         if (usernameInput && usernameInput.value.trim().toLowerCase() === 'admin') {
             usernameInput.value = '';
         }
 
-        const privacyModal = document.getElementById('privacyModal');
-        const acceptPrivacy = document.getElementById('acceptPrivacy');
-        const declinePrivacy = document.getElementById('declinePrivacy');
-        const closePrivacyModalBtn = document.getElementById('closePrivacyModal');
-        const privacyConsentCheckbox = document.getElementById('privacyConsentCheckbox');
-        const loginForm = document.getElementById('loginForm');
-        const submitButton = loginForm?.querySelector('button[type="submit"]');
+        // ── helpers ─────────────────────────────────────────────────────
+        const hasAccepted = () => localStorage.getItem(PRIVACY_KEY) === '1';
 
         const updatePrivacyConsentState = () => {
             const isChecked = privacyConsentCheckbox?.checked;
@@ -310,7 +320,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const openPrivacyModal = () => {
             privacyModal.classList.remove('hidden');
             privacyModal.classList.add('flex');
-            setTimeout(() => updatePrivacyConsentState(), 0);
+            updatePrivacyConsentState();
         };
 
         const closePrivacyModalFn = () => {
@@ -325,15 +335,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             submitButton.classList.toggle('cursor-not-allowed', blocked);
         };
 
-        setLoginBlocked(true);
-        openPrivacyModal();
+        // ── Initialise based on persisted state ─────────────────────────
+        if (hasAccepted()) {
+            // User already agreed — button active, modal stays hidden.
+            setLoginBlocked(false);
+        } else {
+            // First visit — block the button and show the notice.
+            setLoginBlocked(true);
+            openPrivacyModal();
+        }
 
+        // ── Privacy-modal event handlers ────────────────────────────────
         privacyConsentCheckbox?.addEventListener('change', updatePrivacyConsentState);
 
         acceptPrivacy.addEventListener('click', () => {
-            if (!privacyConsentCheckbox?.checked) {
-                return;
-            }
+            if (!privacyConsentCheckbox?.checked) return;
+            localStorage.setItem(PRIVACY_KEY, '1');
             setLoginBlocked(false);
             closePrivacyModalFn();
         });
@@ -346,18 +363,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
 
         closePrivacyModalBtn.addEventListener('click', () => {
-            setLoginBlocked(true);
+            // Closing without accepting keeps the user blocked only if
+            // they have never accepted before.
+            if (!hasAccepted()) setLoginBlocked(true);
             closePrivacyModalFn();
             usernameInput?.focus();
         });
 
+        // ── Form submission ─────────────────────────────────────────────
+        // Show per-field validation messages; prevent double-submit.
         loginForm.addEventListener('submit', (event) => {
-            if (submitButton && submitButton.disabled) {
+            const login = (document.getElementById('username')?.value ?? '').trim();
+            const pw    = document.getElementById('password')?.value ?? '';
+
+            if (!hasAccepted()) {
                 event.preventDefault();
                 openPrivacyModal();
+                return;
+            }
+
+            if (!login) {
+                event.preventDefault();
+                document.getElementById('username')?.focus();
+                return;
+            }
+
+            if (!pw) {
+                event.preventDefault();
+                document.getElementById('password')?.focus();
+                return;
+            }
+
+            // Prevent double-submit while the POST is in flight.
+            if (submitButton && !submitButton.disabled) {
+                submitButton.disabled = true;
+                submitButton.classList.add('opacity-60', 'cursor-not-allowed');
+                submitButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Signing in…';
             }
         });
 
+        // ── Theme toggle ────────────────────────────────────────────────
         const themeToggle = document.getElementById('themeToggle');
         themeToggle.addEventListener('click', () => {
             const isDark = !document.documentElement.classList.contains('dark');
@@ -367,7 +412,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             localStorage.setItem('iris-theme', mode);
         });
 
-        const toggleBtn = document.getElementById('togglePassword');
+        // ── Password show/hide (login page only) ────────────────────────
+        const toggleBtn    = document.getElementById('togglePassword');
         const passwordInput = document.getElementById('password');
         toggleBtn.addEventListener('click', () => {
             const isPassword = passwordInput.type === 'password';
@@ -376,4 +422,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         });
     </script>
 </body>
-</html>
+</html>

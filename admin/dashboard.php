@@ -1,839 +1,136 @@
-<?php require_once __DIR__.'/../includes/functions.php'; require_admin();
-$pdo=db();$logs=$pdo->query('SELECT * FROM uploads_log ORDER BY uploaded_at DESC LIMIT 10')->fetchAll();$errorsFirst=''; ?>
+<?php
+$activeNav = 'ingestion';
+$pageTitle = 'File Ingestion & Overview - IRIS Admin';
+require_once __DIR__.'/includes/header.php';
+?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IAO Admin Control Panel - IRIS</title>
-    <script>
-        (function () {
-            try {
-                const saved = localStorage.getItem('color-theme') || localStorage.getItem('iris-theme');
-                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-                const isDark = saved ? saved === 'dark' : prefersDark;
-                document.documentElement.classList.toggle('dark', isDark);
-            } catch (e) {}
-        })();
-    </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: {
-                            50: '#ecfdf5',
-                            100: '#d1fae5',
-                            500: '#10b981',
-                            600: '#059669',
-                            700: '#047857',
-                            800: '#065f46',
-                            900: '#064e3b',
-                            gold: '#f59e0b'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.css" rel="stylesheet" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/flowbite/2.3.0/flowbite.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docx-preview@latest/dist/docx-preview.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/docx-preview@latest/dist/docx-preview.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="<?= e(base_url('scanner/css/styles.css')) ?>">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Inter', sans-serif; }
-        .admin-scanner-shell { width: 100%; }
-        .admin-scanner-shell .app-container { max-width: 1600px !important; margin: 0 auto; }
-        .admin-view-panel[hidden] { display: none !important; }
-        .admin-view-switcher { display: inline-flex; align-items: center; gap: .35rem; padding: .25rem; border: 1px solid #334155; background: #1e293b; border-radius: .8rem; }
-        .admin-view-switcher button { border: 0; border-radius: .55rem; padding: .55rem .75rem; color: #cbd5e1; background: transparent; font-size: .76rem; font-weight: 800; cursor: pointer; transition: .2s; }
-        .admin-view-switcher button:hover, .admin-view-switcher button.is-active { color: #fff; background: #059669; }
-        .admin-observatory-frame { display: block; width: 100%; min-height: 1450px; border: 0; background: #f9fafb; }
-        html.dark .studio-shell, html.dark .studio-data-manager, html.dark .studio-panel, html.dark .studio-chart-panel, html.dark .studio-graph-controls, html.dark .table-container, html.dark .data-table, html.dark .studio-data-manager .form-input, html.dark .studio-data-manager textarea, html.dark .studio-data-manager select { color: #f8fafc !important; }
-        html.dark .studio-data-manager .form-input, html.dark .studio-data-manager textarea, html.dark .studio-data-manager select, html.dark .header-rename-input, html.dark .studio-cell-input { background: #273449 !important; border-color: #475569 !important; color: #f8fafc !important; }
-        html.dark .form-input::placeholder, html.dark textarea::placeholder { color: #94a3b8 !important; }
-        html.dark #studioFieldMappingRow { background: rgba(59, 130, 246, 0.1) !important; border-color: rgba(147, 197, 253, 0.35) !important; }
-        html.dark #studioChartEmptyState { background: rgba(15, 23, 42, 0.88) !important; border-color: #475569 !important; }
-        html.dark #studioChartEmptyState p { color: #cbd5e1 !important; }
-        html.dark .data-table th { background: #172033 !important; color: #f8fafc !important; border-bottom-color: #10b981 !important; }
-        html.dark .data-table td { background: transparent !important; color: #f8fafc !important; border-bottom-color: #334155 !important; }
-        html.dark .data-table tr:hover td { background: rgba(16, 185, 129, 0.06) !important; }
-        html.dark .table-container { background: #1e293b !important; border-color: #334155 !important; }
-        html.dark .studio-data-manager h4, html.dark .studio-data-manager p, html.dark .studio-data-manager label, html.dark .studio-data-manager .form-label { color: #e2e8f0 !important; }
-        html.dark .btn-studio-action { color: #e2e8f0 !important; }
-        html.dark .header-rename-input { color: #34d399 !important; }
-        html.dark .studio-cell-input:focus, html.dark .header-rename-input:focus, html.dark .form-input:focus { border-color: #10b981 !important; box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.15) !important; }
-        html.dark #studioChartTitleInput,
-        html.dark #studioDocSheetSelect,
-        html.dark #studioChartTypeSelect,
-        html.dark #studioFilterField,
-        html.dark #studioFilterOperator,
-        html.dark #studioFilterValue,
-        html.dark #studioFilterUpperValue,
-        html.dark #studioSortOrder,
-        html.dark #studioRowLimit,
-        html.dark #studioCategoryCol,
-        html.dark #studioValueCol,
-        html.dark #studioRecordSelect,
-        html.dark #studioStatusSelect,
-        html.dark #studioNotesInput,
-        html.dark #studioDocTypeInput,
-        html.dark .form-input,
-        html.dark textarea,
-        html.dark select {
-            background: #273449 !important;
-            border-color: #475569 !important;
-            color: #F8FAFC !important;
-        }
-        html.dark #studioChartTitleInput { color: #34D399 !important; }
-        @media(max-width:900px){.admin-view-switcher button{padding:.5rem;font-size:.7rem}.admin-observatory-frame{min-height:1900px}}
-    </style>
-</head>
-<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
-
-    <style>
-        /* Admin navigation: dark by default for the admin portal, light-mode override matches the observatory */
-        .admin-nav{background:linear-gradient(180deg, rgba(15,23,42,.98), rgba(15,23,42,.92))!important;border-bottom:1px solid rgba(148,163,184,.22)!important;box-shadow:0 10px 30px rgba(2,6,23,.24)!important;}
-        .admin-nav-inner{min-height:76px;}
-        .admin-brand-title{color:#f8fafc!important;}
-        .admin-brand-sub{color:#cbd5e1!important;}
-        .admin-nav-link{display:inline-flex;align-items:center;gap:.5rem;padding:.65rem .9rem;border:1px solid rgba(148,163,184,.25);background:rgba(15,23,42,.52);color:#e2e8f0;border-radius:.7rem;font-size:.78rem;font-weight:700;transition:.2s;}
-        .admin-nav-link:hover{background:rgba(16,185,129,.12);color:#ecfdf5;border-color:rgba(52,211,153,.45);}
-        .admin-nav-link.scanner{background:linear-gradient(135deg,#059669,#10b981);border-color:rgba(52,211,153,.7);color:#fff;box-shadow:0 4px 14px rgba(16,185,129,.18);}
-        .admin-nav-link.scanner:hover{background:linear-gradient(135deg,#10b981,#34d399);}
-        .admin-theme-btn{color:#e2e8f0!important;background:rgba(30,41,59,.9)!important;border:1px solid rgba(148,163,184,.25)!important;}
-        .admin-theme-btn:hover{color:#f8fafc!important;background:rgba(51,65,85,.9)!important;}
-        .admin-profile-btn{background:rgba(30,41,59,.9)!important;border:1px solid rgba(148,163,184,.25)!important;color:#f8fafc!important;}
-        .admin-profile-btn:hover{background:rgba(51,65,85,.9)!important;}
-        .admin-dropdown{background:#111827!important;border:1px solid rgba(148,163,184,.22)!important;color:#e2e8f0!important;box-shadow:0 12px 30px rgba(2,6,23,.35)!important;}
-        .admin-dropdown .dropdown-name{color:#f8fafc!important;}
-        .admin-dropdown ul{margin:0;padding:.25rem 0!important;}
-        .admin-dropdown li{display:flex!important;align-items:center!important;}
-        .admin-dropdown a,
-        .admin-dropdown .signout{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:.6rem!important;width:100%!important;text-align:left!important;line-height:1.2!important;white-space:nowrap!important;}
-        .admin-dropdown a{color:#dbeafe!important;padding:.7rem 1rem!important;}
-        .admin-dropdown a:hover{background:rgba(16,185,129,.12)!important;color:#ecfdf5!important;}
-        .admin-dropdown .signout{padding:.75rem 1rem!important;color:#fca5a5!important;border-radius:.75rem!important;transition:background .2s ease,color .2s ease;}
-        .admin-dropdown .signout:hover{background:rgba(239,68,68,.12)!important;color:#fee2e2!important;}
-        html:not(.dark) .admin-nav{background:rgba(255,255,255,.94)!important;border-bottom:1px solid #e5e7eb!important;box-shadow:0 8px 24px rgba(15,23,42,.06)!important;}
-        html:not(.dark) .admin-brand-title{color:#0f172a!important;}
-        html:not(.dark) .admin-brand-sub{color:#475569!important;}
-        html:not(.dark) .admin-nav-link{background:#f8fafc!important;color:#334155!important;border:1px solid #e2e8f0!important;}
-        html:not(.dark) .admin-nav-link:hover{background:#ecfdf5!important;color:#065f46!important;border-color:#a7f3d0!important;}
-        html:not(.dark) .admin-nav-link.scanner{background:linear-gradient(135deg,#059669,#10b981)!important;border-color:#10b981!important;color:#fff!important;box-shadow:0 4px 14px rgba(16,185,129,.18)!important;}
-        html:not(.dark) .admin-theme-btn{color:#374151!important;background:#f3f4f6!important;border:1px solid #d1d5db!important;}
-        html:not(.dark) .admin-theme-btn:hover{color:#111827!important;background:#e5e7eb!important;}
-        html:not(.dark) .admin-profile-btn{background:#f3f4f6!important;border:1px solid #d1d5db!important;color:#111827!important;}
-        html:not(.dark) .admin-profile-btn:hover{background:#e5e7eb!important;}
-        html:not(.dark) .admin-dropdown{background:#ffffff!important;border:1px solid #e2e8f0!important;color:#1f2937!important;box-shadow:0 12px 30px rgba(15,23,42,.08)!important;}
-        html:not(.dark) .admin-dropdown .dropdown-name{color:#111827!important;}
-        html:not(.dark) .admin-dropdown a{color:#334155!important;}
-        html:not(.dark) .admin-dropdown a:hover{background:#f0fdf4!important;color:#065f46!important;}
-        html:not(.dark) .admin-dropdown .signout{color:#b91c1c!important;}
-        html:not(.dark) .admin-dropdown .signout:hover{background:#fef2f2!important;color:#991b1b!important;}
-        #page-loader{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.68);backdrop-filter:blur(6px);z-index:10000;transition:opacity .3s ease,visibility .3s ease;}
-        #page-loader.hidden{opacity:0;visibility:hidden;pointer-events:none;}
-        .iris-loader{position:relative;width:72px;height:72px;border-radius:50%;background:conic-gradient(#10b981,#34d399,#fbbf24,#10b981);animation:spin 1s linear infinite;box-shadow:0 0 30px rgba(16,185,129,.5)}
-        .iris-loader::before{content:"";position:absolute;inset:10px;border-radius:50%;background:rgba(15,23,42,.9);border:2px solid rgba(255,255,255,.18)}
-        .iris-loader::after{content:"IRIS";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;letter-spacing:.12em;color:#d1fae5}
-        @keyframes spin{to{transform:rotate(360deg)}}
-        @media(max-width:900px){.admin-nav-actions .public-link{display:none!important}.admin-brand-sub{display:none!important}}
-    </style>
-
-    <div id="page-loader" aria-live="polite" aria-label="Loading page">
-        <div class="iris-loader" aria-hidden="true"></div>
+<section id="scannerWorkspaceView" class="admin-view-panel mx-auto w-full max-w-5xl px-4 py-8 flex flex-col items-center">
+    <div class="clsu-section-title text-center justify-center mb-6">
+        <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> University-Wide Overview & Ingestion
     </div>
 
-    <!-- Navigation Bar -->
-    <nav class="admin-nav sticky top-0 z-50 backdrop-blur-md bg-opacity-95">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="admin-nav-inner flex items-center justify-between gap-4">
-                <a href="<?= e(base_url('admin/dashboard.php')) ?>" class="logo-refresh-trigger flex items-center gap-3 min-w-0" data-target="<?= e(base_url('admin/dashboard.php')) ?>">
-                    <div class="w-52 h-11 flex items-center justify-center overflow-hidden shrink-0 rounded-lg bg-transparent">
-                        <img src="<?= e(base_url('images/iris-panel-logo.svg')) ?>" alt="IRIS SielMetrics+ Logo" class="h-10 w-full object-contain object-left drop-shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-                    </div>
-                    <div class="min-w-0 hidden sm:block">
-                        <div class="flex items-center gap-2">
-                            <span class="admin-brand-title text-xl font-extrabold tracking-tight">IRIS Admin</span>
-                            <span class="text-[10px] px-2 py-1 font-extrabold rounded-full bg-amber-400 text-slate-900 border border-amber-300">IRIS FILE INGESTION</span>
-                        </div>
-                        <p class="admin-brand-sub text-[11px] font-semibold uppercase tracking-wider">International Affairs Office Control Panel</p>
-                    </div>
-                </a>
-
-                <div class="admin-nav-actions flex items-center gap-2">
-                    <a href="<?= e(base_url('user/dashboard.php')) ?>" class="admin-nav-link public-link" aria-label="Open Observatory" title="Open Observatory">
-                        <i class="fa-solid fa-chart-pie" aria-hidden="true"></i><span>Observatory</span>
-                    </a>
-                    <button id="theme-toggle" type="button" class="admin-theme-btn rounded-lg text-sm p-2.5" aria-label="Toggle theme">
-                        <i id="theme-toggle-dark-icon" class="hidden fa-solid fa-moon text-base"></i>
-                        <i id="theme-toggle-light-icon" class="hidden fa-solid fa-sun text-base text-amber-400"></i>
-                    </button>
-                    <div class="relative">
-                        <button type="button" class="admin-profile-btn flex items-center gap-2 p-1.5 rounded-full focus:ring-2 focus:ring-emerald-500" id="user-menu-button" aria-expanded="false" data-dropdown-toggle="user-dropdown" data-dropdown-placement="bottom">
-                            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-emerald-500 to-amber-400 flex items-center justify-center text-white font-bold text-xs shadow">
-                                <?= strtoupper(substr(($_SESSION['username'] ?? 'A'), 0, 2)) ?>
-                            </div>
-                            <span class="hidden sm:inline-block font-semibold text-xs px-1"><?= htmlspecialchars(($_SESSION['username'] ?? 'A')) ?></span>
-                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 mr-1"></i>
-                        </button>
-                        <div class="admin-dropdown z-50 hidden my-3 w-56 text-base list-none rounded-xl shadow-2xl" id="user-dropdown">
-                            <div class="px-4 py-3 border-b border-slate-700">
-                                <span class="dropdown-name block text-sm font-bold"><?= htmlspecialchars(($_SESSION['username'] ?? 'A')) ?></span>
-                                <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-slate-900 mt-1">ADMINISTRATOR</span>
-                            </div>
-                            <ul class="py-2" aria-labelledby="user-menu-button">
-                                <li><a href="<?= e(base_url('user/dashboard.php')) ?>" class="block px-4 py-2 text-sm"><i class="fa-solid fa-globe mr-2"></i> Observatory View</a></li>
-                            </ul>
-                            <div class="py-1 border-t border-slate-700">
-                                <form method="POST" action="<?= e(base_url('auth/logout.php')) ?>" class="w-full">
-                                    <?= csrf_field() ?>
-                                    <button type="submit" class="signout w-full px-4 py-2 text-sm whitespace-nowrap">
-                                        <i class="fa-solid fa-right-from-bracket flex-shrink-0"></i>
-                                        <span class="whitespace-nowrap">Sign Out</span>
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div id="inlineUploadDropzone" class="dropzone-container upload-dropzone mx-auto w-full max-w-4xl text-center bg-white dark:bg-slate-800 border-2 border-dashed border-emerald-600 dark:border-emerald-500/60 rounded-2xl p-6 sm:p-10 shadow-lg dark:shadow-2xl">
+        <div class="dropzone-icon mb-4 flex justify-center">
+            <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="text-emerald-600 dark:text-emerald-400">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
         </div>
-    </nav>
 
-    <!-- Content Area -->
-    <main class="admin-scanner-shell flex-1 w-full py-8">
-        <div class="app-container">
-            <button id="uploadWidgetTrigger" class="floating-upload-trigger" type="button" aria-label="Open institutional upload window">
-                <span class="floating-upload-icon"><i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i></span>
+        <h2 class="dropzone-title text-xl sm:text-2xl font-extrabold mb-2 text-slate-900 dark:text-white">Upload Spreadsheets, PDFs, or Word Documents</h2>
+        <p class="dropzone-subtitle text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-xl mx-auto mb-5">Multi-sheet parsing, institutional text extraction, and draft visualization suggestions for university performance metrics</p>
+
+        <div class="format-badges flex flex-wrap gap-2 justify-center mb-5">
+            <span class="format-chip excel"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Spreadsheets (XLSX, XLS, CSV)</span>
+            <span class="format-chip pdf"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> PDF Documents (Reports & Infographs)</span>
+            <span class="format-chip docx"><i class="fa-solid fa-file-pen" aria-hidden="true"></i> Word (DOCX Status Links)</span>
+        </div>
+
+        <div class="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-5">
+            Files must be under 100 MB
+        </div>
+
+        <div class="mb-6">
+            <button id="btnInlineBrowse" class="btn-icon mx-auto px-8 py-3 text-sm font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-md transition-all" type="button">
+                <span><i class="fa-solid fa-folder" aria-hidden="true"></i></span> Browse Institutional Files
             </button>
-
-            <div id="uploadWidgetModal" class="upload-widget-modal" aria-hidden="true">
-                <div class="upload-widget-panel">
-                    <div class="upload-widget-header">
-                        <div>
-                            <div class="upload-widget-kicker">File Intake</div>
-                            <div class="upload-widget-title">Institutional Document Upload</div>
-                        </div>
-                        <button id="closeUploadWidget" class="upload-widget-close" type="button" aria-label="Close upload window">
-                            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-                        </button>
-                    </div>
-
-                    <div id="dropzone" class="dropzone-container upload-dropzone">
-                        <div class="dropzone-icon">
-                            <svg width="32" height="32" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                            </svg>
-                        </div>
-
-                        <h1 class="dropzone-title">Upload Spreadsheets, PDFs, or Word Documents</h1>
-                        <p class="dropzone-subtitle">Multi-sheet parsing, institutional text extraction, and draft visualization suggestions for university performance metrics</p>
-
-                        <div class="format-badges">
-                            <span class="format-chip excel"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Spreadsheets (XLSX, XLS, CSV)</span>
-                            <span class="format-chip pdf"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> PDF Documents (Reports & Infographs)</span>
-                            <span class="format-chip docx"><i class="fa-solid fa-file-pen" aria-hidden="true"></i> Word (DOCX Status Links)</span>
-                        </div>
-
-                        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv,.docx,.doc,.pdf" style="display: none;">
-
-                        <div style="margin: 0.5rem auto 1.25rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;">
-                            Files must be under 15 MB
-                        </div>
-
-                        <div style="margin-bottom: 1.5rem;">
-                            <button id="btnBrowse" class="btn-icon" style="padding: 0.75rem 2rem; font-size: 0.95rem; margin: 0 auto;">
-                                <span><i class="fa-solid fa-folder" aria-hidden="true"></i></span> Browse Institutional Files
-                            </button>
-                        </div>
-
-                        <div class="samples-container">
-                            <span class="samples-label">Test 1-Click Samples:</span>
-                            <button class="sample-btn" data-sample="payroll">
-                                <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> QAO Evaluation Scores (.xlsx)
-                            </button>
-                            <button class="sample-btn" data-sample="pdf">
-                                <span><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span> OAD Infograph Stats (.pdf)
-                            </button>
-                            <button class="sample-btn" data-sample="contract">
-                                <span><i class="fa-solid fa-file-pen" aria-hidden="true"></i></span> Program Accreditation (.docx)
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <section id="scannerWorkspaceView" class="admin-view-panel">
-                <div class="clsu-section-title">
-                    <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> University-Wide Overview & Ingestion
-                </div>
-
-                <div id="progressCard" class="progress-card">
-                    <div class="progress-header">
-                        <span id="progressStatus">Initializing scanner...</span>
-                        <span id="progressPercent">0%</span>
-                    </div>
-                    <div class="progress-track">
-                        <div id="progressFill" class="progress-fill"></div>
-                    </div>
-                </div>
-
-                <div id="workspaceGrid" class="workspace-grid" style="display: none;">
-                    <aside class="queue-sidebar">
-                        <div class="sidebar-title">
-                            <span>Ingestion Queue (<span id="queueCount">0</span>)</span>
-                            <button id="btnClearQueue" style="background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.75rem; font-weight: 700;">Clear All</button>
-                        </div>
-                        <div id="queueList" class="queue-list"></div>
-                    </aside>
-
-                    <section class="content-workspace">
-                        <div class="workspace-tabs">
-                            <button class="tab-btn active" data-tab="tabOverview">
-                                <span><i class="fa-solid fa-clipboard" aria-hidden="true"></i></span> Extracted Fields & Overview
-                            </button>
-                            <button class="tab-btn" data-tab="tabViewer">
-                                <span><i class="fa-solid fa-eye" aria-hidden="true"></i></span> Document & Data Viewer
-                            </button>
-                            <button class="tab-btn" data-tab="tabGraphs">
-                                <span><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span> Draft Visualizations (<span id="draftsCountBadge">0</span>)
-                            </button>
-                        </div>
-
-                        <div id="tabOverview" class="tab-panel active">
-                            <div class="metrics-row">
-                                <div class="summary-card">
-                                    <div class="summary-title">
-                                        <span id="summaryDocTitle">Extracted Document Analysis</span>
-                                        <span id="docFormatBadge" class="format-chip excel">Format</span>
-                                    </div>
-                                    <p id="executiveSummaryText" class="summary-text">Select or scan a file to inspect extracted fields.</p>
-
-                                    <h4 style="font-size: 0.88rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.75rem; color: var(--clsu-green);">Extracted Data Fields & Key Metrics</h4>
-                                    <div id="extractedFieldsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;"></div>
-
-                                    <h4 style="font-size: 0.88rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem; color: var(--clsu-green);">Identified Structure Highlights</h4>
-                                    <ul id="takeawayList" class="takeaway-list"></ul>
-                                </div>
-                            </div>
-
-                            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; padding-top: 1rem; border-top: 1px solid var(--border-light); justify-content: space-between; align-items: center;">
-                                <div style="font-size: 0.82rem; color: var(--text-muted);">
-                                    Status: <span class="badge badge-low" style="display: inline-block;">Draft (Pending Admin Review)</span>
-                                </div>
-                                <div style="display: flex; gap: 0.75rem;">
-                                    <button id="btnOpenInEditor" class="btn-icon">
-                                        <span><i class="fa-solid fa-pen" aria-hidden="true"></i></span> Open review editor
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div id="tabViewer" class="tab-panel">
-                            <div id="viewerControls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                                <span id="viewerFileMeta" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">File Details</span>
-                                <div id="sheetSelectorContainer" style="display: none;">
-                                    <label style="font-size: 0.82rem; margin-right: 0.5rem; color: var(--clsu-green); font-weight: 700;">Worksheet:</label>
-                                    <select id="sheetSelect" class="form-input" style="width: auto; padding: 0.35rem 0.75rem; display: inline-block;"></select>
-                                </div>
-                            </div>
-
-                            <div id="viewerContentArea" style="min-height: 450px;"></div>
-                        </div>
-
-                        <div id="tabGraphs" class="tab-panel">
-                            <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
-                                <div>
-                                    <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--clsu-green);">Draft Visualization Suggestions</h3>
-                                    <p style="font-size: 0.85rem; color: var(--text-muted);">Institutional chart drafts (Bar, Line, Pie) pending Admin review & approval.</p>
-                                </div>
-                                <span class="badge badge-low">Draft Only — Not Auto-Published</span>
-                            </div>
-
-                            <div id="graphDraftsContainer"></div>
-                        </div>
-                    </section>
-                </div>
-            </section>
-
-            <section id="adminDatabaseView" style="display: none;">
-                <div class="clsu-section-title">
-                    <span><i class="fa-solid fa-database" aria-hidden="true"></i></span> Review archive & record history
-                </div>
-
-                <div class="workspace-tabs" style="margin-bottom: 1.25rem;">
-                    <button class="admin-tab-btn active" data-admin-tab="adminRecordsPanel">
-                        <span><i class="fa-solid fa-clipboard" aria-hidden="true"></i></span> Records & Dashboard Studio
-                    </button>
-                    <button class="admin-tab-btn" data-admin-tab="adminSavedGraphsPanel">
-                        <span><i class="fa-solid fa-folder-tree" aria-hidden="true"></i></span> Saved Dashboard Graphs
-                    </button>
-                </div>
-
-                <div id="adminSavedGraphsPanel" class="admin-tab-panel" style="display: none;">
-                    <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                        <div>
-                            <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--clsu-green);">Saved Dashboard Graphs</h3>
-                            <p style="font-size: 0.85rem; color: var(--text-muted);">Approved and saved chart versions grouped per file record.</p>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
-                            <button id="savedGraphsViewAllBtn" type="button" class="saved-graphs-bulk-button">View All</button>
-                            <label style="font-size: 0.78rem; font-weight: 800; color: #334155; text-transform: uppercase;">File:</label>
-                            <select id="savedGraphsRecordSelect" class="form-input" style="width: auto; min-width: 220px;">
-                                <option value="">Loading files...</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div id="savedGraphsBulkToolbar" style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding: 0.75rem 1rem; background: var(--bg-highlight); border: 1px solid var(--border-light); border-radius: var(--radius-sm);">
-                        <label style="display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 700; font-size: 0.82rem; color: var(--text-main);">
-                            <input id="savedGraphsSelectAll" type="checkbox"> Select All
-                        </label>
-                        <span id="savedGraphsSelectionCount" style="font-size: 0.8rem; color: var(--text-muted);">0 selected</span>
-                        <button id="savedGraphsPrintAll" type="button" class="saved-graphs-bulk-button" disabled>Print All</button>
-                        <button id="savedGraphsExportSelected" type="button" class="saved-graphs-bulk-button" disabled>Export</button>
-                        <button id="savedGraphsDeleteSelected" type="button" class="archive-delete-button" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete</button>
-                    </div>
-
-                    <div id="savedDashboardGraphsContainer"></div>
-                </div>
-
-                <div id="adminRecordsPanel" class="admin-tab-panel active">
-                    <div style="background: var(--bg-card); border: 1px solid var(--border-light); border-left: 5px solid var(--clsu-green); border-radius: var(--radius-lg); padding: 1.5rem 2rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; box-shadow: var(--card-shadow);">
-                        <div>
-                            <h2 style="font-size: 1.4rem; font-weight: 800; color: var(--clsu-green);">Review record editor</h2>
-                            <p style="font-size: 0.88rem; color: var(--text-muted);">Review extracted fields, edit tabular cells, update draft status, and approve visualizations for the CLSU Observatory.</p>
-                        </div>
-                    </div>
-
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                        <div style="background: var(--bg-card); border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
-                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">TOTAL SCANNED FILES</div>
-                            <div id="statTotalDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-green);">0</div>
-                        </div>
-                        <div style="background: var(--bg-card); border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
-                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">PENDING DRAFTS</div>
-                            <div id="statPendingDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-gold-dark);">0</div>
-                        </div>
-                        <div style="background: var(--bg-card); border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
-                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">APPROVED FOR DASHBOARD</div>
-                            <div id="statVerifiedDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-green-light);">0</div>
-                        </div>
-                        <div style="background: var(--bg-card); border: 1px solid var(--border-light); padding: 1.1rem 1.25rem; border-radius: var(--radius-md); box-shadow: var(--card-shadow);">
-                            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">EXTRACTED TABLES</div>
-                            <div id="statTablesDb" style="font-size: 1.6rem; font-weight: 800; font-family: var(--font-mono); color: var(--clsu-green);">0</div>
-                        </div>
-                    </div>
-
-                    <div class="studio-container" id="studioContainer" style="margin-bottom: 2rem;">
-                        <div class="studio-header-card">
-                            <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; justify-content: space-between; width: 100%;">
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <span style="font-size: 1.4rem;"><i class="fa-solid fa-palette" aria-hidden="true"></i></span>
-                                    <div>
-                                        <div style="font-size: 0.75rem; font-weight: 800; color: var(--clsu-green); text-transform: uppercase; letter-spacing: 0.05em;">ACTIVE DASHBOARD STUDIO WORKBENCH</div>
-                                        <div style="font-size: 1.2rem; font-weight: 800; color: #0F172A;" id="studioActiveFileName">Loading Scanned Dataset...</div>
-                                    </div>
-                                </div>
-
-                                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <label style="font-size: 0.82rem; font-weight: 800; color: #334155; text-transform: uppercase;">Switch Dataset:</label>
-                                    <select id="studioRecordSelect" class="form-input" style="width: auto; min-width: 250px; font-weight: 700; color: #0F172A;"></select>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="studio-grid">
-                            <div class="studio-left-card">
-                                <div class="studio-card-title" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-                                    <span><i class="fa-solid fa-window-maximize" aria-hidden="true"></i> Scanned Source Document Window</span>
-                                    <span class="badge badge-low" style="font-size: 0.68rem; background: #ECFDF5; color: #047857;">Live Ingestion View</span>
-                                </div>
-                                <p style="font-size: 0.78rem; color: #64748B; margin-bottom: 0.75rem;">Read the full file directly side-by-side. Click any cell or word to copy value directly into your dashboard fields.</p>
-
-                                <div class="doc-viewer-container">
-                                    <div class="acrobat-toolbar">
-                                        <div class="acrobat-title-group">
-                                            <span class="acrobat-badge-icon" id="acrobatDocBadge">PDF</span>
-                                            <span class="acrobat-filename" id="docWindowTitle">document.docx</span>
-                                        </div>
-
-                                        <div class="acrobat-controls-center" id="acrobatPageNavControls">
-                                            <button type="button" id="btnAcrobatPrevPage" class="acrobat-tool-btn" title="Previous Page">▲</button>
-                                            <input type="number" id="acrobatCurrentPageInput" class="acrobat-page-input" value="1" min="1" max="1" title="Go to Page">
-                                            <span style="font-size: 0.72rem; color: var(--text-dim);">/</span>
-                                            <span id="acrobatTotalPagesSpan" style="font-size: 0.72rem; color: var(--text-main); font-weight: 600;">1</span>
-                                            <button type="button" id="btnAcrobatNextPage" class="acrobat-tool-btn" title="Next Page">▼</button>
-                                        </div>
-
-                                        <div class="acrobat-controls-right">
-                                            <div id="studioDocSheetSelectorContainer" style="display: none; align-items: center; gap: 0.35rem;">
-                                                <span style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">Sheet:</span>
-                                                <select id="studioDocSheetSelect" class="form-input doc-sheet-select" style="background: var(--bg-input) !important; color: var(--text-main) !important; border-color: var(--border-light) !important;"></select>
-                                            </div>
-
-                                            <div id="acrobatZoomControlsGroup" style="display: flex; align-items: center; gap: 0.25rem; background: var(--bg-highlight); padding: 0.15rem 0.4rem; border-radius: 4px; border: 1px solid var(--border-light);">
-                                                <button type="button" id="btnAcrobatZoomOut" class="acrobat-tool-btn" title="Zoom Out">−</button>
-                                                <span id="acrobatZoomValue" class="acrobat-zoom-label">100%</span>
-                                                <button type="button" id="btnAcrobatZoomIn" class="acrobat-tool-btn" title="Zoom In">+</button>
-                                                <button type="button" id="btnAcrobatFitWidth" class="acrobat-tool-btn" title="Fit Width" style="font-size: 0.68rem; margin-left: 2px;">↔</button>
-                                            </div>
-
-                                            <span id="docWindowPageCount" style="display: none;"></span>
-                                            <span id="docWindowWordCount" style="display: none;"></span>
-                                        </div>
-                                    </div>
-
-                                    <div id="studioDocContentArea" class="acrobat-viewer-body">
-                                        <div class="acrobat-page-card">
-                                            <p style="color: #64748B; text-align: center;">Loading document content...</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div style="margin-top: 0.65rem; font-size: 0.74rem; color: #64748B; display: flex; align-items: center; justify-content: space-between;">
-                                    <span><i class="fa-solid fa-lightbulb" aria-hidden="true"></i> <strong>Tip:</strong> Highlight or click any text to copy directly.</span>
-                                    <span id="docWindowCopyStatus" style="color: var(--clsu-green); font-weight: 700;"></span>
-                                </div>
-                            </div>
-
-                            <div class="studio-right-card">
-                                <div class="studio-chart-box">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.85rem; gap: 1rem; flex-wrap: nowrap;">
-                                        <div style="flex: 1 1 auto; min-width: 0;">
-                                            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem; flex-wrap: wrap; min-width: 0;">
-                                                <span style="font-size: 0.82rem; font-weight: 800; color: var(--clsu-green); text-transform: uppercase; white-space: nowrap;">Chart Title:</span>
-                                                <input type="text" id="studioChartTitleInput" class="form-input" value="Observatory Draft" placeholder="Type chart title..." style="padding: 0.3rem 0.65rem; font-size: 0.95rem; font-weight: 800; color: var(--clsu-green); border: 1.5px solid var(--border-light); background: var(--bg-input); flex: 1 1 auto; min-width: 180px;" title="Click to edit the chart title">
-                                            </div>
-                                            <p id="studioChartSubtitleDisplay" style="font-size: 0.78rem; color: var(--text-muted);">Live interactive rendering from data fields below</p>
-                                        </div>
-
-                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-left: auto; flex-shrink: 0;">
-                                            <label style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; white-space: nowrap;">Chart Type:</label>
-                                            <select id="studioChartTypeSelect" class="form-input" style="width: auto; min-width: 150px; padding: 0.35rem 0.75rem; font-size: 0.82rem; font-weight: 700; color: var(--text-main);">
-                                                <option value="bar">Bar Chart</option>
-                                                <option value="line">Line Chart</option>
-                                                <option value="pie">Pie Chart</option>
-                                                <option value="doughnut">Doughnut Chart</option>
-                                                <option value="polarArea">Polar Area</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <div id="studioFieldMappingRow" style="background: rgba(59,130,246,0.08); border: 1px solid rgba(147,197,253,0.45); border-radius: var(--radius-sm); padding: 0.65rem 1rem; margin-bottom: 0.75rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;">
-                                        <span style="font-size: 0.78rem; font-weight: 800; color: var(--text-brand); text-transform: uppercase;"><i class="fa-solid fa-ruler-combined" aria-hidden="true"></i> Field Mapping:</span>
-                                        <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;" id="studioCategoryLabel">Category (X-axis):</label>
-                                            <select id="studioCategoryCol" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Category column"></select>
-                                        </div>
-                                        <div style="display: flex; align-items: center; gap: 0.35rem;">
-                                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); white-space: nowrap;" id="studioValueLabel">Value (Y-axis):</label>
-                                            <select id="studioValueCol" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Value column"></select>
-                                        </div>
-                                        <div id="studioFieldWarning" style="display:none; font-size: 0.75rem; color: #DC2626; font-weight: 700; background: rgba(254,242,242,0.9); border: 1px solid #FECACA; border-radius: 4px; padding: 0.2rem 0.6rem;"></div>
-                                    </div>
-
-                                    <div style="background: var(--bg-highlight); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 0.65rem 1rem; margin-bottom: 0.85rem; display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;">
-                                        <span style="font-size: 0.78rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Filter extracted rows:</span>
-                                        <select id="studioFilterField" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Filter data scope">
-                                            <option value="all">All selected data</option>
-                                            <option value="context">Context / label only</option>
-                                            <option value="value">Metric / value only</option>
-                                        </select>
-                                        <select id="studioFilterOperator" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Filter operator">
-                                            <option value="all">All rows</option>
-                                            <option value="contains">Contains</option>
-                                            <option value="starts-with">Starts with</option>
-                                            <option value="ends-with">Ends with</option>
-                                            <option value="equals">Equals</option>
-                                            <option value="not-equals">Does not equal</option>
-                                            <option value="greater-than">Value greater than</option>
-                                            <option value="less-than">Value less than</option>
-                                            <option value="between">Value between</option>
-                                        </select>
-                                        <input id="studioFilterValue" class="form-input" type="search" placeholder="Broad search across selected data..." style="min-width: 190px; flex: 1; padding: 0.3rem 0.65rem; font-size: 0.78rem;" aria-label="Filter value">
-                                        <input id="studioFilterUpperValue" class="form-input" type="number" placeholder="Maximum" style="display: none; width: 6.5rem; padding: 0.3rem 0.65rem; font-size: 0.78rem;" aria-label="Filter maximum value">
-                                        <select id="studioSortOrder" class="form-input" style="width: auto; padding: 0.3rem 0.55rem; font-size: 0.78rem;" aria-label="Sort chart rows">
-                                            <option value="source">Source order</option>
-                                            <option value="value-asc">Metric: low to high</option>
-                                            <option value="value-desc">Metric: high to low</option>
-                                            <option value="label-asc">Label: A to Z</option>
-                                            <option value="label-desc">Label: Z to A</option>
-                                        </select>
-                                        <button id="studioReverseSortOrder" type="button" class="btn-studio-action" aria-pressed="false" style="padding: 0.3rem 0.55rem; font-size: 0.78rem;">⇄ Reverse order</button>
-                                        <button id="studioReverseValueAxis" type="button" class="btn-studio-action" aria-pressed="false" style="padding: 0.3rem 0.55rem; font-size: 0.78rem;">⇄ Reverse value axis</button>
-                                        <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; white-space: nowrap;">Show <input id="studioRowLimit" class="form-input" type="number" min="1" max="100" value="30" style="width: 4.5rem; display: inline-block; padding: 0.3rem 0.45rem; font-size: 0.78rem;"> rows</label>
-                                        <label style="font-size: 0.78rem; color: var(--text-muted); font-weight: 700; white-space: nowrap;"><input id="studioGroupDuplicates" type="checkbox" checked style="accent-color: var(--clsu-green); margin-right: 0.25rem;"> Group duplicate labels</label>
-                                    </div>
-
-                                    <div style="height: 320px; position: relative; width: 100%; margin-bottom: 0.75rem;">
-                                        <div id="studioChartCanvas" style="height: 100%; width: 100%;"></div>
-                                        <div id="studioChartEmptyState" style="display:none; position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background: rgba(15,23,42,0.08); border-radius:var(--radius-sm); border:2px dashed var(--border-light);">
-                                            <span style="font-size:2rem;"><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span>
-                                            <p id="studioChartEmptyMsg" style="font-size:0.88rem; color: var(--text-muted); font-weight:600; margin-top:0.5rem; text-align:center; max-width:280px;">Select a Category field and a numeric Value field above to render the chart.</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="studio-data-manager">
-                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
-                                        <div>
-                                            <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--text-main);"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Editable Data Grid & Custom Fields</h4>
-                                            <p style="font-size: 0.78rem; color: var(--text-muted);">Edit cell values directly, add new columns/metrics, or paste copied values.</p>
-                                        </div>
-
-                                        <div style="display: flex; gap: 0.5rem;">
-                                            <button id="studioBtnAddField" type="button" class="btn-studio-action" style="background: var(--bg-highlight); border: 1.5px solid rgba(59,130,246,0.5); color: var(--text-main);">
-                                                <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Field / Column
-                                            </button>
-                                            <button id="studioBtnAddRow" type="button" class="btn-studio-action" style="background: rgba(16,185,129,0.12); border: 1.5px solid rgba(16,185,129,0.7); color: var(--text-main);">
-                                                <i class="fa-solid fa-plus" aria-hidden="true"></i> Add Row
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div id="studioTableContainer" class="table-container" style="max-height: 280px; margin-bottom: 1.25rem;"></div>
-
-                                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; background: var(--bg-highlight); padding: 1.25rem; border-radius: var(--radius-md); border: 1px solid var(--border-light);">
-                                        <div>
-                                            <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Classification Category</label>
-                                            <input type="text" id="studioDocTypeInput" class="form-input" style="font-weight: 600; color: var(--text-main);">
-                                        </div>
-                                        <div>
-                                            <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Approval Status</label>
-                                            <select id="studioStatusSelect" class="form-input" style="font-weight: 600; color: var(--text-main);">
-                                                <option value="Pending Review">Pending Review</option>
-                                                <option value="Approved">Approved for Dashboard</option>
-                                                <option value="Needs Revision">Needs Revision</option>
-                                            </select>
-                                        </div>
-                                        <div style="grid-column: 1 / -1;">
-                                            <label class="form-label" style="font-weight: 800; font-size: 0.78rem; color: #334155; text-transform: uppercase; margin-bottom: 0.35rem; display: block;">Admin Verification Notes</label>
-                                            <textarea id="studioNotesInput" class="form-input" rows="2" placeholder="Add verification logs and approval notes..." style="font-weight: 500; color: #0F172A; line-height: 1.5;"></textarea>
-                                        </div>
-                                    </div>
-
-                                    <div style="display: flex; justify-content: flex-end; gap: 0.85rem; padding-top: 1rem; border-top: 1px solid var(--border-light);">
-                                        <button id="studioBtnSave" type="button" class="btn-save-modal">
-                                            <i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save Dashboard Changes
-                                        </button>
-                                        <button id="studioBtnApprove" type="button" class="btn-approve-modal">
-                                            <i class="fa-solid fa-circle-check" aria-hidden="true"></i> Approve for Observatory
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="clsu-section-title" style="margin-top: 2rem;">
-                        <span><i class="fa-solid fa-folder" aria-hidden="true"></i></span> Scanned Records Archive & Ingestion Logs
-                    </div>
-
-                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;">
-                        <input type="text" id="adminSearchInput" class="form-input" placeholder="Search records by filename, category, or values..." style="flex: 1; min-width: 250px;">
-                        <select id="adminStatusFilter" class="form-input" style="width: auto;">
-                            <option value="all">All Statuses</option>
-                            <option value="Pending Review">Pending Review</option>
-                            <option value="Approved">Approved for Dashboard</option>
-                            <option value="Needs Revision">Needs Revision</option>
-                        </select>
-                    </div>
-
-                    <div class="table-container" style="box-shadow: var(--card-shadow);">
-                        <div id="adminBulkActions" class="admin-bulk-actions" hidden>
-                            <span id="adminBulkSelectionCount">0 records selected</span>
-                            <button id="adminBulkApprove" type="button" class="btn-approve-modal" disabled><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Bulk Approve</button>
-                            <button id="adminBulkDelete" type="button" class="archive-delete-button" disabled><i class="fa-solid fa-trash" aria-hidden="true"></i> Bulk Delete</button>
-                            <button id="adminClearSelection" type="button" class="export-cancel-button">Clear selection</button>
-                        </div>
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th><input id="adminSelectAll" type="checkbox" aria-label="Select all visible records"></th>
-                                    <th>Record ID</th>
-                                    <th>File Name</th>
-                                    <th>Format</th>
-                                    <th>Review Status</th>
-                                    <th>Scanned Date</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminRecordsTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </section>
-
-            <section id="observatoryView" class="admin-view-panel" hidden>
-                <iframe
-                    id="adminObservatoryFrame"
-                    class="admin-observatory-frame"
-                    src="<?= e(base_url('user/dashboard.php')) ?>"
-                    title="IRIS Observatory dashboard"
-                    loading="lazy"></iframe>
-            </section>
         </div>
 
-
-    <div id="recordEditModal" class="modal-overlay">
-        <div class="modal-card">
-            <div class="modal-header">
-                <h3 id="recordEditTitle" class="modal-title">Edit Record Data</h3>
-                <button id="btnCloseRecordModal" style="background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;">&times;</button>
+        <div class="samples-container flex items-center justify-center gap-3 pt-5 border-t border-slate-200 dark:border-slate-700/80 w-full overflow-hidden">
+            <span class="samples-label shrink-0 whitespace-nowrap text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Test 1-Click Samples:</span>
+            <div class="flex items-center gap-2 overflow-x-auto py-1 max-w-full no-scrollbar">
+                <button class="sample-btn shrink-0" data-sample="iao" type="button">
+                    <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> IAO Rankings Dataset (.xlsx)
+                </button>
             </div>
-
-            <div id="recordEditBody" style="max-height: 75vh; overflow-y: auto; padding-right: 0.5rem;"></div>
         </div>
     </div>
-    </main>
 
-    <!-- Footer -->
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-6 mt-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 dark:text-gray-400 gap-4">
-            <div class="flex items-center space-x-2">
-                <span class="font-bold text-gray-800 dark:text-gray-200">IRIS Admin</span>
-                <span>&bull; IAO'S INTERNATIONAL RAPPORT INSIGHT SYSTEM</span>
-            </div>
-            <div>
-                Powered by Flowbite &amp; Tailwind CSS
-            </div>
+    <div id="progressCard" class="progress-card w-full max-w-4xl mx-auto mt-6">
+        <div class="progress-header">
+            <span id="progressStatus">Initializing scanner...</span>
+            <span id="progressPercent">0%</span>
         </div>
-    </footer>
+        <div class="progress-track">
+            <div id="progressFill" class="progress-fill"></div>
+        </div>
+    </div>
 
-    <!-- Theme Toggle Script -->
-    <script>
-        (function () {
-            const loader = document.getElementById('page-loader');
-            const hideLoader = () => {
-                if (loader) {
-                    loader.classList.add('hidden');
-                }
-            };
+    <div id="workspaceGrid" class="workspace-grid w-full max-w-5xl mt-6" style="display: none;">
+        <aside class="queue-sidebar">
+            <div class="sidebar-title">
+                <span>Ingestion Queue (<span id="queueCount">0</span>)</span>
+                <button id="btnClearQueue" style="background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.75rem; font-weight: 700;">Clear All</button>
+            </div>
+            <div id="queueList" class="queue-list"></div>
+        </aside>
 
-            document.querySelectorAll('.logo-refresh-trigger').forEach((link) => {
-                link.addEventListener('click', function (event) {
-                    const target = this.getAttribute('data-target') || this.href;
-                    event.preventDefault();
-                    loader && loader.classList.remove('hidden');
-                    const currentUrl = window.location.href.split('#')[0];
-                    if (target && target.split('#')[0] === currentUrl.split('#')[0]) {
-                        window.location.reload();
-                        return;
-                    }
-                    window.location.href = target;
-                });
-            });
+        <section class="content-workspace">
+            <div class="workspace-tabs">
+                <button class="tab-btn active" data-tab="tabOverview">
+                    <span><i class="fa-solid fa-clipboard" aria-hidden="true"></i></span> Extracted Fields & Overview
+                </button>
+                <button class="tab-btn" data-tab="tabViewer">
+                    <span><i class="fa-solid fa-eye" aria-hidden="true"></i></span> Document & Data Viewer
+                </button>
+                <button class="tab-btn" data-tab="tabGraphs">
+                    <span><i class="fa-solid fa-chart-line" aria-hidden="true"></i></span> Draft Visualizations (<span id="draftsCountBadge">0</span>)
+                </button>
+            </div>
 
-            setTimeout(hideLoader, 90);
-            window.addEventListener('load', hideLoader);
-        })();
+            <div id="tabOverview" class="tab-panel active">
+                <div class="metrics-row">
+                    <div class="summary-card">
+                        <div class="summary-title">
+                            <span id="summaryDocTitle">Extracted Document Analysis</span>
+                            <span id="docFormatBadge" class="format-chip excel">Format</span>
+                        </div>
+                        <p id="executiveSummaryText" class="summary-text">Select or scan a file to inspect extracted fields.</p>
 
-        const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
-        const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
-        const themeToggleBtn = document.getElementById('theme-toggle');
+                        <h4 style="font-size: 0.88rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.75rem; color: var(--clsu-green);">Extracted Data Fields & Key Metrics</h4>
+                        <div id="extractedFieldsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem;"></div>
 
-        if (document.documentElement.classList.contains('dark')) {
-            themeToggleLightIcon.classList.remove('hidden');
-        } else {
-            themeToggleDarkIcon.classList.remove('hidden');
-        }
+                        <h4 style="font-size: 0.88rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.5rem; color: var(--clsu-green);">Identified Structure Highlights</h4>
+                        <ul id="takeawayList" class="takeaway-list"></ul>
+                    </div>
+                </div>
 
-        themeToggleBtn.addEventListener('click', function() {
-            themeToggleDarkIcon.classList.toggle('hidden');
-            themeToggleLightIcon.classList.toggle('hidden');
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; padding-top: 1rem; border-top: 1px solid var(--border-light); justify-content: space-between; align-items: center;">
+                    <div style="font-size: 0.82rem; color: var(--text-muted);">
+                        Status: <span class="badge badge-low" style="display: inline-block;">Draft (Pending Admin Review)</span>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <button id="btnOpenInEditor" class="btn-icon">
+                            <span><i class="fa-solid fa-pen" aria-hidden="true"></i></span> Open review editor
+                        </button>
+                    </div>
+                </div>
+            </div>
 
-            const isDarkNow = document.documentElement.classList.contains('dark');
-            const nextMode = isDarkNow ? 'light' : 'dark';
+            <div id="tabViewer" class="tab-panel">
+                <div id="viewerControls" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <span id="viewerFileMeta" style="font-size: 0.85rem; color: var(--text-muted); font-weight: 600;">File Details</span>
+                    <div id="sheetSelectorContainer" style="display: none;">
+                        <label style="font-size: 0.82rem; margin-right: 0.5rem; color: var(--clsu-green); font-weight: 700;">Worksheet:</label>
+                        <select id="sheetSelect" class="form-input" style="width: auto; padding: 0.35rem 0.75rem; display: inline-block;"></select>
+                    </div>
+                </div>
 
-            document.documentElement.classList.toggle('dark', nextMode === 'dark');
-            localStorage.setItem('color-theme', nextMode);
-            localStorage.setItem('iris-theme', nextMode);
-        });
+                <div id="viewerContentArea" style="min-height: 450px;"></div>
+            </div>
 
-        (function () {
-            const tabs = document.querySelectorAll('.admin-view-tab');
-            const panels = document.querySelectorAll('.admin-view-panel');
-            const observatoryFrame = document.getElementById('adminObservatoryFrame');
+            <div id="tabGraphs" class="tab-panel">
+                <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <h3 style="font-size: 1.1rem; font-weight: 800; color: var(--clsu-green);">Draft Visualization Suggestions</h3>
+                        <p style="font-size: 0.85rem; color: var(--text-muted);">Institutional chart drafts (Bar, Line, Pie) pending Admin review & approval.</p>
+                    </div>
+                    <span class="badge badge-low">Draft Only — Not Auto-Published</span>
+                </div>
 
-            function showView(viewId, updateHash = true) {
-                panels.forEach((panel) => {
-                    panel.hidden = panel.id !== viewId;
-                });
-                tabs.forEach((tab) => {
-                    const active = tab.dataset.adminView === viewId;
-                    tab.classList.toggle('is-active', active);
-                    tab.setAttribute('aria-selected', active ? 'true' : 'false');
-                });
-                if (updateHash) {
-                    history.replaceState(null, '', viewId === 'observatoryView' ? '#observatory' : '#scanner');
-                }
-                if (viewId === 'observatoryView' && observatoryFrame && !observatoryFrame.src) {
-                    observatoryFrame.src = <?= json_encode(base_url('user/dashboard.php')) ?>;
-                }
-            }
+                <div id="graphDraftsContainer"></div>
+            </div>
+        </section>
+    </div>
+</section>
 
-            tabs.forEach((tab) => {
-                tab.addEventListener('click', () => showView(tab.dataset.adminView));
-            });
-
-            if (observatoryFrame) {
-                observatoryFrame.addEventListener('load', () => {
-                    try {
-                        const frameDocument = observatoryFrame.contentDocument;
-                        const frameNav = frameDocument.querySelector('body > nav');
-                        const frameFooter = frameDocument.querySelector('body > footer');
-                        const frameMain = frameDocument.querySelector('body > main');
-                        if (frameNav) frameNav.style.display = 'none';
-                        if (frameFooter) frameFooter.style.display = 'none';
-                        if (frameMain) {
-                            frameMain.style.maxWidth = 'none';
-                            frameMain.style.padding = '1.5rem';
-                            frameMain.style.margin = '0';
-                        }
-                        frameDocument.body.style.background = '#f9fafb';
-                    } catch (error) {
-                        console.warn('Unable to trim embedded observatory chrome.', error);
-                    }
-                });
-            }
-
-            showView(window.location.hash === '#observatory' ? 'observatoryView' : 'scannerWorkspaceView', false);
-        })();
-    </script>
-
-    <script src="<?= e(base_url('scanner/js/parsers/imageOcrPipeline.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/parsers/excelParser.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/parsers/docxParser.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/parsers/docxViewerComponent.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/parsers/pdfParser.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/parsers/pdfViewerComponent.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/ai/graphEngine.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/database/dbManager.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/samples.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/scanner.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/tableFilter.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/chartData.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/chartMapping.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/sourceIngestion.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/documentPagination.js')) ?>"></script>
-    <script src="<?= e(base_url('scanner/js/graphExport.js')) ?>"></script>
-    <script type="module" src="<?= e(base_url('scanner/js/app.js')) ?>"></script>
-</body>
-</html>
+<?php require_once __DIR__.'/includes/footer.php'; ?>

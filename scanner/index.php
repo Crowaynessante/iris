@@ -18,7 +18,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf_viewer.min.css">
 
   <!-- External Parsing & Charting CDN Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -75,16 +74,14 @@
           </svg>
         </div>
 
-        <h1 class="dropzone-title">Upload Spreadsheets, PDFs, or Word Documents</h1>
+        <h1 class="dropzone-title">Upload Spreadsheets</h1>
         <p class="dropzone-subtitle">Multi-sheet parsing, institutional text extraction, and draft visualization suggestions for university performance metrics</p>
 
         <div class="format-badges">
           <span class="format-chip excel"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Spreadsheets (XLSX, XLS, CSV)</span>
-          <span class="format-chip pdf"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> PDF Documents (Reports & Infographs)</span>
-          <span class="format-chip docx"><i class="fa-solid fa-file-pen" aria-hidden="true"></i> Word (DOCX Status Links)</span>
         </div>
 
-        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv,.docx,.doc,.pdf" style="display: none;">
+        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv" style="display: none;">
 
         <div style="margin-bottom: 1.5rem;">
           <button id="btnBrowse" class="btn-icon" style="padding: 0.75rem 2rem; font-size: 0.95rem; margin: 0 auto;">
@@ -92,17 +89,13 @@
           </button>
         </div>
 
-        <div class="samples-container">
-          <span class="samples-label">Test 1-Click Samples:</span>
-          <button class="sample-btn" data-sample="payroll">
-            <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> QAO Evaluation Scores (.xlsx)
-          </button>
-          <button class="sample-btn" data-sample="pdf">
-            <span><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span> OAD Infograph Stats (.pdf)
-          </button>
-          <button class="sample-btn" data-sample="contract">
-            <span><i class="fa-solid fa-file-pen" aria-hidden="true"></i></span> Program Accreditation (.docx)
-          </button>
+        <div class="samples-container flex items-center justify-center gap-3 pt-5 border-t border-slate-200 dark:border-slate-700/80 w-full overflow-hidden">
+          <span class="samples-label shrink-0 whitespace-nowrap text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Test 1-Click Samples:</span>
+          <div class="flex items-center gap-2 overflow-x-auto py-1 max-w-full no-scrollbar">
+            <button class="sample-btn shrink-0" data-sample="iao" type="button">
+              <span><i class="fa-solid fa-chart-column" aria-hidden="true"></i></span> IAO Rankings Dataset (.xlsx)
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -587,28 +580,8 @@
     </section>
 
   </main>
-
-  <!-- Admin Record Detail / Editor Modal -->
-  <div id="recordEditModal" class="modal-overlay">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 id="recordEditTitle" class="modal-title">Edit Record Data</h3>
-        <button id="btnCloseRecordModal" style="background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer;">&times;</button>
-      </div>
-      
-      <div id="recordEditBody" style="max-height: 75vh; overflow-y: auto; padding-right: 0.5rem;">
-        <!-- Dynamic record editor fields & editable data table -->
-      </div>
-    </div>
-  </div>
-
   <!-- JavaScript Modules in Order -->
-  <script src="js/parsers/imageOcrPipeline.js"></script>
   <script src="js/parsers/excelParser.js"></script>
-  <script src="js/parsers/docxParser.js"></script>
-  <script src="js/parsers/docxViewerComponent.js"></script>
-  <script src="js/parsers/pdfParser.js"></script>
-  <script src="js/parsers/pdfViewerComponent.js"></script>
   <script src="js/ai/graphEngine.js"></script>
   <script src="js/database/dbManager.js"></script>
   <script src="js/samples.js"></script>

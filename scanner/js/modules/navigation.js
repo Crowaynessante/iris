@@ -11,13 +11,21 @@ export function initNavigation(ctx) {
     if (adminView) adminView.style.display = 'none';
   };
 
-  scannerButton?.addEventListener('click', () => { showReviewWorkspace(); });
+  scannerButton?.addEventListener('click', event => {
+    event.preventDefault();
+    showReviewWorkspace();
+  });
 
-  ctx.api.openReviewStudio = async () => {
+  ctx.api.openReviewStudio = async (recordId) => {
+    if (window.location.pathname.includes('/admin/')) {
+      const param = recordId ? `?record_id=${encodeURIComponent(recordId)}` : '';
+      window.location.href = `review_editor.php${param}`;
+      return;
+    }
     await showReviewWorkspace();
+    scannerView?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     if (adminView) {
       adminView.style.display = 'block';
-      adminView.scrollIntoView({ behavior: 'smooth', block: 'start' });
       await ctx.api.renderAdminPortal();
     }
   };

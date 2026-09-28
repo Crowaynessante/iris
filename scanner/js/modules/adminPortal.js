@@ -160,22 +160,30 @@ export function initAdminPortal(ctx) {
   ctx.api.renderAdminPortal = async () => {
     try {
       const records = await ctx.dbManager.getAllRecords();
-      $('statTotalDb').textContent = records.length;
-      $('statPendingDb').textContent = records.filter(r => r.status === 'Pending Review' || !r.status).length;
-      $('statVerifiedDb').textContent = records.filter(r => ['Approved', 'Verified & Approved'].includes(r.status)).length;
-      $('statTablesDb').textContent = records.reduce((sum, r) => sum + Object.keys(r.extractedData || {}).length, 0);
+      if ($('statTotalDb')) $('statTotalDb').textContent = records.length;
+      if ($('statPendingDb')) $('statPendingDb').textContent = records.filter(r => r.status === 'Pending Review' || !r.status).length;
+      if ($('statVerifiedDb')) $('statVerifiedDb').textContent = records.filter(r => ['Approved', 'Verified & Approved'].includes(r.status)).length;
+      if ($('statTablesDb')) $('statTablesDb').textContent = records.reduce((sum, r) => sum + Object.keys(r.extractedData || {}).length, 0);
 
-      const select = $('studioRecordSelect');
-      if (select) {
-        select.innerHTML = records.map(r => `<option value="${escape(r.id)}">${escape(r.fileName)} (${escape((r.fileType || '').toUpperCase())})</option>`).join('');
-        select.onchange = event => {
-          ctx.state.studioActiveRecord = records.find(r => String(r.id) === String(event.target.value)) || null;
-          ctx.api.renderStudioWorkbench(ctx.state.studioActiveRecord);
-        };
-      }
       if (records.length) {
-        ctx.state.studioActiveRecord = records.find(r => String(r.id) === String(ctx.state.studioActiveRecord?.id)) || records[0];
+        if (select) {
+          select.innerHTML = records.map(r => `<option value="${escape(r.id)}">${escape(r.fileName)} (${escape((r.fileType || '').toUpperCase())})</option>`).join('');
+          select.onchange = event => {
+            ctx.state.studioActiveRecord = records.find(r => String(r.id) === String(event.target.value)) || null;
+            ctx.api.renderStudioWorkbench(ctx.state.studioActiveRecord);
+          };
+        }
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlRecordId = urlParams.get('record_id');
+        const matchedRecord = urlRecordId ? records.find(r => String(r.id) === String(urlRecordId)) : null;
+        ctx.state.studioActiveRecord = matchedRecord || records.find(r => String(r.id) === String(ctx.state.studioActiveRecord?.id)) || records[0];
+        if (select) select.value = String(ctx.state.studioActiveRecord.id);
         ctx.api.renderStudioWorkbench(ctx.state.studioActiveRecord);
+      } else {
+        ctx.state.studioActiveRecord = null;
+        if (select) {
+          select.innerHTML = '<option value="">Please upload files</option>';
+        }
       }
 
       const term = (($('adminSearchInput')?.value || '')).toLowerCase();
@@ -189,7 +197,9 @@ export function initAdminPortal(ctx) {
       renderRows(filtered);
     } catch (error) {
       console.error(error);
-      alert(`Unable to load scanner records: ${error.message}`);
+      if ($('adminRecordsTableBody')) {
+        $('adminRecordsTableBody').innerHTML = '<tr><td colspan="7">Please upload files to inspect scanner records.</td></tr>';
+      }
     }
   };
 

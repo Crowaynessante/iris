@@ -709,7 +709,7 @@ html:not(.dark) .dropzone-container:hover, html:not(.dark) .dropzone-container.d
    ==================================================================== */
 .workspace-grid {
   display: grid;
-  grid-template-columns: 290px 1fr;
+  grid-template-columns: minmax(220px, 290px) minmax(0, 1fr);
   gap: 1.5rem;
 }
 
@@ -913,7 +913,7 @@ html:not(.dark) .dropzone-container:hover, html:not(.dark) .dropzone-container.d
 
 .studio-grid {
   display: grid;
-  grid-template-columns: 480px 1fr;
+  grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
   gap: 1.5rem;
 }
 
@@ -2544,3 +2544,18 @@ html.dark #scannerWorkspaceView label,
 html.dark #adminDatabaseView label { color: #CBD5E1 !important; }
 html.dark #scannerWorkspaceView p { color: #CBD5E1; }
 html.dark #scannerWorkspaceView strong { color: #F8FAFC; }
+
+@media (max-width: 700px) {
+  .workspace-grid, .studio-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.modal-card {
+  max-height: calc(100vh - 2rem);
+}
+

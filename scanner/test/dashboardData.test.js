@@ -104,7 +104,7 @@ test('builds a printable pie chart preview before the data table', () => {
 
 test('axis controls are structural and no longer user-facing', () => {
   const app = fs.readFileSync(path.join(__dirname, '..', 'js', 'app.js'), 'utf8');
-  const html = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'index.php'), 'utf8');
   assert.equal(app.includes('studioBtnSwapAxes'), false);
   assert.equal(html.includes('studioBtnSwapAxes'), false);
   assert.equal(app.includes('axis-toggle-btn'), false);

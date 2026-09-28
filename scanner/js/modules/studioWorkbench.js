@@ -5,11 +5,11 @@ export function initStudioWorkbench(ctx) {
   ctx.api.renderStudioWorkbench = record => {
     if (!record) return;
     ctx.api.ensureTableDataStructure(record);
-    $('studioActiveFileName').textContent = `${record.fileName} (${(record.fileType || '').toUpperCase()})`;
-    $('studioDocTypeInput').value = record.docType || 'General Institutional Data';
-    $('studioStatusSelect').value = record.status || 'Pending Review';
-    $('studioNotesInput').value = record.adminNotes || '';
-    $('studioChartTitleInput').removeAttribute('data-customized');
+    if ($('studioActiveFileName')) $('studioActiveFileName').textContent = `${record.fileName} (${(record.fileType || '').toUpperCase()})`;
+    if ($('studioDocTypeInput')) $('studioDocTypeInput').value = record.docType || 'General Institutional Data';
+    if ($('studioStatusSelect')) $('studioStatusSelect').value = record.status || 'Pending Review';
+    if ($('studioNotesInput')) $('studioNotesInput').value = record.adminNotes || '';
+    $('studioChartTitleInput')?.removeAttribute('data-customized');
     ctx.api.renderDocumentWindow(record);
     const sheet = ctx.api.getStudioActiveSheet(record);
     if (sheet) { ctx.api.updateFieldSelectOptions(sheet.data); ctx.api.renderStudioTableGrid(record); ctx.api.renderStudioChart(record); }
@@ -21,7 +21,8 @@ export function initStudioWorkbench(ctx) {
     const category = $('studioCategoryCol'); const value = $('studioValueCol'); const previousCategory = category?.value; const previousValue = value?.value;
     if (category) { category.innerHTML = sheet.headers.map((header, index) => `<option value="${index}">${header || `Column ${index + 1}`}</option>`).join(''); category.value = previousCategory !== '' && sheet.headers[Number(previousCategory)] ? previousCategory : String(inferred.labelColumn); }
     if (value) { value.innerHTML = sheet.headers.map((header, index) => `<option value="${index}">${header || `Column ${index + 1}`}${inferred.columnTypes?.[index] === 'numeric' ? ' <i class="fa-solid fa-check" aria-hidden="true"></i>' : inferred.columnTypes?.[index] === 'text' ? ' (text)' : ''}</option>`).join(''); value.value = previousValue !== '' && sheet.headers[Number(previousValue)] ? previousValue : String(inferred.valueColumn); }
-    $('studioCategoryLabel').textContent = circular ? 'Labels:' : 'Category (X-axis):'; $('studioValueLabel').textContent = circular ? 'Value (single):' : 'Value (Y-axis):';
+    if ($('studioCategoryLabel')) $('studioCategoryLabel').textContent = circular ? 'Labels:' : 'Category (X-axis):';
+    if ($('studioValueLabel')) $('studioValueLabel').textContent = circular ? 'Value (single):' : 'Value (Y-axis):';
     const filter = $('studioFilterField'); const previousFilter = filter?.value;
     if (filter) { filter.innerHTML = '<option value="all">All selected data</option><option value="context">Context / label only</option><option value="value">Metric / value only</option>'; sheet.headers.forEach((header, index) => { const option = document.createElement('option'); option.value = `column:${index}`; option.textContent = `${header || `Column ${index + 1}`} only`; filter.appendChild(option); }); filter.value = [...filter.options].some(option => option.value === previousFilter) ? previousFilter : 'all'; }
   };
@@ -61,11 +62,14 @@ export function initStudioWorkbench(ctx) {
     if (savedChart) await ctx.dbManager.saveGraph(savedChart);
     ctx.state.studioActiveRecord = { ...record, ...updated };
     if (ctx.state.activeScan?.id === record.id) { ctx.state.activeScan = { ...ctx.state.activeScan, ...updated }; await ctx.api.renderOverviewTab(ctx.state.activeScan); ctx.api.renderViewerTab(ctx.state.activeScan); await ctx.api.renderGraphsTab(ctx.state.activeScan); }
+    window.IRIS_STUDIO_DIRTY = false;
     await ctx.api.renderAdminPortal(); alert(`Dataset '${record.fileName}' successfully saved to database!${approve ? ' (Approved for Observatory)' : ''}`);
   };
-  ['studioChartTypeSelect', 'studioCategoryCol', 'studioValueCol', 'studioFilterField', 'studioFilterOperator', 'studioFilterValue', 'studioFilterUpperValue', 'studioSortOrder', 'studioRowLimit', 'studioGroupDuplicates'].forEach(id => $(id)?.addEventListener('change', () => { if (id === 'studioChartTypeSelect') { const sheet = ctx.api.getStudioActiveSheet(ctx.state.studioActiveRecord)?.data; if (sheet) ctx.api.updateFieldSelectOptions(sheet); } ctx.api.updateStudioChart(); }));
-  $('studioFilterValue')?.addEventListener('input', ctx.api.updateStudioChart); $('studioRowLimit')?.addEventListener('input', ctx.api.updateStudioChart); $('studioChartTitleInput')?.addEventListener('input', event => event.target.setAttribute('data-customized', 'true'));
-  $('studioReverseSortOrder')?.addEventListener('click', event => { const active = event.currentTarget.getAttribute('aria-pressed') === 'true'; event.currentTarget.setAttribute('aria-pressed', String(!active)); ctx.api.updateStudioChart(); }); $('studioReverseValueAxis')?.addEventListener('click', event => { const active = event.currentTarget.getAttribute('aria-pressed') === 'true'; event.currentTarget.setAttribute('aria-pressed', String(!active)); ctx.api.updateStudioChart(); });
+  ['studioChartTypeSelect', 'studioCategoryCol', 'studioValueCol', 'studioFilterField', 'studioFilterOperator', 'studioFilterValue', 'studioFilterUpperValue', 'studioSortOrder', 'studioRowLimit', 'studioGroupDuplicates'].forEach(id => $(id)?.addEventListener('change', () => { if (id === 'studioChartTypeSelect') { const sheet = ctx.api.getStudioActiveSheet(ctx.state.studioActiveRecord)?.data; if (sheet) ctx.api.updateFieldSelectOptions(sheet); } window.IRIS_STUDIO_DIRTY = true; ctx.api.updateStudioChart(); }));
+  $('studioFilterValue')?.addEventListener('input', () => { window.IRIS_STUDIO_DIRTY = true; ctx.api.updateStudioChart(); }); $('studioRowLimit')?.addEventListener('input', () => { window.IRIS_STUDIO_DIRTY = true; ctx.api.updateStudioChart(); }); $('studioChartTitleInput')?.addEventListener('input', event => { window.IRIS_STUDIO_DIRTY = true; event.target.setAttribute('data-customized', 'true'); });
+  ['studioDocTypeInput', 'studioStatusSelect', 'studioNotesInput'].forEach(id => $(id)?.addEventListener('change', () => { window.IRIS_STUDIO_DIRTY = true; }));
+  document.addEventListener('input', event => { if (event.target?.classList?.contains('studio-cell-input') || event.target?.classList?.contains('header-rename-input')) window.IRIS_STUDIO_DIRTY = true; });
+  $('studioReverseSortOrder')?.addEventListener('click', event => { const active = event.currentTarget.getAttribute('aria-pressed') === 'true'; event.currentTarget.setAttribute('aria-pressed', String(!active)); window.IRIS_STUDIO_DIRTY = true; ctx.api.updateStudioChart(); }); $('studioReverseValueAxis')?.addEventListener('click', event => { const active = event.currentTarget.getAttribute('aria-pressed') === 'true'; event.currentTarget.setAttribute('aria-pressed', String(!active)); window.IRIS_STUDIO_DIRTY = true; ctx.api.updateStudioChart(); });
   const updateFilterInputs = () => { const operator = $('studioFilterOperator'); const upper = $('studioFilterUpperValue'); if (upper) upper.style.display = operator?.value === 'between' ? 'inline-block' : 'none'; };
   $('studioFilterOperator')?.addEventListener('change', updateFilterInputs); updateFilterInputs();
 }

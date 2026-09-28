@@ -10,15 +10,37 @@ function generateTakeaways(scan) { const result = [`Source Format: <strong>${sca
 
 export function initOverviewTab(ctx) {
   ctx.api.renderOverviewTab = async scan => {
+    if (!scan) return;
     const saved = scan.id ? await ctx.dbManager.getGraphsByRecord(scan.id) : [];
     scan.graphDrafts = saved.length ? saved : (scan.graphDrafts || []);
-    $('summaryDocTitle').textContent = scan.name; $('docFormatBadge').textContent = scan.type.toUpperCase(); $('docFormatBadge').className = `format-chip ${scan.type}`;
-    const raw = scan.rawText || ''; $('executiveSummaryText').textContent = `Document parsed successfully. Identified ${raw.split(/\s+/).filter(Boolean).length} words, ${raw.length} characters, with ${(scan.graphDrafts || []).length} draft visualization suggestions.`;
-    const fieldsGrid = $('extractedFieldsGrid'); fieldsGrid.innerHTML = ''; extractKeyFields(scan).forEach(field => { const card = document.createElement('div'); card.style.cssText = 'background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 0.75rem 1rem;'; card.innerHTML = `<div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">${field.label}</div><div style="font-size: 1.1rem; font-weight: 800; color: var(--accent-cyan); font-family: var(--font-mono);">${field.value}</div>`; fieldsGrid.appendChild(card); });
-    $('takeawayList').innerHTML = generateTakeaways(scan).map(item => `<li class="takeaway-item"><span><i class="fa-solid fa-circle" aria-hidden="true"></i></span><div>${item}</div></li>`).join(''); $('draftsCountBadge').textContent = (scan.graphDrafts || []).length;
+    if ($('summaryDocTitle')) $('summaryDocTitle').textContent = scan.name;
+    if ($('docFormatBadge')) { $('docFormatBadge').textContent = scan.type.toUpperCase(); $('docFormatBadge').className = `format-chip ${scan.type}`; }
+    const raw = scan.rawText || '';
+    if ($('executiveSummaryText')) $('executiveSummaryText').textContent = `Document parsed successfully. Identified ${raw.split(/\s+/).filter(Boolean).length} words, ${raw.length} characters, with ${(scan.graphDrafts || []).length} draft visualization suggestions.`;
+    const fieldsGrid = $('extractedFieldsGrid');
+    if (fieldsGrid) {
+      fieldsGrid.innerHTML = '';
+      extractKeyFields(scan).forEach(field => {
+        const card = document.createElement('div');
+        card.style.cssText = 'background: var(--bg-card); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 0.75rem 1rem;';
+        card.innerHTML = `<div style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 0.25rem;">${field.label}</div><div style="font-size: 1.1rem; font-weight: 800; color: var(--accent-cyan); font-family: var(--font-mono);">${field.value}</div>`;
+        fieldsGrid.appendChild(card);
+      });
+    }
+    if ($('takeawayList')) $('takeawayList').innerHTML = generateTakeaways(scan).map(item => `<li class="takeaway-item"><span><i class="fa-solid fa-circle" aria-hidden="true"></i></span><div>${item}</div></li>`).join('');
+    if ($('draftsCountBadge')) $('draftsCountBadge').textContent = (scan.graphDrafts || []).length;
   };
   $('btnOpenInEditor')?.addEventListener('click', async () => {
-    if (!ctx.state.activeScan) return;
+    if (!ctx.state.activeScan) {
+      if (typeof window.IRIS_OPEN_UPLOAD_MODAL === 'function') {
+        window.IRIS_OPEN_UPLOAD_MODAL();
+      } else if (typeof ctx.api.openUploadModal === 'function') {
+        ctx.api.openUploadModal();
+      } else {
+        alert('Please upload files to inspect or review.');
+      }
+      return;
+    }
     await ctx.api.openReviewStudio?.(ctx.state.activeScan.id);
   });
 }

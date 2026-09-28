@@ -1,6 +1,73 @@
-import { $ , all } from '../utils/helpers.js';
+import { $, all } from '../utils/helpers.js';
 
-const MAX_UPLOAD_SIZE_BYTES = 15 * 1024 * 1024;
+const MAX_UPLOAD_SIZE_BYTES = 100 * 1024 * 1024;
+const ALLOWED_EXTENSIONS = ['xlsx', 'xls', 'csv'];
+
+const PENDING_DB_NAME = 'IRIS_Pending_Uploads';
+const PENDING_STORE_NAME = 'files';
+
+function openPendingDb() {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || !window.indexedDB) {
+      return reject(new Error('IndexedDB unavailable'));
+    }
+    const req = indexedDB.open(PENDING_DB_NAME, 1);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(PENDING_STORE_NAME)) {
+        db.createObjectStore(PENDING_STORE_NAME, { autoIncrement: true });
+      }
+    };
+    req.onsuccess = e => resolve(e.target.result);
+    req.onerror = e => reject(e.target.error);
+  });
+}
+
+export async function savePendingUploads(files) {
+  const db = await openPendingDb();
+  const tx = db.transaction(PENDING_STORE_NAME, 'readwrite');
+  const store = tx.objectStore(PENDING_STORE_NAME);
+  const dataPromises = Array.from(files).map(async file => {
+    const buffer = await file.arrayBuffer();
+    return {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      lastModified: file.lastModified,
+      buffer
+    };
+  });
+  const items = await Promise.all(dataPromises);
+  for (const item of items) {
+    store.add(item);
+  }
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+export async function getAndClearPendingUploads() {
+  try {
+    const db = await openPendingDb();
+    const tx = db.transaction(PENDING_STORE_NAME, 'readwrite');
+    const store = tx.objectStore(PENDING_STORE_NAME);
+    const req = store.getAll();
+    return new Promise(resolve => {
+      req.onsuccess = () => {
+        const items = req.result || [];
+        if (items.length) {
+          store.clear();
+        }
+        const files = items.map(item => new File([item.buffer], item.name, { type: item.type, lastModified: item.lastModified }));
+        resolve(files);
+      };
+      req.onerror = () => resolve([]);
+    });
+  } catch (err) {
+    return [];
+  }
+}
 
 export function initFileIngestion(ctx) {
   const dropzone = $('dropzone'); const input = $('fileInput'); const browse = $('btnBrowse');
@@ -8,7 +75,9 @@ export function initFileIngestion(ctx) {
   const progressCard = $('progressCard'); const workspace = $('workspaceGrid');
   const status = $('progressStatus'); const percent = $('progressPercent'); const fill = $('progressFill');
 
-  const showSizeWarning = fileNames => {
+  let lastFocusedElement = null;
+
+  const showWarning = messageText => {
     const existing = document.getElementById('irisUploadSizeWarning');
     if (existing) existing.remove();
 
@@ -16,84 +85,40 @@ export function initFileIngestion(ctx) {
     wrapper.id = 'irisUploadSizeWarning';
     wrapper.setAttribute('role', 'dialog');
     wrapper.setAttribute('aria-modal', 'true');
-    wrapper.style.position = 'fixed';
-    wrapper.style.inset = '0';
-    wrapper.style.background = 'rgba(15, 23, 42, 0.72)';
-    wrapper.style.backdropFilter = 'blur(3px)';
-    wrapper.style.display = 'flex';
-    wrapper.style.alignItems = 'center';
-    wrapper.style.justifyContent = 'center';
-    wrapper.style.zIndex = '99999';
-    wrapper.style.padding = '1rem';
+    wrapper.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,0.72);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:99999;padding:1rem;';
 
     const card = document.createElement('div');
-    card.style.width = 'min(720px, calc(100vw - 1.25rem))';
-    card.style.background = '#232b31';
-    card.style.border = '1px solid rgba(148, 163, 184, 0.35)';
-    card.style.borderRadius = '18px';
-    card.style.boxShadow = '0 20px 60px rgba(0,0,0,0.38)';
-    card.style.color = '#edf6ff';
-    card.style.fontFamily = 'Segoe UI, sans-serif';
-    card.style.overflow = 'hidden';
+    card.style.cssText = 'width:min(720px,calc(100vw - 1.25rem));background:#232b31;border:1px solid rgba(148,163,184,0.35);border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,0.38);color:#edf6ff;font-family:Inter,sans-serif;overflow:hidden;';
 
     const header = document.createElement('div');
-    header.style.display = 'flex';
-    header.style.alignItems = 'center';
-    header.style.justifyContent = 'space-between';
-    header.style.padding = '1.2rem 1.4rem';
-    header.style.borderBottom = '1px solid rgba(148, 163, 184, 0.25)';
+    header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:1.2rem 1.4rem;border-bottom:1px solid rgba(148,163,184,0.25);';
 
     const title = document.createElement('div');
-    title.textContent = 'localhost says';
-    title.style.fontSize = '0.82rem';
-    title.style.fontWeight = '700';
-    title.style.letterSpacing = '0.08em';
-    title.style.textTransform = 'uppercase';
-    title.style.color = '#dfe7f1';
+    title.textContent = 'Upload Validation Error';
+    title.style.cssText = 'font-size:0.82rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#dfe7f1;';
 
-    const closeBtn = document.createElement('button');
-    closeBtn.textContent = '×';
-    closeBtn.setAttribute('aria-label', 'Close file size warning');
-    closeBtn.style.background = 'transparent';
-    closeBtn.style.border = 'none';
-    closeBtn.style.color = '#f8fafc';
-    closeBtn.style.fontSize = '2rem';
-    closeBtn.style.lineHeight = '1';
-    closeBtn.style.cursor = 'pointer';
-    closeBtn.style.padding = '0';
-    closeBtn.style.margin = '0';
-    closeBtn.addEventListener('click', () => wrapper.remove());
+    const modalCloseBtn = document.createElement('button');
+    modalCloseBtn.textContent = '×';
+    modalCloseBtn.setAttribute('aria-label', 'Close error dialog');
+    modalCloseBtn.style.cssText = 'background:transparent;border:none;color:#f8fafc;font-size:2rem;line-height:1;cursor:pointer;padding:0;margin:0;';
+    modalCloseBtn.addEventListener('click', () => wrapper.remove());
 
     header.appendChild(title);
-    header.appendChild(closeBtn);
+    header.appendChild(modalCloseBtn);
 
     const body = document.createElement('div');
     body.style.padding = '1.4rem 1.4rem 1.1rem';
 
     const message = document.createElement('p');
-    message.textContent = `Failed to scan file ${fileNames}.\nPlease choose a file under 15 MB.`;
-    message.style.margin = '0';
-    message.style.color = '#edf6ff';
-    message.style.fontSize = '1.02rem';
-    message.style.lineHeight = '1.6';
-    message.style.whiteSpace = 'pre-line';
+    message.textContent = messageText;
+    message.style.cssText = 'margin:0;color:#edf6ff;font-size:1.02rem;line-height:1.6;white-space:pre-line;';
 
     const footer = document.createElement('div');
-    footer.style.display = 'flex';
-    footer.style.justifyContent = 'flex-end';
-    footer.style.padding = '0 1.4rem 1.2rem';
+    footer.style.cssText = 'display:flex;justify-content:flex-end;padding:0 1.4rem 1.2rem;';
 
     const okBtn = document.createElement('button');
     okBtn.textContent = 'OK';
-    okBtn.style.background = '#f3f4f6';
-    okBtn.style.border = 'none';
-    okBtn.style.borderRadius = '9999px';
-    okBtn.style.color = '#111827';
-    okBtn.style.fontSize = '1.1rem';
-    okBtn.style.fontWeight = '700';
-    okBtn.style.cursor = 'pointer';
-    okBtn.style.padding = '0.72rem 1.8rem';
-    okBtn.style.minWidth = '88px';
+    okBtn.style.cssText = 'background:#f3f4f6;border:none;border-radius:9999px;color:#111827;font-size:1.1rem;font-weight:700;cursor:pointer;padding:0.72rem 1.8rem;min-width:88px;';
     okBtn.addEventListener('click', () => wrapper.remove());
 
     footer.appendChild(okBtn);
@@ -106,36 +131,60 @@ export function initFileIngestion(ctx) {
     document.body.appendChild(wrapper);
   };
 
+  const isAllowedFile = file => {
+    const name = file?.name || '';
+    const ext = name.split('.').pop().toLowerCase();
+    return ALLOWED_EXTENSIONS.includes(ext);
+  };
+
   const validateFiles = files => {
     const selected = Array.from(files || []);
+    const invalidType = selected.filter(file => !isAllowedFile(file));
     const tooLarge = selected.filter(file => Number(file?.size || 0) > MAX_UPLOAD_SIZE_BYTES);
 
-    if (tooLarge.length) {
-      const names = tooLarge.slice(0, 3).map(file => file.name).join(', ');
-      const extra = tooLarge.length > 3 ? ` and ${tooLarge.length - 3} more file(s)` : '';
-      showSizeWarning(`${names}${extra}`);
+    if (invalidType.length || tooLarge.length) {
+      const messages = [];
+      if (invalidType.length) {
+        const names = invalidType.map(f => f.name).join(', ');
+        messages.push(`Unsupported format for: ${names}.\nPlease upload a Spreadsheet (.xlsx, .xls, .csv).`);
+      }
+      if (tooLarge.length) {
+        const names = tooLarge.map(f => f.name).join(', ');
+        messages.push(`File size exceeds 100 MB limit for: ${names}.\nPlease choose a file under 100 MB.`);
+      }
+      showWarning(messages.join('\n\n'));
+      return [];
     }
 
-    return selected.filter(file => Number(file?.size || 0) <= MAX_UPLOAD_SIZE_BYTES);
+    return selected;
   };
 
   const openModal = () => {
     if (!modal) return;
+    lastFocusedElement = document.activeElement;
     modal.classList.add('active');
     modal.setAttribute('aria-hidden', 'false');
+    const focusables = Array.from(modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(el => !el.disabled && el.offsetParent !== null);
+    if (focusables.length) focusables[0].focus();
   };
+
   const closeModal = () => {
     if (!modal) return;
     modal.classList.remove('active');
     modal.setAttribute('aria-hidden', 'true');
-  };
-  const updateProgress = (text, value) => { if (status) status.textContent = text; if (percent) percent.textContent = `${value}%`; if (fill) fill.style.width = `${value}%`; };
-  const handleFiles = async (files) => {
-    const selected = validateFiles(files);
-    if (!selected.length) {
-      if (input) input.value = '';
-      return;
+    if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+      try { lastFocusedElement.focus(); } catch (e) {}
     }
+  };
+
+  const updateProgress = (text, value) => {
+    if (status) status.textContent = text;
+    if (percent) percent.textContent = `${value}%`;
+    if (fill) fill.style.width = `${value}%`;
+  };
+
+  const handleFilesOnIngestion = async (selected) => {
+    if (!selected || !selected.length) return;
 
     const hasRestoredEntry = ctx.state.queue.some(item => item.source === 'restored');
     if (hasRestoredEntry) {
@@ -144,46 +193,129 @@ export function initFileIngestion(ctx) {
     }
 
     closeModal();
-    if (progressCard) progressCard.style.display = 'block'; if (workspace) workspace.style.display = 'grid';
+    if (progressCard) progressCard.style.display = 'block';
+    const inlineDropzone = $('inlineUploadDropzone');
+    if (inlineDropzone) inlineDropzone.style.display = 'none';
+    if (workspace) workspace.style.display = 'grid';
+
     for (let index = 0; index < selected.length; index += 1) {
       const file = selected[index];
       try {
         updateProgress(`Scanning ${file.name} (${index + 1}/${selected.length})...`, 10);
         const result = await ctx.scanner.scanFile(file, progress => updateProgress(progress.status, progress.progress));
-        ctx.state.queue.unshift(result); ctx.api.renderQueue(); await ctx.api.setActiveScan(result);
+        ctx.state.queue.unshift(result);
+        ctx.api.renderQueue();
+        await ctx.api.setActiveScan(result);
       } catch (error) {
         console.error('Scan Error:', error);
-        showSizeWarning(`${file.name}: ${error.message || 'Unknown error'}`);
+        showWarning(`${file.name}: ${error.message || 'Unknown error'}`);
       }
     }
-    setTimeout(() => { if (progressCard) progressCard.style.display = 'none'; updateProgress('Scan complete!', 100); }, 800);
+    setTimeout(() => {
+      if (progressCard) progressCard.style.display = 'none';
+      updateProgress('Scan complete!', 100);
+    }, 800);
   };
-  ctx.api.handleFiles = handleFiles; ctx.api.updateProgress = updateProgress;
+
+  const processFiles = async (files) => {
+    const selected = validateFiles(files);
+    if (!selected.length) {
+      if (input) input.value = '';
+      return;
+    }
+
+    if (window.IRIS_STUDIO_DIRTY) {
+      const confirmLeave = confirm('You have unsaved changes in the Review Editor. Uploading a file will redirect to File Ingestion. Continue?');
+      if (!confirmLeave) return;
+    }
+
+    const isIngestionPage = Boolean($('scannerWorkspaceView'));
+
+    if (!isIngestionPage) {
+      try {
+        await savePendingUploads(selected);
+        window.IRIS_STUDIO_DIRTY = false;
+        closeModal();
+        window.location.href = window.base_url ? window.base_url('admin/dashboard.php') : 'dashboard.php';
+      } catch (err) {
+        console.error('Failed to hand off upload:', err);
+        showWarning(`Unable to queue upload: ${err.message || err}. Please try again.`);
+      }
+      return;
+    }
+
+    await handleFilesOnIngestion(selected);
+  };
+
+  ctx.api.handleFiles = processFiles;
+  ctx.api.updateProgress = updateProgress;
+  ctx.api.openUploadModal = openModal;
+  window.IRIS_OPEN_UPLOAD_MODAL = openModal;
+
   trigger?.addEventListener('click', openModal);
   closeBtn?.addEventListener('click', closeModal);
   modal?.addEventListener('click', event => { if (event.target === modal) closeModal(); });
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && modal?.classList.contains('active')) closeModal(); });
+
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && modal?.classList.contains('active')) {
+      closeModal();
+    }
+  });
+
+  modal?.addEventListener('keydown', event => {
+    if (event.key === 'Tab') {
+      const focusables = Array.from(modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(el => !el.disabled && el.offsetParent !== null);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+  });
+
   browse?.addEventListener('click', () => {
-    openModal();
     input?.click();
   });
-  input?.addEventListener('change', event => {
-    const selected = validateFiles(event.target.files || []);
-    if (!selected.length) {
-      event.target.value = '';
-      return;
-    }
-    handleFiles(selected);
+  $('btnInlineBrowse')?.addEventListener('click', () => {
+    input?.click();
   });
-  ['dragenter', 'dragover'].forEach(name => dropzone?.addEventListener(name, event => { event.preventDefault(); dropzone.classList.add('dragover'); }));
-  ['dragleave', 'drop'].forEach(name => dropzone?.addEventListener(name, event => { event.preventDefault(); dropzone.classList.remove('dragover'); }));
-  dropzone?.addEventListener('drop', event => handleFiles(Array.from(event.dataTransfer?.files || [])));
+
+  input?.addEventListener('change', event => {
+    const selected = Array.from(event.target.files || []);
+    if (!selected.length) return;
+    processFiles(selected);
+  });
+
+  const dropzoneElements = [dropzone, $('inlineUploadDropzone')].filter(Boolean);
+  dropzoneElements.forEach(dz => {
+    ['dragenter', 'dragover'].forEach(name => dz.addEventListener(name, event => { event.preventDefault(); dz.classList.add('dragover'); }));
+    ['dragleave', 'drop'].forEach(name => dz.addEventListener(name, event => { event.preventDefault(); dz.classList.remove('dragover'); }));
+    dz.addEventListener('drop', event => {
+      event.preventDefault();
+      dz.classList.remove('dragover');
+      processFiles(Array.from(event.dataTransfer?.files || []));
+    });
+  });
+
   all('.sample-btn').forEach(button => button.addEventListener('click', () => {
     const type = button.getAttribute('data-sample');
-    const generator = window.SampleGenerator; let file = null;
-    if (type === 'payroll') file = generator?.createSampleExcelFile();
-    if (type === 'contract') file = generator?.createSampleDocxFile();
-    if (type === 'pdf') file = generator?.createSamplePdfFile();
-    if (file) handleFiles([file]);
+    const generator = window.SampleGenerator;
+    let file = null;
+    if (type === 'payroll' || type === 'iao') file = generator?.createSampleExcelFile();
+    if (file) processFiles([file]);
   }));
+
+  // On page load, if on Ingestion page, check for pending handoff files from IndexedDB:
+  if ($('scannerWorkspaceView')) {
+    getAndClearPendingUploads().then(pendingFiles => {
+      if (pendingFiles && pendingFiles.length > 0) {
+        handleFilesOnIngestion(pendingFiles);
+      }
+    });
+  }
 }

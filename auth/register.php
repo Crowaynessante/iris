@@ -109,12 +109,22 @@ if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$u=trim($_POST['username']
 
                 <div>
                     <label for="password" class="block mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-slate-300">Password</label>
-                    <input type="password" id="password" name="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5 dark:bg-slate-800 dark:border-slate-700 dark:placeholder-slate-500 dark:text-white transition-colors" placeholder="At least 8 characters" minlength="8" required>
+                    <div class="relative">
+                        <input type="password" id="password" name="password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block w-full pr-10 p-2.5 dark:bg-slate-800 dark:border-slate-700 dark:placeholder-slate-500 dark:text-white transition-colors" placeholder="At least 8 characters" minlength="8" required autocomplete="new-password">
+                        <button type="button" id="togglePassword" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-r-xl" aria-label="Show password" aria-pressed="false">
+                            <i class="fa-solid fa-eye text-sm" aria-hidden="true"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div>
                     <label for="confirm_password" class="block mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-700 dark:text-slate-300">Confirm Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block w-full p-2.5 dark:bg-slate-800 dark:border-slate-700 dark:placeholder-slate-500 dark:text-white transition-colors" placeholder="Re-enter your password" required>
+                    <div class="relative">
+                        <input type="password" id="confirm_password" name="confirm_password" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-xl focus:ring-emerald-500 focus:border-emerald-500 block w-full pr-10 p-2.5 dark:bg-slate-800 dark:border-slate-700 dark:placeholder-slate-500 dark:text-white transition-colors" placeholder="Re-enter your password" required autocomplete="new-password">
+                        <button type="button" id="toggleConfirmPassword" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-700 dark:text-slate-500 dark:hover:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded-r-xl" aria-label="Show confirm password" aria-pressed="false">
+                            <i class="fa-solid fa-eye text-sm" aria-hidden="true"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <button type="submit" class="w-full text-white bg-emerald-600 hover:bg-emerald-500 focus:ring-4 focus:ring-emerald-300 dark:focus:ring-emerald-800 font-bold rounded-xl text-sm px-5 py-3 text-center shadow-md shadow-emerald-600/20 transition-all mt-2">
@@ -129,9 +139,10 @@ if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$u=trim($_POST['username']
     </div>
 
     <script>
+        // ── Theme toggle ────────────────────────────────────────────────
         const themeToggle = document.getElementById('themeToggle');
-        const emailInput = document.getElementById('email');
-        const emailHint = document.getElementById('email-hint');
+        const emailInput  = document.getElementById('email');
+        const emailHint   = document.getElementById('email-hint');
 
         themeToggle.addEventListener('click', () => {
             const isDark = !document.documentElement.classList.contains('dark');
@@ -141,6 +152,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$u=trim($_POST['username']
             localStorage.setItem('iris-theme', mode);
         });
 
+        // ── Email hint ──────────────────────────────────────────────────
         emailInput.addEventListener('input', () => {
             const value = emailInput.value.trim();
             const valid = /^[A-Za-z0-9._%+\-]+@clsu2\.edu\.ph$/i.test(value);
@@ -152,6 +164,52 @@ if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$u=trim($_POST['username']
                 ? (valid ? 'Looks good: <span class="font-semibold">' + value + '</span>' : 'Invalid format. Use: <span class="font-semibold">name@clsu2.edu.ph</span>')
                 : 'Accepted format: <span class="font-semibold text-emerald-600 dark:text-emerald-400">name@clsu2.edu.ph</span>';
         });
+
+        // ── Show/hide password toggles ──────────────────────────────────
+        function makePasswordToggle(inputId, buttonId) {
+            const input  = document.getElementById(inputId);
+            const button = document.getElementById(buttonId);
+            if (!input || !button) return;
+            const icon = button.querySelector('i');
+
+            button.addEventListener('click', () => {
+                const showing = input.type === 'text';
+                // Preserve caret position across the type switch.
+                const selStart = input.selectionStart;
+                const selEnd   = input.selectionEnd;
+                input.type = showing ? 'password' : 'text';
+                // Restore selection (works in most browsers after type change).
+                try { input.setSelectionRange(selStart, selEnd); } catch (_) {}
+
+                button.setAttribute('aria-pressed', String(!showing));
+                button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+                if (icon) {
+                    icon.classList.toggle('fa-eye',        showing);
+                    icon.classList.toggle('fa-eye-slash', !showing);
+                }
+            });
+        }
+
+        makePasswordToggle('password',         'togglePassword');
+        makePasswordToggle('confirm_password', 'toggleConfirmPassword');
+
+        // Reset password fields to hidden when the form submits or the
+        // browser restores the page from the back-forward cache.
+        const registerForm = document.querySelector('form');
+        const resetPasswordVisibility = () => {
+            ['password', 'confirm_password'].forEach(id => {
+                const input  = document.getElementById(id);
+                const button = document.getElementById(id === 'password' ? 'togglePassword' : 'toggleConfirmPassword');
+                if (!input || !button) return;
+                input.type = 'password';
+                button.setAttribute('aria-pressed', 'false');
+                button.setAttribute('aria-label', id === 'password' ? 'Show password' : 'Show confirm password');
+                const icon = button.querySelector('i');
+                if (icon) { icon.classList.add('fa-eye'); icon.classList.remove('fa-eye-slash'); }
+            });
+        };
+        registerForm?.addEventListener('submit', resetPasswordVisibility);
+        window.addEventListener('pageshow', (event) => { if (event.persisted) resetPasswordVisibility(); });
     </script>
 </body>
 </html>
