@@ -1,4 +1,11 @@
-const IRIS_API = '../api/iris.php';
+// Compute the base URL relative to the project root so it works from any subdirectory (admin/, scanner/, etc.)
+const IRIS_BASE = (() => {
+  const path = window.location.pathname;
+  // Walk up from /admin/ or /scanner/ to find the project root
+  const match = path.match(/^(.*?\/iris)\//i) || path.match(/^(.*?)\/(admin|scanner|api|user|auth)\//i);
+  return match ? match[1] : path.replace(/\/[^/]*$/, '');
+})();
+const IRIS_API = `${IRIS_BASE}/api/iris.php`;
 const DEFAULT_API_ENDPOINTS = {
   records: `${IRIS_API}?resource=records`,
   recordById: id => `${IRIS_API}?resource=records&id=${encodeURIComponent(id)}`,

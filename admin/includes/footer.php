@@ -2,10 +2,15 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-6 mt-12">
+    <style>
+        html:not(.dark) .admin-footer { background: #1E6031 !important; border-top: 3px solid #E0A70D !important; color: #ffffff !important; }
+        html:not(.dark) .admin-footer span, html:not(.dark) .admin-footer div { color: rgba(255,255,255,0.90) !important; }
+        html:not(.dark) .admin-footer-title { color: #ffffff !important; }
+    </style>
+    <footer class="admin-footer bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-6 mt-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-gray-500 dark:text-gray-400 gap-4">
             <div class="flex items-center space-x-2">
-                <span class="font-bold text-gray-800 dark:text-gray-200">IRIS Admin</span>
+                <span class="font-bold admin-footer-title text-gray-800 dark:text-gray-200">IRIS Admin</span>
                 <span>&bull; IAO'S INTERNATIONAL RAPPORT INSIGHT SYSTEM</span>
             </div>
             <div>

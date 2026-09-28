@@ -1,37 +1,50 @@
 /* ====================================================================
-   IRIS AI — Central Luzon State University (CLSU) Theme
+   IRIS AI — Central Luzon State University (CLSU) Brand Book 2024
    Institutional Performance Observatory & File Ingestion System
-   Palette: Forest Green (#146C36), CLSU Gold (#FACC15 / #F59E0B), Clean White (#FFFFFF)
+   Palette: CLSU Green (#009639), Green Cobra (#1E6031), CLSU Gold (#E0A70D), CLSU Yellow (#FFD700)
    ==================================================================== */
 
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+/* TODO: Self-host Buttershine Serif for headings when the IAO provides the licensed font file. */
+@import url('https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* Shared design tokens for the integrated review experience */
-  --brand-green-900: #0D5C2C;
-  --brand-green-800: #146C36;
-  --brand-green-700: #1A8744;
-  --brand-green-100: #EDF7F0;
-  --brand-gold-500: #F59E0B;
-  --brand-gold-400: #FACC15;
-  --brand-gold-700: #D97706;
-  --brand-gold-100: #FEF9C3;
+  /* ── CLSU Brand Book 2024 tokens ── */
+  --clsu-green:        #009639;   /* Pantone 355 C/U — primary accent */
+  --clsu-green-cobra:  #1E6031;   /* Deep green — header/footer, filled buttons, text on light bg */
+  --clsu-yellow:       #FFD700;   /* Badge/active accent (use sparingly) */
+  --clsu-gold:         #E0A70D;   /* Edge/border accent */
+  --clsu-ink:          #1F2A24;   /* Body text */
+  --clsu-gray:         #6A6A6A;   /* Secondary text */
+  --clsu-surface:      #F7F8F5;   /* Page background */
+  --clsu-card:         #FFFFFF;   /* Card background */
+  --clsu-green-50:     #EEF6F0;   /* Muted tint */
+  --clsu-green-100:    #DCEBE0;   /* Muted tint */
 
-  --surface-page: #F4F7F4;
-  --surface-panel: #FFFFFF;
-  --surface-subtle: #F8FAF8;
+  /* ── Semantic aliases (light mode) ── */
+  --brand-green-900: #0D4A1F;
+  --brand-green-800: #1E6031;
+  --brand-green-700: #009639;
+  --brand-green-100: #EEF6F0;
+  --brand-gold-500: #E0A70D;
+  --brand-gold-400: #FFD700;
+  --brand-gold-700: #C4900B;
+  --brand-gold-100: #FDF6E0;
+
+  --surface-page: var(--clsu-surface);
+  --surface-panel: var(--clsu-card);
+  --surface-subtle: var(--clsu-green-50);
   --surface-input: #FFFFFF;
 
-  --border-subtle: #E2E8E2;
-  --border-brand: rgba(20, 108, 54, 0.2);
-  --border-focus: rgba(20, 108, 54, 0.35);
+  --border-subtle: rgba(30, 96, 49, 0.12);
+  --border-brand: rgba(30, 96, 49, 0.18);
+  --border-focus: rgba(0, 150, 57, 0.40);
   --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
-  --shadow-modal: 0 20px 50px rgba(13, 92, 44, 0.15), 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-modal: 0 20px 50px rgba(30, 96, 49, 0.12), 0 4px 20px rgba(0, 0, 0, 0.06);
 
-  --text-primary: #1E293B;
-  --text-secondary: #64748B;
+  --text-primary: var(--clsu-ink);
+  --text-secondary: var(--clsu-gray);
   --text-tertiary: #94A3B8;
-  --text-brand: #146C36;
+  --text-brand: var(--clsu-green-cobra);
   --text-inverse: #FFFFFF;
 
   --space-1: 0.25rem;
@@ -48,15 +61,13 @@
   --radius-lg: 16px;
   --radius-full: 9999px;
 
-  --font-sans: 'Inter', 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-sans: 'Libre Franklin', 'Inter', 'Acumin Pro', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
   --clsu-green-dark: var(--brand-green-900);
-  --clsu-green: var(--brand-green-800);
   --clsu-green-light: var(--brand-green-700);
-  --clsu-green-subtle: var(--brand-green-100);
-  --clsu-green-glow: rgba(20, 108, 54, 0.25);
-  --clsu-gold: var(--brand-gold-500);
+  --clsu-green-subtle: var(--clsu-green-50);
+  --clsu-green-glow: rgba(0, 150, 57, 0.25);
   --clsu-gold-bright: var(--brand-gold-400);
   --clsu-gold-dark: var(--brand-gold-700);
   --clsu-gold-subtle: var(--brand-gold-100);
@@ -70,16 +81,16 @@
   --border-glow: var(--border-focus);
   --card-shadow: var(--shadow-soft);
   --modal-shadow: var(--shadow-modal);
-  --accent-primary: var(--brand-green-800);
+  --accent-primary: var(--clsu-green-cobra);
   --accent-cyan: #0D9488;
-  --accent-emerald: #10B981;
-  --accent-amber: var(--brand-gold-500);
+  --accent-emerald: var(--clsu-green);
+  --accent-amber: var(--clsu-gold);
   --accent-rose: #E11D48;
-  --accent-violet: var(--brand-green-800);
+  --accent-violet: var(--clsu-green-cobra);
   --text-main: var(--text-primary);
   --text-muted: var(--text-secondary);
   --text-dim: var(--text-tertiary);
-  --text-green: var(--brand-green-800);
+  --text-green: var(--clsu-green-cobra);
   --text-white: var(--text-inverse);
 }
 
@@ -276,19 +287,20 @@ body {
   justify-content: center;
   width: 3.5rem;
   height: 3.5rem;
-  background: linear-gradient(135deg, #059669, #10b981);
+  background: var(--clsu-green);
   color: #f8fafc;
-  border: 1px solid rgba(16, 185, 129, 0.4);
+  border: none;
   border-radius: 9999px;
   padding: 0;
-  box-shadow: 0 14px 28px rgba(16, 185, 129, 0.26);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  ring: 2px solid var(--clsu-gold);
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .floating-upload-trigger:hover {
   transform: translateY(-2px);
-  box-shadow: 0 18px 30px rgba(20, 108, 54, 0.28);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.16);
 }
 
 .floating-upload-icon {
@@ -622,51 +634,51 @@ html:not(.dark) .upload-dropzone .format-chip {
 }
 
 html:not(.dark) .upload-widget-panel {
-  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
-  border-color: rgba(16, 185, 129, 0.25) !important;
+  background: linear-gradient(180deg, #ffffff 0%, var(--clsu-surface) 100%) !important;
+  border-color: rgba(30, 96, 49, 0.15) !important;
   box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08) !important;
 }
-html:not(.dark) .upload-widget-kicker { color: #475569 !important; }
-html:not(.dark) .upload-widget-title { color: #0f172a !important; }
+html:not(.dark) .upload-widget-kicker { color: var(--clsu-gray) !important; }
+html:not(.dark) .upload-widget-title { color: var(--clsu-ink) !important; }
 html:not(.dark) .upload-widget-close {
-  background: #f3f4f6 !important;
-  border-color: #d1d5db !important;
-  color: #334155 !important;
+  background: var(--clsu-green-50) !important;
+  border-color: var(--clsu-green-100) !important;
+  color: var(--clsu-ink) !important;
 }
 html:not(.dark) .upload-dropzone {
   background: #ffffff !important;
-  border-color: #dfe7e1 !important;
-  color: #0f172a !important;
+  border-color: rgba(30, 96, 49, 0.12) !important;
+  color: var(--clsu-ink) !important;
 }
-html:not(.dark) .upload-dropzone .dropzone-title { color: #0f172a !important; font-size: 1.56rem !important; letter-spacing: -0.03em !important; }
-html:not(.dark) .upload-dropzone .dropzone-subtitle { color: #475569 !important; font-size: 0.95rem !important; }
-html:not(.dark) .upload-dropzone .samples-label { color: #047857 !important; }
+html:not(.dark) .upload-dropzone .dropzone-title { color: var(--clsu-ink) !important; font-size: 1.56rem !important; letter-spacing: -0.03em !important; }
+html:not(.dark) .upload-dropzone .dropzone-subtitle { color: var(--clsu-gray) !important; font-size: 0.95rem !important; }
+html:not(.dark) .upload-dropzone .samples-label { color: var(--clsu-green-cobra) !important; }
 html:not(.dark) .upload-dropzone .sample-btn {
   background: #ffffff !important;
-  border-color: #dbe5df !important;
-  color: #0f172a !important;
+  border-color: rgba(30, 96, 49, 0.12) !important;
+  color: var(--clsu-ink) !important;
   box-shadow: none !important;
   font-weight: 600 !important;
 }
 html:not(.dark) .upload-dropzone .sample-btn:hover {
-  background: #ecfdf5 !important;
-  color: #065f46 !important;
-  border-color: #34d399 !important;
+  background: var(--clsu-green-50) !important;
+  color: var(--clsu-green-cobra) !important;
+  border-color: var(--clsu-green) !important;
 }
 html:not(.dark) .upload-dropzone .format-chip {
-  background: #f8fafc !important;
-  border-color: #dfe7e1 !important;
-  color: #334155 !important;
+  background: var(--clsu-surface) !important;
+  border-color: rgba(30, 96, 49, 0.12) !important;
+  color: var(--clsu-ink) !important;
   font-weight: 700 !important;
 }
-html:not(.dark) .format-chip.excel { background: #ecfdf5 !important; color: #065f46 !important; border-color: #a7f3d0 !important; }
+html:not(.dark) .format-chip.excel { background: var(--clsu-green-50) !important; color: var(--clsu-green-cobra) !important; border-color: var(--clsu-green-100) !important; }
 html:not(.dark) .format-chip.pdf { background: #fef2f2 !important; color: #991b1b !important; border-color: #fecaca !important; }
 html:not(.dark) .format-chip.docx { background: #eff6ff !important; color: #1e40af !important; border-color: #bfdbfe !important; }
-html:not(.dark) .samples-container { border-top-color: #e2e8f0 !important; }
+html:not(.dark) .samples-container { border-top-color: rgba(30, 96, 49, 0.08) !important; }
 html:not(.dark) .dropzone-container:hover, html:not(.dark) .dropzone-container.dragover {
-  background: #f9fafb !important;
-  border-color: #10b981 !important;
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.12) !important;
+  background: var(--clsu-green-50) !important;
+  border-color: var(--clsu-green) !important;
+  box-shadow: 0 4px 12px rgba(0, 150, 57, 0.08) !important;
 }
 
 /* Progress Bar */
@@ -708,20 +720,12 @@ html:not(.dark) .dropzone-container:hover, html:not(.dark) .dropzone-container.d
    Main Workspace Layout
    ==================================================================== */
 .workspace-grid {
-  display: grid;
-  grid-template-columns: minmax(220px, 290px) minmax(0, 1fr);
+  display: block;
   gap: 1.5rem;
 }
 
 .queue-sidebar {
-  background: #FFFFFF;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 160px);
-  box-shadow: var(--card-shadow);
+  display: none !important;
 }
 
 .sidebar-title {

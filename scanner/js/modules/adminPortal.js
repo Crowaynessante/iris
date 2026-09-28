@@ -158,6 +158,7 @@ export function initAdminPortal(ctx) {
   };
 
   ctx.api.renderAdminPortal = async () => {
+    const select = $('studioRecordSelect');
     try {
       const records = await ctx.dbManager.getAllRecords();
       if ($('statTotalDb')) $('statTotalDb').textContent = records.length;

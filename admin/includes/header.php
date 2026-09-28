@@ -27,15 +27,24 @@ $pageTitle = $pageTitle ?? 'IRIS Admin Control Panel';
             theme: {
                 extend: {
                     colors: {
+                        clsu: {
+                            green: '#009639',
+                            cobra: '#1E6031',
+                            yellow: '#FFD700',
+                            gold: '#E0A70D',
+                            ink: '#1F2A24',
+                            gray: '#6A6A6A',
+                            surface: '#F7F8F5'
+                        },
                         brand: {
-                            50: '#ecfdf5',
-                            100: '#d1fae5',
-                            500: '#10b981',
-                            600: '#059669',
-                            700: '#047857',
-                            800: '#065f46',
-                            900: '#064e3b',
-                            gold: '#f59e0b'
+                            50: '#EEF6F0',
+                            100: '#DCEBE0',
+                            500: '#009639',
+                            600: '#1E6031',
+                            700: '#1E6031',
+                            800: '#0D4A1F',
+                            900: '#0D4A1F',
+                            gold: '#E0A70D'
                         }
                     }
                 }
@@ -49,9 +58,10 @@ $pageTitle = $pageTitle ?? 'IRIS Admin Control Panel';
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="<?= e(base_url('scanner/css/styles.css')) ?>">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        /* TODO: Self-host Buttershine Serif for headings when the IAO provides the licensed font file. */
+        body { font-family: 'Libre Franklin', 'Inter', 'Acumin Pro', sans-serif; }
         .admin-scanner-shell { width: 100%; }
         .admin-scanner-shell .app-container { max-width: 1600px !important; margin: 0 auto; }
         html.dark .studio-shell, html.dark .studio-data-manager, html.dark .studio-panel, html.dark .studio-chart-panel, html.dark .studio-graph-controls, html.dark .table-container, html.dark .data-table, html.dark .studio-data-manager .form-input, html.dark .studio-data-manager textarea, html.dark .studio-data-manager select { color: #f8fafc !important; }
@@ -121,24 +131,26 @@ $pageTitle = $pageTitle ?? 'IRIS Admin Control Panel';
         .admin-dropdown a:hover{background:rgba(16,185,129,.12)!important;color:#ecfdf5!important;}
         .admin-dropdown .signout{padding:.75rem 1rem!important;color:#fca5a5!important;border-radius:.75rem!important;transition:background .2s ease,color .2s ease;}
         .admin-dropdown .signout:hover{background:rgba(239,68,68,.12)!important;color:#fee2e2!important;}
-        html:not(.dark) .admin-nav{background:rgba(255,255,255,.94)!important;border-bottom:1px solid #e5e7eb!important;box-shadow:0 8px 24px rgba(15,23,42,.06)!important;}
-        html:not(.dark) .admin-brand-title{color:#0f172a!important;}
-        html:not(.dark) .admin-brand-sub{color:#475569!important;}
-        html:not(.dark) .admin-nav-link{background:#f8fafc!important;color:#334155!important;border:1px solid #e2e8f0!important;}
-        html:not(.dark) .admin-nav-link:hover{background:#ecfdf5!important;color:#065f46!important;border-color:#a7f3d0!important;}
-        html:not(.dark) .admin-nav-link.scanner{background:linear-gradient(135deg,#059669,#10b981)!important;border-color:#10b981!important;color:#fff!important;box-shadow:0 4px 14px rgba(16,185,129,.18)!important;}
-        html:not(.dark) .admin-theme-btn{color:#374151!important;background:#f3f4f6!important;border:1px solid #d1d5db!important;}
-        html:not(.dark) .admin-theme-btn:hover{color:#111827!important;background:#e5e7eb!important;}
-        html:not(.dark) .admin-profile-btn{background:#f3f4f6!important;border:1px solid #d1d5db!important;color:#111827!important;}
-        html:not(.dark) .admin-profile-btn:hover{background:#e5e7eb!important;}
-        html:not(.dark) .admin-dropdown{background:#ffffff!important;border:1px solid #e2e8f0!important;color:#1f2937!important;box-shadow:0 12px 30px rgba(15,23,42,.08)!important;}
-        html:not(.dark) .admin-dropdown .dropdown-name{color:#111827!important;}
-        html:not(.dark) .admin-dropdown a{color:#334155!important;}
-        html:not(.dark) .admin-dropdown a:hover{background:#f0fdf4!important;color:#065f46!important;}
+        html:not(.dark) .admin-nav{background:#1E6031!important;border-bottom:3px solid #E0A70D!important;box-shadow:0 4px 12px rgba(0,0,0,0.08)!important;}
+        html:not(.dark) .admin-brand-title{color:#ffffff!important;}
+        html:not(.dark) .admin-brand-sub{color:rgba(255,255,255,0.80)!important;}
+        html:not(.dark) .admin-nav-link{background:rgba(255,255,255,0.10)!important;color:#ffffff!important;border:1px solid rgba(255,255,255,0.20)!important;}
+        html:not(.dark) .admin-nav-link:hover{background:rgba(255,255,255,0.20)!important;color:#ffffff!important;border-color:rgba(255,255,255,0.30)!important;}
+        html:not(.dark) .admin-nav-link.scanner{background:rgba(255,255,255,0.20)!important;border-color:rgba(255,255,255,0.30)!important;color:#FFD700!important;box-shadow:none!important;}
+        html:not(.dark) .admin-theme-btn{color:#ffffff!important;background:rgba(255,255,255,0.10)!important;border:1px solid rgba(255,255,255,0.20)!important;}
+        html:not(.dark) .admin-theme-btn:hover{color:#ffffff!important;background:rgba(255,255,255,0.20)!important;}
+        html:not(.dark) .admin-profile-btn{background:rgba(255,255,255,0.10)!important;border:1px solid rgba(255,255,255,0.20)!important;color:#ffffff!important;}
+        html:not(.dark) .admin-profile-btn:hover{background:rgba(255,255,255,0.20)!important;}
+        html:not(.dark) .admin-dropdown{background:#ffffff!important;border:1px solid rgba(30,96,49,0.12)!important;color:#1F2A24!important;box-shadow:0 12px 30px rgba(15,23,42,.08)!important;}
+        html:not(.dark) .admin-dropdown .dropdown-name{color:#1F2A24!important;}
+        html:not(.dark) .admin-dropdown a{color:#1F2A24!important;}
+        html:not(.dark) .admin-dropdown a:hover{background:#EEF6F0!important;color:#1E6031!important;}
         html:not(.dark) .admin-dropdown .signout{color:#b91c1c!important;}
         html:not(.dark) .admin-dropdown .signout:hover{background:#fef2f2!important;color:#991b1b!important;}
         #page-loader{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.68);backdrop-filter:blur(6px);z-index:10000;transition:opacity .3s ease,visibility .3s ease;}
         #page-loader.hidden{opacity:0;visibility:hidden;pointer-events:none;}
+        .active-hamburger-item { background:rgba(16,185,129,.12)!important; color:#ecfdf5!important; border-left:3px solid #f59e0b!important; }
+        html:not(.dark) .active-hamburger-item { background: #EEF6F0 !important; color: #1E6031 !important; border-left: 3px solid #E0A70D !important; }
         .iris-loader{position:relative;width:72px;height:72px;border-radius:50%;background:conic-gradient(#10b981,#34d399,#fbbf24,#10b981);animation:spin 1s linear infinite;box-shadow:0 0 30px rgba(16,185,129,.5)}
         .iris-loader::before{content:"";position:absolute;inset:10px;border-radius:50%;background:rgba(15,23,42,.9);border:2px solid rgba(255,255,255,.18)}
         .iris-loader::after{content:"IRIS";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;letter-spacing:.12em;color:#d1fae5}
@@ -154,13 +166,13 @@ $pageTitle = $pageTitle ?? 'IRIS Admin Control Panel';
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="admin-nav-inner flex items-center justify-between gap-4">
                 <a href="<?= e(base_url('admin/dashboard.php')) ?>" class="logo-refresh-trigger flex items-center gap-3 min-w-0" data-target="<?= e(base_url('admin/dashboard.php')) ?>">
-                    <div class="w-52 h-11 flex items-center justify-center overflow-hidden shrink-0 rounded-lg bg-transparent">
-                        <img src="<?= e(base_url('images/iris-panel-logo.svg')) ?>" alt="IRIS SielMetrics+ Logo" class="h-10 w-full object-contain object-left drop-shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                    <div class="w-52 h-11 flex items-center justify-center overflow-hidden shrink-0 rounded-lg bg-white px-3 py-1.5">
+                        <img src="<?= e(base_url('images/iris-panel-logo.svg')) ?>" alt="IRIS SielMetrics+ Logo" class="h-10 w-full object-contain object-left">
                     </div>
                     <div class="min-w-0 hidden sm:block">
                         <div class="flex items-center gap-2">
                             <span class="admin-brand-title text-xl font-extrabold tracking-tight">IRIS Admin</span>
-                            <span class="text-[10px] px-2 py-1 font-extrabold rounded-full bg-amber-400 text-slate-900 border border-amber-300">
+                            <span class="text-[10px] px-2 py-1 font-extrabold rounded-full bg-[#FFD700] text-[#1E6031] border border-[#E0A70D]">
                                 <?= $activeNav === 'ingestion' ? 'FILE INGESTION' : ($activeNav === 'review' ? 'REVIEW EDITOR' : 'SAVED GRAPHS') ?>
                             </span>
                         </div>
@@ -169,18 +181,33 @@ $pageTitle = $pageTitle ?? 'IRIS Admin Control Panel';
                 </a>
 
                 <div class="admin-nav-actions flex items-center gap-2">
-                    <a href="<?= e(base_url('admin/dashboard.php')) ?>" class="admin-nav-link <?= $activeNav === 'ingestion' ? 'scanner' : '' ?>" title="File Ingestion">
-                        <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i><span>File Ingestion</span>
-                    </a>
-                    <a href="<?= e(base_url('admin/review_editor.php')) ?>" class="admin-nav-link <?= $activeNav === 'review' ? 'scanner' : '' ?>" title="Review Editor">
-                        <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i><span>Review Editor</span>
-                    </a>
-                    <a href="<?= e(base_url('admin/saved_graphs.php')) ?>" class="admin-nav-link <?= $activeNav === 'saved_graphs' ? 'scanner' : '' ?>" title="Saved Dashboard Graphs">
-                        <i class="fa-solid fa-chart-line" aria-hidden="true"></i><span>Saved Graphs</span>
-                    </a>
                     <a href="<?= e(base_url('user/dashboard.php')) ?>" class="admin-nav-link public-link" aria-label="Open Observatory" title="Open Observatory">
                         <i class="fa-solid fa-chart-pie" aria-hidden="true"></i><span>Observatory</span>
                     </a>
+                    <div class="relative">
+                        <button type="button" class="admin-profile-btn flex items-center justify-center p-2.5 rounded-lg focus:ring-2 focus:ring-emerald-500" id="hamburger-menu-button" aria-expanded="false" data-dropdown-toggle="hamburger-dropdown" data-dropdown-placement="bottom">
+                            <i class="fa-solid fa-bars text-base"></i>
+                        </button>
+                        <div class="admin-dropdown z-50 hidden my-3 w-56 text-base list-none rounded-xl shadow-2xl" id="hamburger-dropdown">
+                            <ul class="py-2" aria-labelledby="hamburger-menu-button">
+                                <li>
+                                    <a href="<?= e(base_url('admin/dashboard.php')) ?>" class="block px-4 py-2 text-sm <?= $activeNav === 'ingestion' ? 'active-hamburger-item' : '' ?>">
+                                        <i class="fa-solid fa-cloud-arrow-up mr-2"></i> File Ingestion
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="<?= e(base_url('admin/review_editor.php')) ?>" class="block px-4 py-2 text-sm <?= $activeNav === 'review' ? 'active-hamburger-item' : '' ?>">
+                                        <i class="fa-solid fa-pen-to-square mr-2"></i> Review Editor
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="<?= e(base_url('admin/saved_graphs.php')) ?>" class="block px-4 py-2 text-sm <?= $activeNav === 'saved_graphs' ? 'active-hamburger-item' : '' ?>">
+                                        <i class="fa-solid fa-chart-line mr-2"></i> Saved Graphs
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
                     <button id="theme-toggle" type="button" class="admin-theme-btn rounded-lg text-sm p-2.5" aria-label="Toggle theme">
                         <i id="theme-toggle-dark-icon" class="hidden fa-solid fa-moon text-base"></i>
                         <i id="theme-toggle-light-icon" class="hidden fa-solid fa-sun text-base text-amber-400"></i>
@@ -246,16 +273,14 @@ $pageTitle = $pageTitle ?? 'IRIS Admin Control Panel';
                             </svg>
                         </div>
 
-                        <h1 class="dropzone-title">Upload Spreadsheets, PDFs, or Word Documents</h1>
-                        <p class="dropzone-subtitle">Multi-sheet parsing, institutional text extraction, and draft visualization suggestions for university performance metrics</p>
+                        <h1 class="dropzone-title">Upload Institutional Spreadsheets</h1>
+                        <p class="dropzone-subtitle">Multi-sheet parsing and draft visualization suggestions for university performance metrics</p>
 
                         <div class="format-badges">
                             <span class="format-chip excel"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Spreadsheets (XLSX, XLS, CSV)</span>
-                            <span class="format-chip pdf"><i class="fa-solid fa-file-lines" aria-hidden="true"></i> PDF Documents (Reports & Infographs)</span>
-                            <span class="format-chip docx"><i class="fa-solid fa-file-pen" aria-hidden="true"></i> Word (DOCX Status Links)</span>
                         </div>
 
-                        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv,.docx,.doc,.pdf" style="display: none;">
+                        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv" style="display: none;">
 
                         <div style="margin: 0.5rem auto 1.25rem; text-align: center; font-size: 0.8rem; color: var(--text-muted); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;">
                             Files must be under 100 MB

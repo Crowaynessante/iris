@@ -125,8 +125,8 @@
       <!-- Main Results Workspace Grid -->
       <div id="workspaceGrid" class="workspace-grid" style="display: none;">
 
-        <!-- Left Batch Sidebar Queue -->
-        <aside class="queue-sidebar">
+        <!-- Left Batch Sidebar Queue (Hidden) -->
+        <aside class="queue-sidebar" style="display: none !important;">
           <div class="sidebar-title">
             <span>Ingestion Queue (<span id="queueCount">0</span>)</span>
             <button id="btnClearQueue" style="background: none; border: none; color: var(--text-dim); cursor: pointer; font-size: 0.75rem; font-weight: 700;">Clear All</button>
