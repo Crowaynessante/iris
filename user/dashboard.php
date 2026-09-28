@@ -228,17 +228,10 @@ if($uploadedKpi['file'] && !$uploadedCollegeTotals){
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <!-- Brand / Logo -->
-                <div class="flex items-center space-x-3">
-                    <a href="<?= e(base_url('user/dashboard.php')) ?>" class="logo-refresh-trigger flex items-center space-x-3" data-target="<?= e(base_url('user/dashboard.php')) ?>">
+                <div class="flex items-center">
+                    <a href="<?= e(base_url('user/dashboard.php')) ?>" class="logo-refresh-trigger flex items-center" data-target="<?= e(base_url('user/dashboard.php')) ?>">
                         <div class="w-52 h-10 flex items-center justify-center overflow-hidden rounded-lg bg-transparent">
                             <img src="<?= e(base_url('images/iris-panel-logo.svg')) ?>" alt="IRIS SielMetrics+ Logo" class="h-9 w-full object-contain object-left drop-shadow-[0_0_10px_rgba(16,185,129,0.18)]">
-                        </div>
-                        <div class="hidden sm:block">
-                            <div class="flex items-center space-x-2">
-                                <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent">IRIS</span>
-                                <span class="text-xs px-2 py-0.5 font-medium rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700/50">CLSU</span>
-                            </div>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Performance Observatory</p>
                         </div>
                     </a>
                 </div>
@@ -765,8 +758,8 @@ if($uploadedKpi['file'] && !$uploadedCollegeTotals){
             chartInstances = [];
 
             const isDark = document.documentElement.classList.contains('dark');
-            const textColor = isDark ? '#9ca3af' : '#4b5563';
-            const splitLineColor = isDark ? '#374151' : '#f3f4f6';
+            const textColor = isDark ? '#E5E7EB' : '#1F2937';
+            const splitLineColor = isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.06)';
             const tooltipBg = isDark ? '#1f2937' : '#ffffff';
             const tooltipBorder = isDark ? '#374151' : '#e5e7eb';
             const tooltipText = isDark ? '#f9fafb' : '#111827';

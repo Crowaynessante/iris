@@ -115,7 +115,108 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const rankValueMin = rankSemantic ? 0 : undefined;
   const rankValueMax = rankSemantic ? Math.max(...rawValues) : undefined;
   state.studioChartConfig = { orientation: horizontal ? 'horizontal' : 'vertical', valueAxisReversed: reverseValueAxis, rankSemantic, rankValueMin, rankValueMax, valueAxisMin: axisMin, valueAxisMax: yMax, labels: fullLabels.slice() };
-  show(); state.studioChartInstance = window.echarts.init(canvas);
-  state.studioChartInstance.setOption({ animationDuration: 350, title: { text: titleInput?.value || `${headerName} — ${info.name}`, left: 'center', textStyle: { color: '#e2e8f0', fontSize: 13, fontWeight: 700 } }, tooltip: { trigger: circular ? 'item' : 'axis', formatter: circular ? '{b}: {c} ({d}%)' : params => { const point = Array.isArray(params) ? params[0] : params; return `<b>${fullLabels[point.dataIndex] || point.name}</b><br/>${headerName}: <b>${rankSemantic ? rawValues[point.dataIndex] : point.value}</b>`; } }, legend: { show: circular, data: [...new Set(fullLabels)], bottom: 0, type: 'scroll', textStyle: { color: '#e2e8f0', fontSize: 11 } }, grid: circular ? undefined : { left: 60, right: 20, top: 50, bottom: chartRows.length > 8 ? 90 : 60, containLabel: false }, xAxis: circular ? undefined : { type: horizontal ? 'value' : 'category', inverse: horizontal && reverseValueAxis && !rankSemantic, min: horizontal ? axisMin : undefined, max: horizontal ? yMax : undefined, data: horizontal ? undefined : labels, axisLabel: { rotate: chartRows.length > 6 ? 40 : 0, interval: 0, overflow: 'truncate', width: 100, fontSize: 11, color: '#cbd5e1', formatter: horizontal && rankSemantic ? value => String(rankValueMax + rankValueMin - value) : undefined } }, yAxis: circular ? undefined : { type: horizontal ? 'category' : 'value', inverse: !horizontal && reverseValueAxis && !rankSemantic, data: horizontal ? labels : undefined, name: horizontal ? '' : headerName, nameTextStyle: { fontSize: 11, color: '#cbd5e1' }, min: horizontal ? undefined : axisMin, max: horizontal ? undefined : yMax, axisLabel: { color: '#cbd5e1', formatter: !horizontal && rankSemantic ? value => String(rankValueMax + rankValueMin - value) : undefined }, splitLine: { lineStyle: { type: 'dashed', color: '#334155' } } }, series: [circular ? { type: type === 'doughnut' ? 'pie' : type, radius: type === 'doughnut' ? ['45%', '72%'] : type === 'polarArea' ? ['15%', '72%'] : '68%', center: ['50%', '45%'], data: fullLabels.map((label, index) => ({ name: label, value: values[index], itemStyle: { color: ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#a78bfa', '#f59e0b', '#22c55e', '#ef4444', '#38bdf8', '#f97316'][index % 10] }, label: { show: true, color: '#e2e8f0' } })), label: { show: true, position: 'outside', color: '#e2e8f0', fontSize: 11, fontWeight: 600, formatter: '{b}', distance: 12 }, labelLine: { show: true, length: 12, length2: 8, lineStyle: { color: '#cbd5e1', width: 1 } }, itemStyle: { borderColor: '#0f172a', borderWidth: 2 }, emphasis: { itemStyle: { shadowBlur: 12, shadowColor: 'rgba(15, 23, 42, 0.38)' } } } : { type, smooth: type === 'line', data: rankSemantic ? values.map((value, index) => ({ value, rawValue: rawValues[index] })) : values, itemStyle: { color: '#146C36' }, label: { show: chartRows.length <= 15, position: horizontal ? 'right' : 'top', fontSize: 10, color: '#334155', formatter: '{c}' } }] });
+  show();
+  const isDark = document.documentElement.classList.contains('dark');
+  const textColor = isDark ? '#E5E7EB' : '#1F2937';
+  const labelColor = isDark ? '#F9FAFC' : '#111827';
+  const subtextColor = isDark ? '#9CA3AF' : '#4B5563';
+  const gridLineColor = isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)';
+
+  state.studioChartInstance = window.echarts.init(canvas);
+  state.studioChartInstance.setOption({
+    animationDuration: 350,
+    title: {
+      text: titleInput?.value || `${headerName} — ${info.name}`,
+      left: 'center',
+      textStyle: { color: labelColor, fontSize: 14, fontWeight: 700 }
+    },
+    tooltip: {
+      trigger: circular ? 'item' : 'axis',
+      backgroundColor: isDark ? '#1F2937' : '#FFFFFF',
+      borderColor: isDark ? '#374151' : '#E5E7EB',
+      textStyle: { color: labelColor },
+      formatter: circular ? '{b}: {c} ({d}%)' : params => {
+        const point = Array.isArray(params) ? params[0] : params;
+        return `<b>${fullLabels[point.dataIndex] || point.name}</b><br/>${headerName}: <b>${rankSemantic ? rawValues[point.dataIndex] : point.value}</b>`;
+      }
+    },
+    legend: {
+      show: circular,
+      data: [...new Set(fullLabels)],
+      bottom: 0,
+      type: 'scroll',
+      textStyle: { color: textColor, fontSize: 11, fontWeight: 600 }
+    },
+    grid: circular ? undefined : {
+      left: '4%',
+      right: '4%',
+      top: 50,
+      bottom: chartRows.length > 6 ? 80 : 50,
+      containLabel: true
+    },
+    xAxis: circular ? undefined : {
+      type: horizontal ? 'value' : 'category',
+      inverse: horizontal && reverseValueAxis && !rankSemantic,
+      min: horizontal ? axisMin : undefined,
+      max: horizontal ? yMax : undefined,
+      data: horizontal ? undefined : labels,
+      axisLine: { lineStyle: { color: gridLineColor } },
+      axisLabel: {
+        rotate: chartRows.length > 6 ? 35 : 0,
+        interval: 0,
+        overflow: 'none',
+        fontSize: 11,
+        fontWeight: 600,
+        color: textColor,
+        formatter: horizontal && rankSemantic ? value => String(rankValueMax + rankValueMin - value) : undefined
+      },
+      splitLine: horizontal ? { lineStyle: { type: 'dashed', color: gridLineColor, width: 1 } } : { show: false }
+    },
+    yAxis: circular ? undefined : {
+      type: horizontal ? 'category' : 'value',
+      inverse: !horizontal && reverseValueAxis && !rankSemantic,
+      data: horizontal ? labels : undefined,
+      name: horizontal ? '' : headerName,
+      nameTextStyle: { fontSize: 12, fontWeight: 700, color: labelColor, padding: [0, 0, 8, 0] },
+      min: horizontal ? undefined : axisMin,
+      max: horizontal ? undefined : yMax,
+      axisLine: { lineStyle: { color: gridLineColor } },
+      axisLabel: {
+        color: textColor,
+        fontSize: 11,
+        fontWeight: 600,
+        formatter: !horizontal && rankSemantic ? value => String(rankValueMax + rankValueMin - value) : undefined
+      },
+      splitLine: horizontal ? { show: false } : { lineStyle: { type: 'dashed', color: gridLineColor, width: 1 } }
+    },
+    series: [circular ? {
+      type: type === 'doughnut' ? 'pie' : type,
+      radius: type === 'doughnut' ? ['45%', '72%'] : type === 'polarArea' ? ['15%', '72%'] : '68%',
+      center: ['50%', '45%'],
+      data: fullLabels.map((label, index) => ({
+        name: label,
+        value: values[index],
+        itemStyle: { color: ['#009639', '#1E6031', '#E0A70D', '#3B82F6', '#8B5CF6', '#F59E0B', '#10B981', '#EF4444', '#38BDF8', '#F97316'][index % 10] }
+      })),
+      label: { show: true, position: 'outside', color: textColor, fontSize: 11, fontWeight: 600, formatter: '{b}', distance: 12 },
+      labelLine: { show: true, length: 12, length2: 8, lineStyle: { color: subtextColor, width: 1 } },
+      itemStyle: { borderColor: isDark ? '#1F2937' : '#FFFFFF', borderWidth: 2 },
+      emphasis: { itemStyle: { shadowBlur: 12, shadowColor: 'rgba(15, 23, 42, 0.38)' } }
+    } : {
+      type,
+      smooth: type === 'line',
+      data: rankSemantic ? values.map((value, index) => ({ value, rawValue: rawValues[index] })) : values,
+      itemStyle: { color: '#009639', borderRadius: type === 'bar' ? (horizontal ? [0, 4, 4, 0] : [4, 4, 0, 0]) : undefined },
+      lineStyle: type === 'line' ? { width: 3, color: '#009639' } : undefined,
+      label: {
+        show: chartRows.length <= 20,
+        position: horizontal ? 'right' : 'top',
+        fontSize: 11,
+        fontWeight: 700,
+        color: labelColor,
+        formatter: '{c}'
+      }
+    }]
+  });
   if (typeof ResizeObserver !== 'undefined') { canvas._studioResizeObserver?.disconnect?.(); canvas._studioResizeObserver = new ResizeObserver(() => state.studioChartInstance?.resize?.()); canvas._studioResizeObserver.observe(canvas); }
 }
