@@ -13,8 +13,7 @@ This project combines the two supplied IRIS projects into **one plain PHP applic
   - CSV uploads and smart upload/review flow
 - IRIS-7 File Scanner / Analytics
   - XLSX/XLS/CSV parsing in the browser
-  - PDF/DOCX viewing and extraction helpers
-  - OCR helpers retained from the original frontend
+
   - Extraction review workspace
   - Record archive/edit/delete
   - Draft and saved graphs
@@ -40,4 +39,4 @@ This project combines the two supplied IRIS projects into **one plain PHP applic
 
 ## Important
 
-The browser-side JavaScript from IRIS-7 is intentionally retained because it performs file parsing, PDF/DOCX viewing, charts, and OCR in the browser. The Node.js Express server has been replaced by `api/iris.php`, which uses the same MySQL database as the main IRIS application.
+The browser-side JavaScript from IRIS-7 is intentionally retained because it performs file parsing for spreadsheets (XLSX, XLS, CSV) and generates charts in the browser. The Node.js Express server has been replaced by `api/iris.php`, which uses the same MySQL database as the main IRIS application.
