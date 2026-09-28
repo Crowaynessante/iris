@@ -2,6 +2,8 @@
 require_once __DIR__ . '/../includes/functions.php';
 
 header('Content-Type: application/json; charset=utf-8');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 
 try {
     $pdo = db();
@@ -12,8 +14,7 @@ try {
                    r.fileName AS source_file_name, r.status AS source_status
             FROM saved_graphs sg
             INNER JOIN records r ON r.id = sg.record_id
-            WHERE r.status = 'Approved'
-              AND COALESCE(sg.is_published, CASE WHEN r.status = 'Approved' THEN 1 ELSE 0 END) = 1
+                        WHERE sg.is_published = 1
             ORDER BY sg.created_at DESC";
     $rows = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 

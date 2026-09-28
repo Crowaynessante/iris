@@ -145,7 +145,6 @@ export function renderStudioChart(arg1, arg2, arg3 = {}) {
   const rankedYearSelect = elements.rankedYearSelect || document.getElementById('studioRankedYearSelect');
   const rankedReverseOrder = elements.rankedReverseOrder || document.getElementById('studioRankedReverseOrder');
   const reverseOrder = rankedMode && Boolean(rankedReverseOrder?.checked ?? state.studioChartConfig?.reverseOrder ?? false);
-  const yearColumn = rankedMode ? window.ChartMapping.detectYearColumn(sheet.headers, sheet.rows) : null;
   const yearConfiguration = yearColumn !== null ? window.ChartMapping.getYearOptions(sheet.rows, yearColumn) : { availableYears: [], selectedYear: null };
   if (rankedReverseOrder) {
     rankedReverseOrder.checked = reverseOrder;

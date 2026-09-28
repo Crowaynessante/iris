@@ -10,7 +10,7 @@ require_once __DIR__.'/includes/header.php';
     </div>
 
     <div id="inlineUploadDropzone" class="dropzone-container upload-dropzone mx-auto w-full max-w-4xl text-center bg-white dark:bg-slate-800 border-2 border-dashed border-clsu-green dark:border-emerald-500/60 rounded-2xl p-6 sm:p-10 shadow-lg dark:shadow-2xl">
-        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv" style="display: none;">
+        <input type="file" id="adminInlineFileInput" multiple accept=".xlsx,.xls,.csv" style="display: none;">
         <div class="dropzone-icon mb-4 flex justify-center">
             <svg width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="text-clsu-green dark:text-emerald-400">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
@@ -29,7 +29,7 @@ require_once __DIR__.'/includes/header.php';
         </div>
 
         <div class="mb-6">
-            <button id="btnInlineBrowse" class="btn-icon mx-auto px-8 py-3 text-sm font-semibold rounded-xl bg-clsu-green hover:bg-clsu-cobra text-white shadow-md transition-all" type="button">
+            <button id="adminInlineBrowseBtn" class="btn-icon mx-auto px-8 py-3 text-sm font-semibold rounded-xl bg-clsu-green hover:bg-clsu-cobra text-white shadow-md transition-all" type="button">
                 <span><i class="fa-solid fa-folder" aria-hidden="true"></i></span> Browse Institutional Files
             </button>
         </div>

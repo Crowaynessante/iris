@@ -239,6 +239,17 @@ class DatabaseManager {
     return response.json();
   }
 
+  async publishGraph(graphId, published = true) {
+    const response = await fetch(`${this.config.endpoints.graphById(graphId)}&action=${published ? 'publish' : 'unpublish'}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ published: Boolean(published) })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload.error || `Unable to ${published ? 'publish' : 'unpublish'} graph (HTTP ${response.status})`);
+    return payload;
+  }
+
   async exportGraph(graphData, recordId) {
     if (typeof GraphExport !== 'undefined' && GraphExport.normalizeGraphExportItem) {
       const payload = GraphExport.normalizeGraphExportItem(graphData, recordId);

@@ -1062,7 +1062,7 @@ require_auth();
         }
 
         function loadPublishedScannerGraphs() {
-            fetch('<?= e(base_url('api/dashboard_graphs.php')) ?>', { headers: { 'Accept': 'application/json' } })
+            fetch('<?= e(base_url('api/dashboard_graphs.php')) ?>', { cache: 'no-store', headers: { 'Accept': 'application/json' } })
                 .then(res => {
                     if (!res.ok) throw new Error('Published graph request failed');
                     return res.json();

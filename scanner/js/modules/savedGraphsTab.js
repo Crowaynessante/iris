@@ -42,21 +42,20 @@ export async function publishSavedGraphs(ctx, selectedGraphs = []) {
   const graphs = selectedGraphs.length ? selectedGraphs : (ctx.api.savedGraphsVisible || []).filter(graph => state.savedGraphIds.has(graph.id));
   if (!graphs.length) return { successCount: 0, published: [] };
 
-  const recordIds = [...new Set(graphs.map(graph => graph.record_id).filter(Boolean))];
-  if (!recordIds.length) return { successCount: 0, published: [] };
-
   try {
-    const result = await ctx.dbManager.approveRecords(recordIds);
-    const count = Number(result?.successCount || 0);
+    const results = await Promise.allSettled(graphs.map(graph => ctx.dbManager.publishGraph(graph.id, true)));
+    const published = results.flatMap((result, index) => result.status === 'fulfilled' ? [graphs[index]] : []);
+    const failures = results.flatMap((result, index) => result.status === 'rejected' ? [{ graph: graphs[index], error: result.reason }] : []);
+    if (!published.length && failures.length) throw failures[0].error;
     if (typeof document !== 'undefined') {
       const toast = document.createElement('div');
       toast.className = 'pdf-copy-toast visible';
-      toast.textContent = `${count} record${count === 1 ? '' : 's'} published to the Observatory.`;
+      toast.textContent = `${published.length} graph${published.length === 1 ? '' : 's'} published to the Observatory.${failures.length ? ` ${failures.length} failed.` : ''}`;
       document.body.appendChild(toast);
       setTimeout(() => toast.remove(), 3000);
     }
     if (ctx.api?.renderSavedGraphsTab) await ctx.api.renderSavedGraphsTab();
-    return result;
+    return { successCount: published.length, published, failureCount: failures.length, failures };
   } catch (error) {
     console.error('Publish failed:', error);
     if (typeof window !== 'undefined') {

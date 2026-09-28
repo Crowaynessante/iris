@@ -24,10 +24,7 @@ function openPendingDb() {
 }
 
 export async function savePendingUploads(files) {
-  const db = await openPendingDb();
-  const tx = db.transaction(PENDING_STORE_NAME, 'readwrite');
-  const store = tx.objectStore(PENDING_STORE_NAME);
-  const dataPromises = Array.from(files).map(async file => {
+  const items = await Promise.all(Array.from(files).map(async file => {
     const buffer = await file.arrayBuffer();
     return {
       name: file.name,
@@ -36,14 +33,33 @@ export async function savePendingUploads(files) {
       lastModified: file.lastModified,
       buffer
     };
-  });
-  const items = await Promise.all(dataPromises);
-  for (const item of items) {
-    store.add(item);
-  }
+  }));
+  const db = await openPendingDb();
   return new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve(true);
-    tx.onerror = () => reject(tx.error);
+    let tx;
+    try {
+      tx = db.transaction(PENDING_STORE_NAME, 'readwrite');
+      tx.oncomplete = () => {
+        db.close();
+        resolve(true);
+      };
+      tx.onerror = () => {
+        db.close();
+        reject(tx.error || new Error('Unable to queue upload'));
+      };
+      tx.onabort = () => {
+        db.close();
+        reject(tx.error || new Error('Upload queue transaction was aborted'));
+      };
+      const store = tx.objectStore(PENDING_STORE_NAME);
+      for (const item of items) {
+        store.add(item);
+      }
+    } catch (error) {
+      if (tx) tx.abort();
+      db.close();
+      reject(error);
+    }
   });
 }
 
@@ -70,9 +86,24 @@ export async function getAndClearPendingUploads() {
 }
 
 export function initFileIngestion(ctx) {
+  const input = [
+    document.getElementById('adminInlineFileInput'),
+    document.getElementById('adminWidgetFileInput'),
+    document.getElementById('scannerUploadFileInput'),
+    document.getElementById('fileInput'),
+    document.querySelector('#inlineUploadDropzone input[type="file"]'),
+    document.querySelector('#uploadWidgetModal input[type="file"]')
+  ].find(Boolean) || null;
+
+  const browse = [
+    document.getElementById('adminInlineBrowseBtn'),
+    document.getElementById('adminWidgetBrowseBtn'),
+    document.getElementById('scannerUploadBrowseBtn'),
+    document.getElementById('btnInlineBrowse'),
+    document.getElementById('btnBrowse')
+  ].find(Boolean) || null;
+
   const dropzone = $('dropzone') || $('inlineUploadDropzone');
-  const input = $('fileInput') || document.querySelector('#inlineUploadDropzone input[type="file"]') || document.querySelector('input[type="file"][id="fileInput"]');
-  const browse = $('btnBrowse') || $('btnInlineBrowse');
   const trigger = $('uploadWidgetTrigger'); const modal = $('uploadWidgetModal'); const closeBtn = $('closeUploadWidget');
   const progressCard = $('progressCard'); const workspace = $('workspaceGrid');
   const status = $('progressStatus'); const percent = $('progressPercent'); const fill = $('progressFill');
@@ -280,11 +311,10 @@ export function initFileIngestion(ctx) {
     }
   });
 
-  browse?.addEventListener('click', () => {
-    input?.click();
-  });
-  $('btnInlineBrowse')?.addEventListener('click', () => {
-    input?.click();
+  [browse, document.getElementById('btnInlineBrowse'), document.getElementById('adminInlineBrowseBtn'), document.getElementById('adminWidgetBrowseBtn'), document.getElementById('scannerUploadBrowseBtn')].filter(Boolean).forEach(button => {
+    button.addEventListener('click', () => {
+      input?.click();
+    });
   });
 
   input?.addEventListener('change', event => {

@@ -116,12 +116,33 @@ test('SQL file export uses the shared SQL content and SQL download type', () => 
 });
 
 test('saved graph publish controls work for individual and bulk actions', () => {
+  const dbManagerSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'database', 'dbManager.js'), 'utf8');
   assert.match(savedGraphsSource, /graph-action-button graph-action-publish/);
   assert.match(savedGraphsSource, /<span>Publish<\/span>/);
   assert.match(savedGraphsSource, /savedGraphsPublishSelected/);
   assert.match(savedGraphsSource, /publishSelectedGraphs\(selectedGraphs\)/);
-  assert.match(savedGraphsSource, /approveRecords\(recordIds\)/);
+  assert.match(savedGraphsSource, /ctx\.dbManager\.publishGraph\(graph\.id, true\)/);
+  assert.match(dbManagerSource, /action=\$\{published \? 'publish' : 'unpublish'\}/);
+  assert.doesNotMatch(savedGraphsSource, /approveRecords\(recordIds\)/);
   assert.match(savedGraphsSource, /Publish/);
+});
+
+test('public scanner graphs are gated by explicit graph publication only', () => {
+  const dashboardApi = fs.readFileSync(path.join(__dirname, '..', '..', 'api', 'dashboard_graphs.php'), 'utf8');
+  const graphApi = fs.readFileSync(path.join(__dirname, '..', '..', 'api', 'iris.php'), 'utf8');
+  const publicDashboard = fs.readFileSync(path.join(__dirname, '..', '..', 'user', 'dashboard.php'), 'utf8');
+  assert.match(dashboardApi, /WHERE sg\.is_published = 1/);
+  assert.match(dashboardApi, /Cache-Control: no-store/);
+  assert.match(publicDashboard, /cache: 'no-store'/);
+  assert.doesNotMatch(dashboardApi, /r\.status\s*=\s*'Approved'/);
+  assert.doesNotMatch(graphApi, /COALESCE\(saved_graphs\.is_published, CASE WHEN records\.status/);
+});
+
+test('Studio Publish approves the record and publishes only its active chart', () => {
+  const studioSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'modules', 'studioWorkbench.js'), 'utf8');
+  assert.match(studioSource, /status: approve \? 'Approved'/);
+  assert.match(studioSource, /savedChart\.is_published = approve === true/);
+  assert.match(studioSource, /saveGraph\(savedChart\)/);
 });
 
 test('saved graph publish helpers are exposed globally for all files', () => {
@@ -193,6 +214,24 @@ test('studio chart previews use the same decimal precision control as summary ca
   assert.match(html, /studioValuePrecisionSelect|Display Precision/i);
   assert.match(html, /No decimals|1 decimal|2 decimals/i);
   assert.match(engine, /formatChartValueForDisplay|displayPrecision/);
+});
+
+test('upload widgets use unique file input IDs so the browser chooses the correct file picker', () => {
+  const scannerHtml = fs.readFileSync(path.join(__dirname, '..', 'index.php'), 'utf8');
+  const adminDashboardHtml = fs.readFileSync(path.join(__dirname, '..', '..', 'admin', 'dashboard.php'), 'utf8');
+  const adminHeaderHtml = fs.readFileSync(path.join(__dirname, '..', '..', 'admin', 'includes', 'header.php'), 'utf8');
+
+  assert.equal((scannerHtml.match(/id="fileInput"/g) || []).length, 0);
+  assert.equal((adminDashboardHtml.match(/id="fileInput"/g) || []).length, 0);
+  assert.equal((adminHeaderHtml.match(/id="fileInput"/g) || []).length, 0);
+  assert.match(scannerHtml, /id="scannerUploadFileInput"/);
+  assert.match(adminDashboardHtml, /id="adminInlineFileInput"/);
+  assert.match(adminHeaderHtml, /id="adminWidgetFileInput"/);
+});
+
+test('chart engine does not redeclare yearColumn during ranked-bar rendering', () => {
+  const engineSource = fs.readFileSync(path.join(__dirname, '..', 'js', 'modules', 'chartEngine.js'), 'utf8');
+  assert.equal((engineSource.match(/const yearColumn = /g) || []).length, 1);
 });
 
 test('axis controls are structural and no longer user-facing', () => {

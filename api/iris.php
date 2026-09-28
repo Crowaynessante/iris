@@ -198,9 +198,9 @@ try {
 
     if ($resource === 'graphs') {
         if ($_SERVER['REQUEST_METHOD']==='GET') {
-            if($id!==null){$q=$pdo->prepare('SELECT saved_graphs.*, COALESCE(saved_graphs.is_published, CASE WHEN records.status = "Approved" THEN 1 ELSE 0 END) AS is_published FROM saved_graphs LEFT JOIN records ON records.id = saved_graphs.record_id WHERE saved_graphs.id=?');$q->execute([$id]);$g=$q->fetch(PDO::FETCH_ASSOC);if(!$g)bad('Graph not found',404);echo json_encode(output_graph($g));exit;}
-            if($recordId!==null){$q=$pdo->prepare('SELECT saved_graphs.*, records.id AS source_file_id, records.fileName AS source_file_name, records.fileType AS source_file_type, COALESCE(saved_graphs.is_published, CASE WHEN records.status = "Approved" THEN 1 ELSE 0 END) AS is_published FROM saved_graphs LEFT JOIN records ON records.id=saved_graphs.record_id WHERE saved_graphs.record_id=? ORDER BY saved_graphs.created_at DESC');$q->execute([$recordId]);echo json_encode(array_map('output_graph',$q->fetchAll(PDO::FETCH_ASSOC)));exit;}
-            $rows=$pdo->query('SELECT saved_graphs.*, records.id AS source_file_id, records.fileName AS source_file_name, records.fileType AS source_file_type, COALESCE(saved_graphs.is_published, CASE WHEN records.status = "Approved" THEN 1 ELSE 0 END) AS is_published FROM saved_graphs LEFT JOIN records ON records.id=saved_graphs.record_id ORDER BY saved_graphs.created_at DESC')->fetchAll(PDO::FETCH_ASSOC);echo json_encode(array_map('output_graph',$rows));exit;
+            if($id!==null){$q=$pdo->prepare('SELECT saved_graphs.* FROM saved_graphs WHERE saved_graphs.id=?');$q->execute([$id]);$g=$q->fetch(PDO::FETCH_ASSOC);if(!$g)bad('Graph not found',404);echo json_encode(output_graph($g));exit;}
+            if($recordId!==null){$q=$pdo->prepare('SELECT saved_graphs.*, records.id AS source_file_id, records.fileName AS source_file_name, records.fileType AS source_file_type FROM saved_graphs LEFT JOIN records ON records.id=saved_graphs.record_id WHERE saved_graphs.record_id=? ORDER BY saved_graphs.created_at DESC');$q->execute([$recordId]);echo json_encode(array_map('output_graph',$q->fetchAll(PDO::FETCH_ASSOC)));exit;}
+            $rows=$pdo->query('SELECT saved_graphs.*, records.id AS source_file_id, records.fileName AS source_file_name, records.fileType AS source_file_type FROM saved_graphs LEFT JOIN records ON records.id=saved_graphs.record_id ORDER BY saved_graphs.created_at DESC')->fetchAll(PDO::FETCH_ASSOC);echo json_encode(array_map('output_graph',$rows));exit;
         }
         if ($_SERVER['REQUEST_METHOD']==='POST' && $action==='bulk-delete'){
             ensure_admin_for_mutation();
@@ -266,7 +266,7 @@ try {
             $chartData = $d['chart_data'] ?? $d['chartData'] ?? null;
             $stmt=$pdo->prepare('INSERT INTO saved_graphs (id,record_id,title,chart_type,orientation,value_axis_reversed,value_axis_min,value_axis_max,rank_semantic,rank_value_min,rank_value_max,labels,values_data,chart_data,is_published) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)');
             $stmt->execute([$gid,$rid,$d['title']??'Saved Chart',$d['chart_type']??$d['chartType']??'bar',$d['orientation']??'vertical',!empty($d['valueAxisReversed'])?1:0,is_numeric($d['valueAxisMin']??null)?$d['valueAxisMin']:null,is_numeric($d['valueAxisMax']??null)?$d['valueAxisMax']:null,!empty($d['rankSemantic'])?1:0,is_numeric($d['rankValueMin']??null)?$d['rankValueMin']:null,is_numeric($d['rankValueMax']??null)?$d['rankValueMax']:null,json_encode($d['labels']??[]),json_encode($d['values_data']??$d['valuesData']??$d['data']??[]),json_encode($chartData ?? []),$published]);
-            $q=$pdo->prepare('SELECT saved_graphs.*, COALESCE(saved_graphs.is_published, CASE WHEN records.status = "Approved" THEN 1 ELSE 0 END) AS is_published FROM saved_graphs LEFT JOIN records ON records.id = saved_graphs.record_id WHERE saved_graphs.id=?');
+            $q=$pdo->prepare('SELECT * FROM saved_graphs WHERE id=?');
             $q->execute([$gid]);
             echo json_encode(output_graph($q->fetch(PDO::FETCH_ASSOC)));
             exit;

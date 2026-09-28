@@ -78,6 +78,7 @@ export function initStudioWorkbench(ctx) {
           yearField: ctx.state.studioChartConfig?.yearField ?? null
         }
       };
+      savedChart.is_published = approve === true;
       await ctx.dbManager.saveGraph(savedChart);
     }
     ctx.state.studioActiveRecord = { ...record, ...updated };

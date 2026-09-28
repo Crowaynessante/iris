@@ -81,10 +81,10 @@
           <span class="format-chip excel"><i class="fa-solid fa-chart-column" aria-hidden="true"></i> Spreadsheets (XLSX, XLS, CSV)</span>
         </div>
 
-        <input type="file" id="fileInput" multiple accept=".xlsx,.xls,.csv" style="display: none;">
+        <input type="file" id="scannerUploadFileInput" multiple accept=".xlsx,.xls,.csv" style="display: none;">
 
         <div style="margin-bottom: 1.5rem;">
-          <button id="btnBrowse" class="btn-icon" style="padding: 0.75rem 2rem; font-size: 0.95rem; margin: 0 auto;">
+          <button id="scannerUploadBrowseBtn" class="btn-icon" style="padding: 0.75rem 2rem; font-size: 0.95rem; margin: 0 auto;">
             <span><i class="fa-solid fa-folder" aria-hidden="true"></i></span> Browse Institutional Files
           </button>
         </div>
