@@ -1,0 +1,18 @@
+<svg width="1500" height="340" viewBox="0 0 1500 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .iris { fill: #0D5C4D; font-family: 'Segoe UI', Arial, sans-serif; font-weight: 900; letter-spacing: -12px; }
+      .metrics { fill: #0D5C4D; font-family: 'Segoe UI', Arial, sans-serif; font-weight: 900; letter-spacing: -8px; }
+      .accent { fill: #D9A31E; }
+      .plus { fill: #D9A31E; font-family: 'Segoe UI', Arial, sans-serif; font-weight: 900; }
+      .divider { stroke: #0D5C4D; stroke-width: 8; }
+    </style>
+  </defs>
+  <g>
+    <polygon class="accent" points="110,38 250,38 195,180 50,180"/>
+    <text x="220" y="200" class="iris" font-size="176">IRIS</text>
+    <line class="divider" x1="720" y1="30" x2="720" y2="240"/>
+    <text x="760" y="205" class="metrics" font-size="164" textLength="620" lengthAdjust="spacingAndGlyphs">SielMetrics</text>
+    <text x="1410" y="205" class="plus" font-size="150">+</text>
+  </g>
+</svg>

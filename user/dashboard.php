@@ -44,6 +44,7 @@ $contributionChartTitle='College Contribution to Score';
 $contributionChartSubtitle='Top college contributions from the uploaded workbook';
 $contributionChartBadge='COLLEGES';
 if($uploadedKpi['file']){
+    $seenProgramKeys=[];
     foreach($uploadedSheetValues as $sheetIndex=>$sheet){
         if(!is_array($sheet))continue;
         $sheetName=(string)($sheet['name']??('Worksheet '.($sheetIndex+1)));
@@ -52,6 +53,12 @@ if($uploadedKpi['file']){
         if(!$headers||!$rows)continue;
         $normalizedHeaders=array_map(fn($header)=>preg_replace('/[^a-z0-9]+/',' ',strtolower($header)), $headers);
         $findColumn=function(array $patterns)use($normalizedHeaders){foreach($patterns as $pattern){foreach($normalizedHeaders as $index=>$header){if(preg_match($pattern,$header))return $index;}}return null;};
+        $isRankingBodyLabel=function($value){
+            $value=(string)$value;
+            $value=strtolower(trim($value));
+            if($value==='')return false;
+            return preg_match('/^(the impact rankings|qs|times higher education|wuri|ui greenmetric|webometrics|urap|scimago|cwts|world university rankings|ranking body|impact rankings)/i', $value) === 1;
+        };
         $nameColumn=$findColumn(['/program\s*(name|title)?/','/course\s*(name|title)?/','/^name$/','/indicator/','/item/','/category/']);
         $rankColumn=$findColumn(['/national\s*rank/','/ph\s*rank/','/philippine\s*rank/','/^rank$/','/ranking/']);
         $headerCollegeColumn=$findColumn(['/college/','/faculty/','/department/','/school/','/academic\s*unit/','/college\s*name/']);
@@ -99,11 +106,16 @@ if($uploadedKpi['file']){
         }
         foreach(array_slice($rows,0,100) as $row){
             $name=trim((string)($row[$nameColumn]??''));
-            $score=$scoreColumn!==null&&isset($row[$scoreColumn])&&is_numeric($row[$scoreColumn])?(float)$row[$scoreColumn]:(is_numeric($row[$numericColumn]??null)?(float)$row[$numericColumn]:null);
+            $score=$scoreColumn!==null&&isset($row[$scoreColumn])&&is_numeric((string)$row[$scoreColumn])?(float)$row[$scoreColumn]:(is_numeric((string)($row[$numericColumn]??''))?(float)$row[$numericColumn]:null);
             $rank=$rankColumn!==null?trim((string)($row[$rankColumn]??'')):'';
             $college=$collegeColumn!==null?trim((string)($row[$collegeColumn]??'')):$sheetName;
             $movement=$movementColumn!==null?trim((string)($row[$movementColumn]??'')):'';
             if($name===''&&$rank==='')continue;
+            if($score===null || !is_numeric((string)$score))continue;
+            if($isRankingBodyLabel($name) || $isRankingBodyLabel($college))continue;
+            $programKey = strtolower(trim($name.'|'.$college.'|'.$rank.'|'.number_format($score, 6, '.', '')));
+            if(isset($seenProgramKeys[$programKey]))continue;
+            $seenProgramKeys[$programKey]=true;
             $uploadedAnalysis['programRows'][]=['national_rank'=>$rank,'name'=>$name!==''?$name:'Unlabeled item','short_code'=>$college!==''?$college:$sheetName,'score'=>$score,'movement'=>$movement];
         }
         $uploadedAnalysis['breakdownSections'][]=['body'=>['short_name'=>$sheetName,'name'=>$sheetName,'year'=>date('Y',strtotime($uploadedRecord['scannedAt']??'now'))],'items'=>array_map(fn($label,$value)=>['item_label'=>$label,'rank_display'=>(string)$value,'rank_value'=>$value],$labels,$values)];
@@ -149,11 +161,21 @@ if($uploadedKpi['file'] && !$uploadedCollegeTotals){
 ?>
 
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CLSU Performance Observatory - IRIS</title>
+    <script>
+        (function () {
+            try {
+                const saved = localStorage.getItem('color-theme') || localStorage.getItem('iris-theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const isDark = saved ? saved === 'dark' : prefersDark;
+                document.documentElement.classList.toggle('dark', isDark);
+            } catch (e) {}
+        })();
+    </script>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -208,10 +230,10 @@ if($uploadedKpi['file'] && !$uploadedCollegeTotals){
                 <!-- Brand / Logo -->
                 <div class="flex items-center space-x-3">
                     <a href="<?= e(base_url('user/dashboard.php')) ?>" class="logo-refresh-trigger flex items-center space-x-3" data-target="<?= e(base_url('user/dashboard.php')) ?>">
-                        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-400/30">
-                            <img src="<?= e(base_url('images/iris-logo.png')) ?>" alt="IRIS Logo" class="w-10 h-10 object-contain">
+                        <div class="w-52 h-10 flex items-center justify-center overflow-hidden rounded-lg bg-transparent">
+                            <img src="<?= e(base_url('images/iris-panel-logo.svg')) ?>" alt="IRIS SielMetrics+ Logo" class="h-9 w-full object-contain object-left drop-shadow-[0_0_10px_rgba(16,185,129,0.18)]">
                         </div>
-                            <div>
+                        <div class="hidden sm:block">
                             <div class="flex items-center space-x-2">
                                 <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-emerald-600 to-teal-500 dark:from-emerald-400 dark:to-teal-300 bg-clip-text text-transparent">IRIS</span>
                                 <span class="text-xs px-2 py-0.5 font-medium rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700/50">CLSU</span>
@@ -257,9 +279,10 @@ if($uploadedKpi['file'] && !$uploadedCollegeTotals){
                             </div>
                             <ul class="py-2" aria-labelledby="user-menu-button">
                                 <?php if (($_SESSION['role'] ?? null) === 'admin'): ?>
-                                    <li>
-                                        <a href="<?= e(base_url('admin/dashboard.php')) ?>" class="block px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 dark:hover:bg-gray-600 dark:text-emerald-400 font-medium">
-                                            <i class="fa-solid fa-shield-halved mr-2"></i> Admin Portal
+                                    <li class="flex">
+                                        <a href="<?= e(base_url('admin/dashboard.php')) ?>" class="flex w-full items-center justify-start gap-2 px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 dark:hover:bg-gray-600 dark:text-emerald-400 font-medium whitespace-nowrap">
+                                            <i class="fa-solid fa-shield-halved flex-shrink-0"></i>
+                                            <span class="whitespace-nowrap">Admin Portal</span>
                                         </a>
                                     </li>
                                 <?php endif; ?>
@@ -713,13 +736,12 @@ if($uploadedKpi['file'] && !$uploadedCollegeTotals){
             themeToggleDarkIcon.classList.toggle('hidden');
             themeToggleLightIcon.classList.toggle('hidden');
 
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('color-theme', 'light');
-            } else {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('color-theme', 'dark');
-            }
+            const isDarkNow = document.documentElement.classList.contains('dark');
+            const nextMode = isDarkNow ? 'light' : 'dark';
+
+            document.documentElement.classList.toggle('dark', nextMode === 'dark');
+            localStorage.setItem('color-theme', nextMode);
+            localStorage.setItem('iris-theme', nextMode);
             renderAllCharts();
         });
 

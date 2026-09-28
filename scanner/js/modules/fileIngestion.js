@@ -137,6 +137,12 @@ export function initFileIngestion(ctx) {
       return;
     }
 
+    const hasRestoredEntry = ctx.state.queue.some(item => item.source === 'restored');
+    if (hasRestoredEntry) {
+      ctx.state.queue = [];
+      ctx.state.activeScan = null;
+    }
+
     closeModal();
     if (progressCard) progressCard.style.display = 'block'; if (workspace) workspace.style.display = 'grid';
     for (let index = 0; index < selected.length; index += 1) {

@@ -329,6 +329,7 @@ body {
   border-radius: 1.4rem;
   box-shadow: 0 28px 60px rgba(2, 6, 23, 0.42);
   padding: 1.35rem 1.35rem 0.5rem;
+  font-family: 'Inter', sans-serif;
 }
 
 .upload-widget-header {
@@ -347,12 +348,15 @@ body {
   letter-spacing: 0.12em;
   color: rgba(148, 163, 184, 0.9);
   font-weight: 700;
+  font-family: 'Inter', sans-serif;
 }
 
 .upload-widget-title {
   font-size: 1.25rem;
   color: #f8fafc;
   font-weight: 800;
+  font-family: 'Inter', sans-serif;
+  letter-spacing: -0.02em;
 }
 
 .upload-widget-close {
@@ -379,10 +383,12 @@ body {
 .upload-dropzone .sample-btn,
 .upload-dropzone .format-chip {
   color: #f8fafc;
+  font-family: 'Inter', sans-serif;
 }
 
 .upload-dropzone .dropzone-subtitle {
   color: rgba(226, 232, 240, 0.82);
+  font-weight: 500;
 }
 
 .upload-dropzone .samples-container {
@@ -419,6 +425,89 @@ body {
   border-color: var(--clsu-gold-dark);
   background: #FAFCFA;
   box-shadow: 0 8px 30px rgba(20, 108, 54, 0.08);
+}
+
+.upload-widget-modal,
+.upload-widget-panel,
+.upload-widget-header,
+.upload-widget-kicker,
+.upload-widget-title,
+.upload-widget-close,
+.upload-dropzone,
+.upload-dropzone .dropzone-title,
+.upload-dropzone .dropzone-subtitle,
+.upload-dropzone .samples-label,
+.upload-dropzone .sample-btn,
+.upload-dropzone .format-chip,
+.upload-dropzone .sample-btn:hover,
+.upload-dropzone .format-chip,
+.upload-dropzone .samples-container,
+.upload-dropzone .samples-container * {
+  color: #f8fafc !important;
+  background: transparent !important;
+  border-color: rgba(148, 163, 184, 0.2) !important;
+}
+
+.upload-widget-panel {
+  background: linear-gradient(180deg, #162334 0%, #1d2d3f 100%) !important;
+  border: 1px solid rgba(16, 185, 129, 0.3) !important;
+  box-shadow: 0 28px 60px rgba(2, 6, 23, 0.42) !important;
+}
+
+.upload-widget-close {
+  background: rgba(15, 23, 42, 0.35) !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+}
+
+.upload-dropzone {
+  background: rgba(15, 23, 42, 0.28) !important;
+  border: 1px solid rgba(148, 163, 184, 0.18) !important;
+}
+
+.upload-dropzone .sample-btn {
+  background: rgba(15, 23, 42, 0.35) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  color: #e2e8f0 !important;
+}
+
+.upload-dropzone .sample-btn:hover {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: #f8fafc !important;
+  border-color: rgba(16, 185, 129, 0.7) !important;
+}
+
+.upload-dropzone .format-chip {
+  background: rgba(15, 23, 42, 0.35) !important;
+  border-color: rgba(148, 163, 184, 0.2) !important;
+  color: #e2e8f0 !important;
+}
+
+.upload-dropzone .dropzone-subtitle,
+.upload-dropzone .samples-label {
+  color: rgba(226, 232, 240, 0.82) !important;
+}
+
+html:not(.dark) .upload-widget-modal,
+html:not(.dark) .upload-widget-panel,
+html:not(.dark) .upload-dropzone,
+html:not(.dark) .upload-dropzone .sample-btn,
+html:not(.dark) .upload-dropzone .format-chip,
+html:not(.dark) .upload-widget-close {
+  color: #f8fafc !important;
+  background: transparent !important;
+}
+
+html:not(.dark) .upload-widget-panel {
+  background: linear-gradient(180deg, #162334 0%, #1d2d3f 100%) !important;
+}
+
+html:not(.dark) .upload-dropzone {
+  background: rgba(15, 23, 42, 0.28) !important;
+}
+
+html:not(.dark) .upload-dropzone .sample-btn,
+html:not(.dark) .upload-dropzone .format-chip {
+  background: rgba(15, 23, 42, 0.35) !important;
 }
 
 .dropzone-icon {
@@ -530,6 +619,54 @@ body {
   color: var(--clsu-green);
   background: var(--clsu-green-subtle);
   transform: translateY(-1px);
+}
+
+html:not(.dark) .upload-widget-panel {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08) !important;
+}
+html:not(.dark) .upload-widget-kicker { color: #475569 !important; }
+html:not(.dark) .upload-widget-title { color: #0f172a !important; }
+html:not(.dark) .upload-widget-close {
+  background: #f3f4f6 !important;
+  border-color: #d1d5db !important;
+  color: #334155 !important;
+}
+html:not(.dark) .upload-dropzone {
+  background: #ffffff !important;
+  border-color: #dfe7e1 !important;
+  color: #0f172a !important;
+}
+html:not(.dark) .upload-dropzone .dropzone-title { color: #0f172a !important; font-size: 1.56rem !important; letter-spacing: -0.03em !important; }
+html:not(.dark) .upload-dropzone .dropzone-subtitle { color: #475569 !important; font-size: 0.95rem !important; }
+html:not(.dark) .upload-dropzone .samples-label { color: #047857 !important; }
+html:not(.dark) .upload-dropzone .sample-btn {
+  background: #ffffff !important;
+  border-color: #dbe5df !important;
+  color: #0f172a !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+}
+html:not(.dark) .upload-dropzone .sample-btn:hover {
+  background: #ecfdf5 !important;
+  color: #065f46 !important;
+  border-color: #34d399 !important;
+}
+html:not(.dark) .upload-dropzone .format-chip {
+  background: #f8fafc !important;
+  border-color: #dfe7e1 !important;
+  color: #334155 !important;
+  font-weight: 700 !important;
+}
+html:not(.dark) .format-chip.excel { background: #ecfdf5 !important; color: #065f46 !important; border-color: #a7f3d0 !important; }
+html:not(.dark) .format-chip.pdf { background: #fef2f2 !important; color: #991b1b !important; border-color: #fecaca !important; }
+html:not(.dark) .format-chip.docx { background: #eff6ff !important; color: #1e40af !important; border-color: #bfdbfe !important; }
+html:not(.dark) .samples-container { border-top-color: #e2e8f0 !important; }
+html:not(.dark) .dropzone-container:hover, html:not(.dark) .dropzone-container.dragover {
+  background: #f9fafb !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.12) !important;
 }
 
 /* Progress Bar */

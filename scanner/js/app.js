@@ -49,6 +49,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   ctx.api.renderQueue();
   window.IRISApp = ctx;
 
+  const workspace = document.getElementById('workspaceGrid');
+  try {
+    if (window.SampleGenerator) {
+      const demoFile = window.SampleGenerator.createSampleExcelFile();
+      const demoScan = await scanner.scanFile(demoFile, () => {});
+      ctx.state.queue = [demoScan];
+      if (workspace) workspace.style.display = 'grid';
+      await ctx.api.setActiveScan(demoScan);
+      return;
+    }
+  } catch (error) {
+    console.warn('Unable to load the default sample dataset:', error);
+  }
+
   // Reopen the latest server-backed scan so navigation does not reset the workspace.
   try {
     const records = await ctx.dbManager.getAllRecords();
@@ -58,6 +72,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (latest) {
       const restoredScan = {
         ...latest,
+        source: 'restored',
         name: latest.fileName,
         type: latest.fileType,
         size: latest.fileSize,
@@ -67,7 +82,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         status: latest.status || 'Pending Review'
       };
       ctx.state.queue = [restoredScan];
-      const workspace = document.getElementById('workspaceGrid');
       if (workspace) workspace.style.display = 'grid';
       await ctx.api.setActiveScan(restoredScan);
     }

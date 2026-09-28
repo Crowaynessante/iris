@@ -2,11 +2,21 @@
 $pdo=db();$logs=$pdo->query('SELECT * FROM uploads_log ORDER BY uploaded_at DESC LIMIT 10')->fetchAll();$errorsFirst=''; ?>
 
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IAO Admin Control Panel - IRIS</title>
+    <script>
+        (function () {
+            try {
+                const saved = localStorage.getItem('color-theme') || localStorage.getItem('iris-theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                const isDark = saved ? saved === 'dark' : prefersDark;
+                document.documentElement.classList.toggle('dark', isDark);
+            } catch (e) {}
+        })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -97,25 +107,45 @@ $pdo=db();$logs=$pdo->query('SELECT * FROM uploads_log ORDER BY uploaded_at DESC
 <body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen flex flex-col">
 
     <style>
-        /* Admin navigation: dark IRIS colorway */
-        .admin-nav{background:#182436!important;border-bottom:1px solid #334155!important;box-shadow:0 8px 24px rgba(0,0,0,.22);}
+        /* Admin navigation: dark by default for the admin portal, light-mode override matches the observatory */
+        .admin-nav{background:linear-gradient(180deg, rgba(15,23,42,.98), rgba(15,23,42,.92))!important;border-bottom:1px solid rgba(148,163,184,.22)!important;box-shadow:0 10px 30px rgba(2,6,23,.24)!important;}
         .admin-nav-inner{min-height:76px;}
         .admin-brand-title{color:#f8fafc!important;}
-        .admin-brand-sub{color:#94a3b8!important;}
-        .admin-nav-link{display:inline-flex;align-items:center;gap:.5rem;padding:.65rem .9rem;border:1px solid #334155;background:#223047;color:#e2e8f0;border-radius:.7rem;font-size:.78rem;font-weight:700;transition:.2s;}
-        .admin-nav-link:hover{background:#2b3b54;color:#fff;border-color:#10b981;}
-        .admin-nav-link.scanner{background:#059669;border-color:#10b981;color:#fff;box-shadow:0 4px 14px rgba(16,185,129,.18);}
-        .admin-nav-link.scanner:hover{background:#10b981;}
-        .admin-theme-btn{color:#cbd5e1!important;background:#223047!important;border:1px solid #334155!important;}
-        .admin-theme-btn:hover{color:#fff!important;background:#2b3b54!important;}
-        .admin-profile-btn{background:#223047!important;border:1px solid #334155!important;color:#e2e8f0!important;}
-        .admin-profile-btn:hover{background:#2b3b54!important;}
-        .admin-dropdown{background:#1e293b!important;border:1px solid #334155!important;color:#e2e8f0!important;}
+        .admin-brand-sub{color:#cbd5e1!important;}
+        .admin-nav-link{display:inline-flex;align-items:center;gap:.5rem;padding:.65rem .9rem;border:1px solid rgba(148,163,184,.25);background:rgba(15,23,42,.52);color:#e2e8f0;border-radius:.7rem;font-size:.78rem;font-weight:700;transition:.2s;}
+        .admin-nav-link:hover{background:rgba(16,185,129,.12);color:#ecfdf5;border-color:rgba(52,211,153,.45);}
+        .admin-nav-link.scanner{background:linear-gradient(135deg,#059669,#10b981);border-color:rgba(52,211,153,.7);color:#fff;box-shadow:0 4px 14px rgba(16,185,129,.18);}
+        .admin-nav-link.scanner:hover{background:linear-gradient(135deg,#10b981,#34d399);}
+        .admin-theme-btn{color:#e2e8f0!important;background:rgba(30,41,59,.9)!important;border:1px solid rgba(148,163,184,.25)!important;}
+        .admin-theme-btn:hover{color:#f8fafc!important;background:rgba(51,65,85,.9)!important;}
+        .admin-profile-btn{background:rgba(30,41,59,.9)!important;border:1px solid rgba(148,163,184,.25)!important;color:#f8fafc!important;}
+        .admin-profile-btn:hover{background:rgba(51,65,85,.9)!important;}
+        .admin-dropdown{background:#111827!important;border:1px solid rgba(148,163,184,.22)!important;color:#e2e8f0!important;box-shadow:0 12px 30px rgba(2,6,23,.35)!important;}
         .admin-dropdown .dropdown-name{color:#f8fafc!important;}
-        .admin-dropdown a{color:#cbd5e1!important;}
-        .admin-dropdown a:hover{background:#2b3b54!important;color:#fff!important;}
-        .admin-dropdown .signout{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:.6rem!important;width:100%!important;text-align:left!important;color:#fca5a5!important;border-radius:.75rem!important;transition:background .2s ease,color .2s ease;}
-        .admin-dropdown .signout:hover{background:#2b3b54!important;color:#fff!important;}
+        .admin-dropdown ul{margin:0;padding:.25rem 0!important;}
+        .admin-dropdown li{display:flex!important;align-items:center!important;}
+        .admin-dropdown a,
+        .admin-dropdown .signout{display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:.6rem!important;width:100%!important;text-align:left!important;line-height:1.2!important;white-space:nowrap!important;}
+        .admin-dropdown a{color:#dbeafe!important;padding:.7rem 1rem!important;}
+        .admin-dropdown a:hover{background:rgba(16,185,129,.12)!important;color:#ecfdf5!important;}
+        .admin-dropdown .signout{padding:.75rem 1rem!important;color:#fca5a5!important;border-radius:.75rem!important;transition:background .2s ease,color .2s ease;}
+        .admin-dropdown .signout:hover{background:rgba(239,68,68,.12)!important;color:#fee2e2!important;}
+        html:not(.dark) .admin-nav{background:rgba(255,255,255,.94)!important;border-bottom:1px solid #e5e7eb!important;box-shadow:0 8px 24px rgba(15,23,42,.06)!important;}
+        html:not(.dark) .admin-brand-title{color:#0f172a!important;}
+        html:not(.dark) .admin-brand-sub{color:#475569!important;}
+        html:not(.dark) .admin-nav-link{background:#f8fafc!important;color:#334155!important;border:1px solid #e2e8f0!important;}
+        html:not(.dark) .admin-nav-link:hover{background:#ecfdf5!important;color:#065f46!important;border-color:#a7f3d0!important;}
+        html:not(.dark) .admin-nav-link.scanner{background:linear-gradient(135deg,#059669,#10b981)!important;border-color:#10b981!important;color:#fff!important;box-shadow:0 4px 14px rgba(16,185,129,.18)!important;}
+        html:not(.dark) .admin-theme-btn{color:#374151!important;background:#f3f4f6!important;border:1px solid #d1d5db!important;}
+        html:not(.dark) .admin-theme-btn:hover{color:#111827!important;background:#e5e7eb!important;}
+        html:not(.dark) .admin-profile-btn{background:#f3f4f6!important;border:1px solid #d1d5db!important;color:#111827!important;}
+        html:not(.dark) .admin-profile-btn:hover{background:#e5e7eb!important;}
+        html:not(.dark) .admin-dropdown{background:#ffffff!important;border:1px solid #e2e8f0!important;color:#1f2937!important;box-shadow:0 12px 30px rgba(15,23,42,.08)!important;}
+        html:not(.dark) .admin-dropdown .dropdown-name{color:#111827!important;}
+        html:not(.dark) .admin-dropdown a{color:#334155!important;}
+        html:not(.dark) .admin-dropdown a:hover{background:#f0fdf4!important;color:#065f46!important;}
+        html:not(.dark) .admin-dropdown .signout{color:#b91c1c!important;}
+        html:not(.dark) .admin-dropdown .signout:hover{background:#fef2f2!important;color:#991b1b!important;}
         #page-loader{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(15,23,42,.68);backdrop-filter:blur(6px);z-index:10000;transition:opacity .3s ease,visibility .3s ease;}
         #page-loader.hidden{opacity:0;visibility:hidden;pointer-events:none;}
         .iris-loader{position:relative;width:72px;height:72px;border-radius:50%;background:conic-gradient(#10b981,#34d399,#fbbf24,#10b981);animation:spin 1s linear infinite;box-shadow:0 0 30px rgba(16,185,129,.5)}
@@ -134,10 +164,10 @@ $pdo=db();$logs=$pdo->query('SELECT * FROM uploads_log ORDER BY uploaded_at DESC
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="admin-nav-inner flex items-center justify-between gap-4">
                 <a href="<?= e(base_url('admin/dashboard.php')) ?>" class="logo-refresh-trigger flex items-center gap-3 min-w-0" data-target="<?= e(base_url('admin/dashboard.php')) ?>">
-                    <div class="w-11 h-11 rounded-xl bg-gradient-to-tr from-emerald-600 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20 ring-2 ring-emerald-400/30 overflow-hidden shrink-0">
-                        <img src="<?= e(base_url('images/iris-logo.png')) ?>" alt="IRIS Logo" class="w-11 h-11 object-contain">
+                    <div class="w-52 h-11 flex items-center justify-center overflow-hidden shrink-0 rounded-lg bg-transparent">
+                        <img src="<?= e(base_url('images/iris-panel-logo.svg')) ?>" alt="IRIS SielMetrics+ Logo" class="h-10 w-full object-contain object-left drop-shadow-[0_0_10px_rgba(16,185,129,0.2)]">
                     </div>
-                    <div class="min-w-0">
+                    <div class="min-w-0 hidden sm:block">
                         <div class="flex items-center gap-2">
                             <span class="admin-brand-title text-xl font-extrabold tracking-tight">IRIS Admin</span>
                             <span class="text-[10px] px-2 py-1 font-extrabold rounded-full bg-amber-400 text-slate-900 border border-amber-300">IRIS FILE INGESTION</span>
@@ -729,13 +759,12 @@ $pdo=db();$logs=$pdo->query('SELECT * FROM uploads_log ORDER BY uploaded_at DESC
             themeToggleDarkIcon.classList.toggle('hidden');
             themeToggleLightIcon.classList.toggle('hidden');
 
-            if (document.documentElement.classList.contains('dark')) {
-                document.documentElement.classList.remove('dark');
-                localStorage.setItem('color-theme', 'light');
-            } else {
-                document.documentElement.classList.add('dark');
-                localStorage.setItem('color-theme', 'dark');
-            }
+            const isDarkNow = document.documentElement.classList.contains('dark');
+            const nextMode = isDarkNow ? 'light' : 'dark';
+
+            document.documentElement.classList.toggle('dark', nextMode === 'dark');
+            localStorage.setItem('color-theme', nextMode);
+            localStorage.setItem('iris-theme', nextMode);
         });
 
         (function () {

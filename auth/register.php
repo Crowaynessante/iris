@@ -11,10 +11,14 @@ if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$u=trim($_POST['username']
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account - IRIS Observatory</title>
     <script>
-        if (localStorage.getItem('iris-theme') === 'dark' ||
-            (!localStorage.getItem('iris-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        }
+        (function() {
+            const saved = localStorage.getItem('color-theme') || localStorage.getItem('iris-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = saved ? saved === 'dark' : prefersDark;
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -130,8 +134,11 @@ if($_SERVER['REQUEST_METHOD']==='POST'){verify_csrf();$u=trim($_POST['username']
         const emailHint = document.getElementById('email-hint');
 
         themeToggle.addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark');
-            localStorage.setItem('iris-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            const isDark = !document.documentElement.classList.contains('dark');
+            document.documentElement.classList.toggle('dark', isDark);
+            const mode = isDark ? 'dark' : 'light';
+            localStorage.setItem('color-theme', mode);
+            localStorage.setItem('iris-theme', mode);
         });
 
         emailInput.addEventListener('input', () => {

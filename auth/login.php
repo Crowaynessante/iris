@@ -81,10 +81,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - IRIS Institutional Observatory</title>
     <script>
-        if (localStorage.getItem('iris-theme') === 'dark' ||
-            (!localStorage.getItem('iris-theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        }
+        (function() {
+            const saved = localStorage.getItem('color-theme') || localStorage.getItem('iris-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const isDark = saved ? saved === 'dark' : prefersDark;
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+            }
+        })();
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -205,16 +209,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
             </div>
             <div class="max-h-[70vh] overflow-y-auto p-6 text-sm leading-relaxed text-slate-200">
-                <p>By logging in, you agree to the collection and processing of your personal data in accordance with the Data Privacy Act of 2012 (RA 10173). This system (IRIS) collects and processes the following data:</p>
-                <ul class="list-disc ml-5 mt-3 space-y-2">
-                    <li>Login credentials — name, email, and password</li>
-                    <li>International Affairs Office data — partnership records, ranking statistics, and other metrics visualized on the dashboard</li>
+                <p><strong>By logging in to IRIS, you acknowledge and agree to the collection, processing, and storage of your personal data in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173), its Implementing Rules and Regulations, and other issuances of the National Privacy Commission (NPC).</strong></p>
+
+                <p class="mt-4 font-bold">1. Scope of the Notice</p>
+                <p class="mt-2">This notice applies to all individuals who access or are recorded in IRIS, including:</p>
+                <ul class="list-disc ml-5 mt-2 space-y-2">
+                    <li>IAO staff and authorized CLSU personnel who log in to use the system.</li>
+                    <li>CLSU officials and employees whose information appears in partnership, or performance records processed by the system.</li>
+                    <li>Any other authorized user granted access credentials to IRIS.</li>
                 </ul>
-                <p class="mt-3">This data is used solely for monitoring and reporting purposes within CLSU's International Affairs Office and will not be shared with third parties without consent.</p>
+
+                <p class="mt-4 font-bold">2. Data We Collect</p>
+                <ul class="list-disc ml-5 mt-2 space-y-2">
+                    <li><strong>Login credentials</strong> — full name, institutional email address, and password, stored in encrypted or hashed form.</li>
+                    <li><strong>International Affairs Office data</strong> — partnership records, ranking statistics, and other institutional metrics visualized on the dashboard.</li>
+                </ul>
+
+                <p class="mt-4 font-bold">3. Why We Collect It</p>
+                <ul class="list-disc ml-5 mt-2 space-y-2">
+                    <li>Authenticating and authorizing access to IRIS.</li>
+                    <li>Monitoring and reporting on CLSU's international partnerships, rankings, and related performance metrics.</li>
+                    <li>Generating dashboards and reports for internal administrative and decision-making use by the IAO.</li>
+                    <li>Complying with institutional reporting requirements to CLSU administration and relevant government bodies.</li>
+                </ul>
+
+                <p class="mt-4 font-bold">4. Legal Basis for Processing</p>
+                <p class="mt-2">Processing of personal data through IRIS is based on:</p>
+                <ul class="list-disc ml-5 mt-2 space-y-2">
+                    <li><strong>Consent</strong> — given by logging in and agreeing to this notice.</li>
+                    <li><strong>Legitimate interest</strong> — CLSU's interest in managing institutional records and fulfilling its administrative and reporting functions.</li>
+                </ul>
+
+                <p class="mt-4 font-bold">5. Sharing and Disclosure</p>
+                <p class="mt-2">Your data will not be shared, sold, or disclosed to third parties without your explicit consent, except:</p>
+                <ul class="list-disc ml-5 mt-2 space-y-2">
+                    <li>When required by law, court order, or a competent government authority.</li>
+                    <li>When shared with authorized CLSU personnel strictly for the purposes stated in Section 4.</li>
+                    <li>When necessary to protect the rights, property, or safety of CLSU, IRIS users, or the public.</li>
+                </ul>
+
+                <p class="mt-4 font-bold">6. Storage and Retention</p>
+                <p class="mt-2">Your data is retained only for as long as necessary to fulfill the purposes stated in this notice, or as required by applicable university policy and law. Upon expiration of the retention period, data is securely disposed of, deleted, or anonymized in a manner that prevents recovery or reconstruction.</p>
+
+                <p class="mt-4 font-bold">7. Security Measures</p>
+                <p class="mt-2">CLSU implements reasonable organizational, physical, and technical safeguards to protect your personal data against unauthorized access, alteration, disclosure, accidental loss, or destruction. These include, but are not limited to:</p>
+                <ul class="list-disc ml-5 mt-2 space-y-2">
+                    <li>Encryption or hashing of stored credentials.</li>
+                    <li>Access controls limiting data visibility to authorized personnel only.</li>
+                </ul>
+                <p class="mt-2">In the event of a data breach involving your personal data, CLSU will notify affected data subjects and the NPC in accordance with RA 10173 and its IRR, where required.</p>
+
+                <p class="mt-4 font-bold">8. Your Rights as a Data Subject</p>
+                <p class="mt-2">Under RA 10173, you have the right to:</p>
+                <ul class="list-disc ml-5 mt-2 space-y-2">
+                    <li>Be informed of how your data is processed.</li>
+                    <li>Access your personal data held by the system.</li>
+                    <li>Correct any inaccurate or outdated data.</li>
+                    <li>Object to processing, subject to legal and contractual restrictions.</li>
+                    <li>Request the deletion or blocking of your data under certain conditions.</li>
+                    <li>Data portability, where applicable.</li>
+                    <li>Be indemnified for damages sustained due to inaccurate, incomplete, outdated, false, unlawfully obtained, or unauthorized use of personal data.</li>
+                    <li>File a complaint with the National Privacy Commission (NPC).</li>
+                </ul>
+
+                <p class="mt-4"><strong>By continuing to use IRIS, you confirm that you have read, understood, and agreed to the terms of this Data Privacy Notice.</strong></p>
+
+                <label class="mt-5 flex items-start gap-3 rounded-xl border border-slate-700 bg-slate-800/70 px-3 py-3 text-sm text-slate-200">
+                    <input id="privacyConsentCheckbox" type="checkbox" class="mt-0.5 h-4 w-4 rounded border-slate-500 bg-slate-900 text-emerald-500 focus:ring-emerald-500" />
+                    <span>I agree to the terms and conditions of this Data Privacy Notice.</span>
+                </label>
             </div>
             <div class="border-t border-slate-700 px-6 py-4 flex justify-end gap-3">
                 <button type="button" id="declinePrivacy" class="rounded-xl border border-slate-600 px-4 py-2 text-sm font-medium text-slate-200 hover:bg-slate-800">Decline</button>
-                <button type="button" id="acceptPrivacy" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">I Agree</button>
+                <button type="button" id="acceptPrivacy" class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>I Agree</button>
             </div>
         </div>
     </div>
@@ -229,12 +296,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         const acceptPrivacy = document.getElementById('acceptPrivacy');
         const declinePrivacy = document.getElementById('declinePrivacy');
         const closePrivacyModalBtn = document.getElementById('closePrivacyModal');
+        const privacyConsentCheckbox = document.getElementById('privacyConsentCheckbox');
         const loginForm = document.getElementById('loginForm');
         const submitButton = loginForm?.querySelector('button[type="submit"]');
+
+        const updatePrivacyConsentState = () => {
+            const isChecked = privacyConsentCheckbox?.checked;
+            acceptPrivacy.disabled = !isChecked;
+            acceptPrivacy.classList.toggle('opacity-50', !isChecked);
+            acceptPrivacy.classList.toggle('cursor-not-allowed', !isChecked);
+        };
 
         const openPrivacyModal = () => {
             privacyModal.classList.remove('hidden');
             privacyModal.classList.add('flex');
+            setTimeout(() => updatePrivacyConsentState(), 0);
         };
 
         const closePrivacyModalFn = () => {
@@ -252,7 +328,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         setLoginBlocked(true);
         openPrivacyModal();
 
+        privacyConsentCheckbox?.addEventListener('change', updatePrivacyConsentState);
+
         acceptPrivacy.addEventListener('click', () => {
+            if (!privacyConsentCheckbox?.checked) {
+                return;
+            }
             setLoginBlocked(false);
             closePrivacyModalFn();
         });
@@ -279,8 +360,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         const themeToggle = document.getElementById('themeToggle');
         themeToggle.addEventListener('click', () => {
-            document.documentElement.classList.toggle('dark');
-            localStorage.setItem('iris-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+            const isDark = !document.documentElement.classList.contains('dark');
+            document.documentElement.classList.toggle('dark', isDark);
+            const mode = isDark ? 'dark' : 'light';
+            localStorage.setItem('color-theme', mode);
+            localStorage.setItem('iris-theme', mode);
         });
 
         const toggleBtn = document.getElementById('togglePassword');
